@@ -129,11 +129,27 @@ const people     = () => picked().length;
 
 function renderError(err) {
   console.error(err);
+
+  // Only claim a connection problem when the browser actually failed to
+  // reach anything. A permissions or schema error is not the client's
+  // internet, and telling her to check it sends her chasing the wrong thing.
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+  const isNetwork = offline || err instanceof TypeError;
+
+  const detail = [err && err.code, err && (err.message || err.hint)]
+    .filter(Boolean).join(' — ');
+
   view.innerHTML = `
     <div class="card center">
       <div class="badge lg" data-icon="close" style="margin:0 auto 12px"></div>
-      <h2>تعذّر تحميل الصفحة</h2>
-      <p class="hint">تأكدي من الاتصال بالإنترنت ثم أعيدي المحاولة.</p>
+      <h2>${isNetwork ? 'تعذّر الاتصال' : 'تعذّر تحميل الصفحة'}</h2>
+      <p class="hint">${isNetwork
+        ? 'تأكدي من الاتصال بالإنترنت ثم أعيدي المحاولة.'
+        : 'حدثت مشكلة في تحميل البيانات. أعيدي المحاولة، وإن تكررت أرسلي النص التالي:'}</p>
+      ${detail && !isNetwork
+        ? `<p class="hint" style="margin-top:10px;font-family:ui-monospace,monospace;
+                                 font-size:12px;opacity:.85;word-break:break-word;
+                                 direction:ltr;text-align:left">${esc(detail)}</p>` : ''}
       <button class="btn btn-soft mt" onclick="location.reload()">إعادة المحاولة</button>
     </div>`;
   hydrateIcons(view);
