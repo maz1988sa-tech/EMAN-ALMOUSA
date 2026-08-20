@@ -115,6 +115,7 @@
             const b = BOOKINGS.find(x => x.public_token === args.p_token) || BOOKINGS[2];
             return ok([{ ...b, items: b.booking_items }]);
           }
+          if (fn === 'get_public_settings') return ok([SETTINGS]);
           if (fn === 'request_cancel') return ok(true);
           return ok([]);
         },

@@ -631,6 +631,31 @@ begin
 end;
 $$;
 
+-- The public page's settings. Served as a function rather than read off the
+-- view, so the public surface does not depend on a table-level grant. Note
+-- what is absent: driver_phone never leaves the settings table.
+create or replace function public.get_public_settings()
+returns table (
+  business_name    text,
+  tagline          text,
+  timezone         text,
+  slot_step_min    integer,
+  min_lead_hours   integer,
+  max_advance_days integer,
+  whatsapp_phone   text,
+  accepting_bookings boolean,
+  closed_message   text
+)
+language sql stable security definer
+set search_path = public, pg_temp
+as $$
+  select s.business_name, s.tagline, s.timezone,
+         s.slot_step_min, s.min_lead_hours, s.max_advance_days,
+         s.whatsapp_phone, s.accepting_bookings, s.closed_message
+  from public.settings s
+  where s.id = 1;
+$$;
+
 -- A client may ask to cancel; the artist decides. This never deletes a row.
 create or replace function public.request_cancel(p_token uuid)
 returns boolean
@@ -741,19 +766,21 @@ grant usage, select on all sequences in schema public to authenticated;
 grant select on public.services           to anon;
 grant select on public.availability_rules to anon;
 grant select on public.date_overrides     to anon;
-grant select on public.public_settings    to anon;
+grant select on public.public_settings    to anon, authenticated;
 
 revoke execute on function public.available_slots(date, integer, uuid)           from public;
 revoke execute on function public.days_with_availability(date, integer, integer) from public;
 revoke execute on function public.create_booking(text, text, date, time, uuid[], text[], text, text, text) from public;
 revoke execute on function public.get_booking_by_token(uuid)                     from public;
 revoke execute on function public.request_cancel(uuid)                           from public;
+revoke execute on function public.get_public_settings()                          from public;
 
 grant execute on function public.available_slots(date, integer, uuid)            to anon, authenticated;
 grant execute on function public.days_with_availability(date, integer, integer)  to anon, authenticated;
 grant execute on function public.create_booking(text, text, date, time, uuid[], text[], text, text, text) to anon, authenticated;
 grant execute on function public.get_booking_by_token(uuid)                      to anon, authenticated;
 grant execute on function public.request_cancel(uuid)                            to anon, authenticated;
+grant execute on function public.get_public_settings()                            to anon, authenticated;
 
 -- Postgres grants EXECUTE on every new function to PUBLIC, so revoking from
 -- `anon` alone leaves that inherited grant in place and the internal helpers

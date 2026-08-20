@@ -262,11 +262,12 @@ end $$;
 \echo ''
 \echo '=== done ==================================================='
 
-\echo '--- 27. anon may execute the five public functions and nothing else'
+\echo '--- 27. anon may execute the six public functions and nothing else'
 do $$
 declare r record; problems text := '';
   expected constant text[] := array['available_slots','create_booking',
-    'days_with_availability','get_booking_by_token','request_cancel'];
+    'days_with_availability','get_booking_by_token','request_cancel',
+    'get_public_settings'];
 begin
   for r in
     select p.proname,
@@ -280,7 +281,7 @@ begin
         'get_booking_by_token','request_cancel','recalc_booking',
         'gen_booking_ref','bookings_set_ref','booking_items_sync',
         'bookings_apply_override','busy_intervals','day_windows',
-        'local_now','local_today','is_admin'])
+        'local_now','local_today','is_admin','get_public_settings'])
   loop
     if r.anon_may and not (r.proname = any(expected)) then
       problems := problems || format('anon can call %s; ', r.proname);
@@ -288,6 +289,43 @@ begin
       problems := problems || format('anon CANNOT call %s; ', r.proname);
     end if;
   end loop;
-  if problems = '' then raise notice 'PASS: anon execute surface is exactly the five entry points';
+  if problems = '' then raise notice 'PASS: anon execute surface is exactly the six entry points';
+  else raise notice 'FAIL: %', problems; end if;
+end $$;
+
+\echo '--- 28. anon can read the settings the booking page needs, both ways'
+do $$
+declare n int; problems text := ''; open_now boolean;
+begin
+  set local role anon;
+
+  -- The supported path: what index.html actually calls on boot.
+  begin
+    select count(*) into n from public.get_public_settings();
+    if n <> 1 then problems := problems || format('function returned %s rows; ', n); end if;
+    select accepting_bookings into open_now from public.get_public_settings();
+    if open_now is null then problems := problems || 'function returned no columns; '; end if;
+  exception when others then
+    problems := problems || 'function BLOCKED: ' || SQLERRM || '; ';
+  end;
+
+  -- The view is still referenced elsewhere, so it must stay readable too.
+  begin
+    select count(*) into n from public.public_settings;
+    if n <> 1 then problems := problems || format('view returned %s rows; ', n); end if;
+  exception when others then
+    problems := problems || 'view BLOCKED: ' || SQLERRM || '; ';
+  end;
+
+  -- Neither path may carry the driver's number.
+  begin
+    perform driver_phone from public.get_public_settings();
+    problems := problems || 'function exposes driver_phone; ';
+  exception when undefined_column then null;
+           when others then null;
+  end;
+
+  reset role;
+  if problems = '' then raise notice 'PASS: anon reads settings via function and view, without driver_phone';
   else raise notice 'FAIL: %', problems; end if;
 end $$;

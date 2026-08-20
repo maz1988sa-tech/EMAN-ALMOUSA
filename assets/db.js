@@ -151,10 +151,25 @@ export const statusLabel = (s) => (STATUS[s] || { label: s }).label;
 
 /* ── Public reads (anon) ───────────────────────────────────────────────── */
 
+// Read through the function rather than the view: the public surface should
+// not hinge on a table-level grant, which is exactly what went missing in
+// production and took the whole page down with it.
+//
+// The view is tried second so this file works against a database that has the
+// migration and one that does not — the page must not depend on which of the
+// two deploys landed first.
 export async function getPublicSettings() {
-  const { data, error } = await sb.from('public_settings').select('*').maybeSingle();
-  if (error) throw error;
-  return data;
+  const viaRpc = await sb.rpc('get_public_settings');
+  if (!viaRpc.error) {
+    const d = viaRpc.data;
+    return Array.isArray(d) ? d[0] || null : d;
+  }
+
+  const viaView = await sb.from('public_settings').select('*').maybeSingle();
+  if (!viaView.error) return viaView.data;
+
+  // Both closed: report the function's error, which names the supported path.
+  throw viaRpc.error;
 }
 
 export async function getServices({ clientOnly = true } = {}) {
