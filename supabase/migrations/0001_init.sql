@@ -654,8 +654,35 @@ end;
 $$;
 
 -- ============================================================================
+-- Who counts as an administrator
+--
+-- Being signed in is NOT enough. The public page ships an anon key, and if
+-- email signups are ever enabled — by a dashboard toggle, by accident, or by
+-- a future change — a stranger with an account would otherwise inherit full
+-- read/write over every client's data. Admin rights come from this explicit
+-- allowlist instead, so the guarantee lives in the schema rather than in a
+-- setting someone can flip.
+-- ============================================================================
+create table public.admins (
+  user_id  uuid primary key references auth.users(id) on delete cascade,
+  email    text,
+  added_at timestamptz not null default now()
+);
+
+create or replace function public.is_admin()
+returns boolean
+language sql stable security definer
+set search_path = public, pg_temp
+as $$
+  select exists (select 1 from public.admins a where a.user_id = auth.uid());
+$$;
+
+revoke all on public.admins from anon, authenticated;
+
+-- ============================================================================
 -- Row level security
 -- ============================================================================
+alter table public.admins             enable row level security;
 alter table public.settings           enable row level security;
 alter table public.services           enable row level security;
 alter table public.availability_rules enable row level security;
@@ -664,14 +691,19 @@ alter table public.bookings           enable row level security;
 alter table public.booking_items      enable row level security;
 alter table public.activity_log       enable row level security;
 
--- Admin: signed in means full control.
-create policy admin_all_settings   on public.settings           for all to authenticated using (true) with check (true);
-create policy admin_all_services   on public.services           for all to authenticated using (true) with check (true);
-create policy admin_all_rules      on public.availability_rules for all to authenticated using (true) with check (true);
-create policy admin_all_overrides  on public.date_overrides     for all to authenticated using (true) with check (true);
-create policy admin_all_bookings   on public.bookings           for all to authenticated using (true) with check (true);
-create policy admin_all_items      on public.booking_items      for all to authenticated using (true) with check (true);
-create policy admin_all_activity   on public.activity_log       for all to authenticated using (true) with check (true);
+-- Admin: on the allowlist means full control. Merely signed in means nothing.
+create policy admin_all_settings   on public.settings           for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy admin_all_services   on public.services           for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy admin_all_rules      on public.availability_rules for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy admin_all_overrides  on public.date_overrides     for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy admin_all_bookings   on public.bookings           for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy admin_all_items      on public.booking_items      for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy admin_all_activity   on public.activity_log       for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- Admins may see the roster but never edit it; adding an administrator is a
+-- deliberate act performed against the database, not something the app does.
+create policy admin_read_admins on public.admins
+  for select to authenticated using (public.is_admin());
 
 -- Public: the price list and the published working hours, nothing else.
 -- There is deliberately no anon policy on bookings, booking_items, settings
@@ -688,8 +720,23 @@ create policy anon_read_overrides on public.date_overrides
 
 -- ============================================================================
 -- Grants
+--
+-- Policies filter rows; grants decide whether the role may touch the table at
+-- all. Both are needed. These are spelled out rather than left to a platform
+-- default so the migration behaves the same on any Postgres.
 -- ============================================================================
-revoke all on all tables in schema public from anon;
+revoke all on all tables in schema public from anon, authenticated;
+
+grant usage on schema public to anon, authenticated;
+
+-- The administrator's reach is still bounded by is_admin() in every policy.
+grant select, insert, update, delete on
+  public.settings, public.services, public.availability_rules,
+  public.date_overrides, public.bookings, public.booking_items,
+  public.activity_log
+  to authenticated;
+grant select on public.admins to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
 
 grant select on public.services           to anon;
 grant select on public.availability_rules to anon;

@@ -17,6 +17,18 @@ sleep 2
 
 PSQL="psql -h $SOCK -p $PORT -U postgres -v ON_ERROR_STOP=1 -q"
 $PSQL -c "drop database if exists eman;" -c "create database eman;"
-$PSQL -d eman -c "create publication supabase_realtime;"
+# Stub the pieces Supabase provides that a bare Postgres does not.
+$PSQL -d eman <<'BOOTSTRAP'
+create publication supabase_realtime;
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname='anon') then create role anon nologin; end if;
+  if not exists (select 1 from pg_roles where rolname='authenticated') then create role authenticated nologin; end if;
+end $$;
+grant usage on schema public to anon, authenticated;
+create schema if not exists auth;
+create table if not exists auth.users (id uuid primary key, email text);
+create or replace function auth.uid() returns uuid language sql stable as
+  $f$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $f$;
+BOOTSTRAP
 $PSQL -d eman -f "$(dirname "$0")/../migrations/0001_init.sql"
 psql -h "$SOCK" -p "$PORT" -U postgres -d eman -f "$(dirname "$0")/schema_tests.sql"
