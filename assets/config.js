@@ -5,8 +5,8 @@
 // price list and the published working hours, and calling the booking
 // functions. It cannot read the client list. See supabase/migrations.
 window.APP_CONFIG = {
-  SUPABASE_URL: '__SUPABASE_URL__',
-  SUPABASE_KEY: '__SUPABASE_PUBLISHABLE_KEY__',
+  SUPABASE_URL: 'https://fontnwbgomjuezwgbzqd.supabase.co',
+  SUPABASE_KEY: 'sb_publishable_tQqnBAyQhkmNh6vl31ur3w_sGTvunHw',
 
   // Falls back to the value stored in the database; used before settings load.
   BUSINESS_NAME: 'إيمان آل موسى',

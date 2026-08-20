@@ -261,3 +261,33 @@ end $$;
 
 \echo ''
 \echo '=== done ==================================================='
+
+\echo '--- 27. anon may execute the five public functions and nothing else'
+do $$
+declare r record; problems text := '';
+  expected constant text[] := array['available_slots','create_booking',
+    'days_with_availability','get_booking_by_token','request_cancel'];
+begin
+  for r in
+    select p.proname,
+           has_function_privilege('anon', p.oid, 'execute') as anon_may
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      -- only the functions this schema defines; on Supabase pgcrypto lives in
+      -- `extensions`, but a local `create extension` puts it in public.
+      and p.proname = any(array[
+        'available_slots','create_booking','days_with_availability',
+        'get_booking_by_token','request_cancel','recalc_booking',
+        'gen_booking_ref','bookings_set_ref','booking_items_sync',
+        'bookings_apply_override','busy_intervals','day_windows',
+        'local_now','local_today','is_admin'])
+  loop
+    if r.anon_may and not (r.proname = any(expected)) then
+      problems := problems || format('anon can call %s; ', r.proname);
+    elsif not r.anon_may and r.proname = any(expected) then
+      problems := problems || format('anon CANNOT call %s; ', r.proname);
+    end if;
+  end loop;
+  if problems = '' then raise notice 'PASS: anon execute surface is exactly the five entry points';
+  else raise notice 'FAIL: %', problems; end if;
+end $$;

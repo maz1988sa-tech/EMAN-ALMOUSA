@@ -743,14 +743,38 @@ grant select on public.availability_rules to anon;
 grant select on public.date_overrides     to anon;
 grant select on public.public_settings    to anon;
 
-grant execute on function public.available_slots(date, integer, uuid)          to anon;
-grant execute on function public.days_with_availability(date, integer, integer) to anon;
-grant execute on function public.create_booking(text, text, date, time, uuid[], text[], text, text, text) to anon;
-grant execute on function public.get_booking_by_token(uuid)                    to anon;
-grant execute on function public.request_cancel(uuid)                          to anon;
+revoke execute on function public.available_slots(date, integer, uuid)           from public;
+revoke execute on function public.days_with_availability(date, integer, integer) from public;
+revoke execute on function public.create_booking(text, text, date, time, uuid[], text[], text, text, text) from public;
+revoke execute on function public.get_booking_by_token(uuid)                     from public;
+revoke execute on function public.request_cancel(uuid)                           from public;
 
-revoke execute on function public.recalc_booking(uuid) from anon;
-revoke execute on function public.gen_booking_ref()    from anon;
+grant execute on function public.available_slots(date, integer, uuid)            to anon, authenticated;
+grant execute on function public.days_with_availability(date, integer, integer)  to anon, authenticated;
+grant execute on function public.create_booking(text, text, date, time, uuid[], text[], text, text, text) to anon, authenticated;
+grant execute on function public.get_booking_by_token(uuid)                      to anon, authenticated;
+grant execute on function public.request_cancel(uuid)                            to anon, authenticated;
+
+-- Postgres grants EXECUTE on every new function to PUBLIC, so revoking from
+-- `anon` alone leaves that inherited grant in place and the internal helpers
+-- stay reachable. Revoke from PUBLIC first, then hand execute back only to the
+-- roles that genuinely need each function.
+revoke execute on function public.recalc_booking(uuid)       from public, anon, authenticated;
+revoke execute on function public.gen_booking_ref()          from public, anon, authenticated;
+revoke execute on function public.bookings_set_ref()         from public, anon, authenticated;
+revoke execute on function public.booking_items_sync()       from public, anon, authenticated;
+revoke execute on function public.bookings_apply_override()  from public, anon, authenticated;
+revoke execute on function public.busy_intervals(date, uuid) from public, anon;
+revoke execute on function public.day_windows(date)          from public, anon;
+revoke execute on function public.local_now()                from public, anon;
+revoke execute on function public.local_today()              from public, anon;
+revoke execute on function public.is_admin()                 from public, anon;
+
+grant execute on function public.busy_intervals(date, uuid) to authenticated;
+grant execute on function public.day_windows(date)          to authenticated;
+grant execute on function public.local_now()                to authenticated;
+grant execute on function public.local_today()              to authenticated;
+grant execute on function public.is_admin()                 to authenticated;
 
 -- ============================================================================
 -- Realtime — the dashboard learns about a new request the moment it lands.
