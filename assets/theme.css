@@ -1,0 +1,392 @@
+/* ==========================================================================
+   Iman Almousa — shared visual language
+   Colours sampled from the reference poster rather than eyeballed:
+   the cream ground, the blush ribbon, the badge circles and the warm
+   near-black of its display type.
+   ========================================================================== */
+
+:root {
+  --cream:     #FBF4EE;
+  --surface:   #FFFAF7;
+  --surface-2: #F7EBE4;
+  --blush:     #F3DAD2;
+  --blush-2:   #EBC5BA;
+  --rose:      #C98A7E;
+  --rose-deep: #A9675C;
+  --ink:       #2E2A27;
+  --ink-2:     #6B594D;
+  --ink-3:     #9C8779;
+  --line:      #EFE0D8;
+  --line-2:    #E4CFC5;
+
+  /* Semantic colours sit inside the same warm family so a status pill never
+     looks pasted in from another design. */
+  --ok:        #6F8C6B;  --ok-bg:     #EDF3EC;  --ok-line:  #D2E0CF;
+  --warn:      #B98442;  --warn-bg:   #FBF1E4;  --warn-line:#EDDCC2;
+  --danger:    #B3564F;  --danger-bg: #FBEAE8;  --danger-line:#EFCFCB;
+  --info:      #6E7F94;  --info-bg:   #EEF1F4;
+
+  --fd: 'Amiri', Georgia, 'Times New Roman', serif;
+  --fs: 'Aref Ruqaa', 'Amiri', Georgia, serif;
+  --ft: 'Tajawal', 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  --r-xl: 26px; --r-lg: 20px; --r: 16px; --r-sm: 12px; --r-pill: 999px;
+  --sh:   0 2px 12px rgba(169, 103, 92, .07);
+  --sh-2: 0 10px 34px rgba(169, 103, 92, .13);
+  --sh-3: 0 -6px 30px rgba(169, 103, 92, .16);
+
+  --tap: 44px;           /* minimum comfortable touch target */
+  --page: 560px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cream:     #211A17;
+    --surface:   #2A211D;
+    --surface-2: #332822;
+    --blush:     #4A362F;
+    --blush-2:   #5C443A;
+    --rose:      #DFA294;
+    --rose-deep: #F0BFB1;
+    --ink:       #F5E9E2;
+    --ink-2:     #CDB6A8;
+    --ink-3:     #A08877;
+    --line:      #3B2E28;
+    --line-2:    #4A3A32;
+    --ok:        #A8C4A2;  --ok-bg:     #26302A;  --ok-line:  #3A4A38;
+    --warn:      #E0AE7E;  --warn-bg:   #3A2A1C;  --warn-line:#523C28;
+    --danger:    #E89A92;  --danger-bg: #3D2320;  --danger-line:#5A332F;
+    --info:      #A9B8C8;  --info-bg:   #262E36;
+    --sh:   0 2px 12px rgba(0, 0, 0, .32);
+    --sh-2: 0 10px 34px rgba(0, 0, 0, .45);
+    --sh-3: 0 -6px 30px rgba(0, 0, 0, .5);
+  }
+}
+
+:root[data-theme="dark"] {
+  --cream:     #211A17;
+  --surface:   #2A211D;
+  --surface-2: #332822;
+  --blush:     #4A362F;
+  --blush-2:   #5C443A;
+  --rose:      #DFA294;
+  --rose-deep: #F0BFB1;
+  --ink:       #F5E9E2;
+  --ink-2:     #CDB6A8;
+  --ink-3:     #A08877;
+  --line:      #3B2E28;
+  --line-2:    #4A3A32;
+  --ok:        #A8C4A2;  --ok-bg:     #26302A;  --ok-line:  #3A4A38;
+  --warn:      #E0AE7E;  --warn-bg:   #3A2A1C;  --warn-line:#523C28;
+  --danger:    #E89A92;  --danger-bg: #3D2320;  --danger-line:#5A332F;
+  --info:      #A9B8C8;  --info-bg:   #262E36;
+  --sh:   0 2px 12px rgba(0, 0, 0, .32);
+  --sh-2: 0 10px 34px rgba(0, 0, 0, .45);
+  --sh-3: 0 -6px 30px rgba(0, 0, 0, .5);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { direction: rtl; -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--ft);
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Focus is always visible. Icon-only controls are the ones that need it most. */
+:focus-visible {
+  outline: 2px solid var(--rose);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+
+.ic { flex-shrink: 0; display: block; }
+
+.shell { max-width: var(--page); margin: 0 auto; padding: 0 16px 40px; }
+
+/* Digits line up in columns wherever money or counts are shown. */
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── Type ──────────────────────────────────────────────────────────────── */
+h1, h2, h3, h4 { margin: 0; font-weight: 700; text-wrap: balance; }
+h1 { font-family: var(--fs); font-weight: 400; font-size: clamp(24px, 5.5vw, 32px); line-height: 1.35; }
+h2 { font-family: var(--fd); font-size: 19px; }
+h3 { font-family: var(--fd); font-size: 16.5px; }
+p  { margin: 0; }
+a  { color: var(--rose-deep); }
+
+.eyebrow {
+  font-size: 11px; letter-spacing: .18em; font-weight: 700;
+  color: var(--rose); text-transform: uppercase;
+}
+
+/* The poster's pill ribbon, used to head a section. */
+.ribbon {
+  display: block; width: fit-content; margin: 34px auto 6px;
+  background: var(--blush-2); color: var(--rose-deep);
+  border-radius: var(--r-pill); padding: 6px 24px;
+  font-size: 12px; letter-spacing: .18em; font-weight: 700;
+}
+.ribbon-sub {
+  text-align: center; color: var(--ink-3); font-size: 13px;
+  margin: 0 auto 18px; max-width: 44ch; text-wrap: balance;
+}
+
+/* A heading with a hairline rule running to the edge. */
+.sec-head { display: flex; align-items: baseline; gap: 10px; margin: 26px 0 12px; }
+.sec-head .rule { flex: 1; height: 1px; background: var(--line-2); }
+.sec-head .count { font-size: 11.5px; color: var(--ink-3); }
+
+/* ── Surfaces ──────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: 18px; box-shadow: var(--sh);
+}
+
+/* The poster's arch, used for the one thing a screen most wants you to do. */
+.arch {
+  background: linear-gradient(168deg, var(--blush) 0%, var(--surface) 92%);
+  border: 1px solid var(--line-2);
+  border-radius: min(46vw, 260px) min(46vw, 260px) var(--r-lg) var(--r-lg);
+  padding: 40px 24px 26px; text-align: center; box-shadow: var(--sh);
+}
+
+.badge {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--blush); color: var(--rose-deep);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.badge.lg { width: 58px; height: 58px; }
+.badge.on-surface { background: var(--surface); box-shadow: var(--sh); }
+
+/* Dotted leader rows, straight from the poster's services column. */
+.leader { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; font-size: 14px; }
+.leader .k { color: var(--ink-3); }
+.leader .d { flex: 1; border-bottom: 1px dotted var(--line-2); transform: translateY(-4px); }
+.leader .v { font-family: var(--fd); font-weight: 700; font-variant-numeric: tabular-nums; }
+.leader .v.due  { color: var(--danger); }
+.leader .v.paid { color: var(--ok); }
+
+/* ── Pills ─────────────────────────────────────────────────────────────── */
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 700; padding: 4px 11px;
+  border-radius: var(--r-pill); white-space: nowrap;
+  background: var(--surface-2); color: var(--ink-2);
+}
+.pill.pending   { background: var(--warn-bg);   color: var(--warn); }
+.pill.confirmed { background: var(--blush-2);   color: var(--rose-deep); }
+.pill.done      { background: var(--ok-bg);     color: var(--ok); }
+.pill.cancelled,
+.pill.rejected,
+.pill.no_show   { background: var(--danger-bg); color: var(--danger); }
+.pill.quiet     { background: transparent; border: 1px solid var(--line-2); color: var(--ink-3); font-weight: 500; }
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: var(--tap); padding: 11px 20px; border-radius: var(--r-pill);
+  border: 1px solid transparent; font-family: var(--ft); font-size: 15px;
+  font-weight: 700; cursor: pointer; transition: background .18s, border-color .18s, transform .12s;
+  text-decoration: none; width: 100%;
+}
+.btn:active { transform: scale(.985); }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.btn-primary { background: var(--rose-deep); color: #FFF6F2; }
+.btn-primary:hover:not([disabled]) { background: var(--rose); }
+.btn-soft    { background: var(--blush); color: var(--rose-deep); }
+.btn-soft:hover:not([disabled]) { background: var(--blush-2); }
+.btn-ghost   { background: transparent; color: var(--ink); border-color: var(--line-2); }
+.btn-ghost:hover:not([disabled]) { border-color: var(--rose); color: var(--rose-deep); }
+.btn-danger  { background: transparent; color: var(--danger); border-color: var(--danger-line); }
+.btn-danger:hover:not([disabled]) { background: var(--danger-bg); }
+.btn-row { display: flex; gap: 8px; }
+.btn-row .btn { flex: 1; }
+
+/* Icon-only control. Always carries an aria-label in the markup. */
+.iconbtn {
+  width: var(--tap); height: var(--tap); border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--line);
+  color: var(--ink-2); display: grid; place-items: center; cursor: pointer;
+  flex-shrink: 0; transition: background .18s, color .18s, border-color .18s;
+  text-decoration: none;
+}
+.iconbtn:hover { background: var(--blush); color: var(--rose-deep); border-color: var(--line-2); }
+.iconbtn.accent { background: var(--blush); color: var(--rose-deep); border-color: var(--line-2); }
+
+/* ── Forms ─────────────────────────────────────────────────────────────── */
+.field { margin-bottom: 16px; }
+.label { display: block; font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 6px; }
+.label .opt { font-weight: 400; color: var(--ink-3); font-size: 12px; }
+
+/* 16px minimum: anything smaller makes iOS zoom the page on focus. */
+.input, select.input, textarea.input {
+  width: 100%; min-height: var(--tap); padding: 11px 14px;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line-2); border-radius: var(--r);
+  font-family: var(--ft); font-size: 16px; outline: none;
+  transition: border-color .18s, box-shadow .18s;
+  -webkit-appearance: none; appearance: none;
+}
+.input:focus { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(201, 138, 126, .14); }
+.input::placeholder { color: var(--ink-3); }
+.input.ltr { direction: ltr; text-align: right; }
+textarea.input { min-height: 84px; resize: vertical; line-height: 1.6; }
+select.input {
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%),
+                    linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position: 16px calc(50% - 2px), 21px calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+  padding-inline-start: 36px;
+}
+.hint { font-size: 12.5px; color: var(--ink-3); margin-top: 5px; }
+.err  { font-size: 13px; color: var(--danger); margin-top: 6px; }
+
+/* Selectable tile (a service, a time, a weekday). Real buttons, so they are
+   reachable by keyboard — the old app used unfocusable divs. */
+.choice {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 13px 15px; border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--line-2);
+  color: var(--ink); font-family: var(--ft); font-size: 15px; text-align: start;
+  cursor: pointer; transition: border-color .18s, background .18s;
+}
+.choice:hover { border-color: var(--rose); }
+.choice[aria-pressed="true"] { border-color: var(--rose); background: var(--blush); }
+.choice .t { display: block; font-weight: 700; line-height: 1.45; }
+.choice .s { display: block; font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
+.choice .grow { flex: 1; min-width: 0; }
+
+/* Time slots */
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.slot {
+  min-height: var(--tap); border-radius: var(--r); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line-2); color: var(--ink);
+  font-family: var(--fd); font-weight: 700; font-size: 15.5px;
+  font-variant-numeric: tabular-nums; transition: border-color .18s, background .18s;
+}
+.slot:hover { border-color: var(--rose); }
+.slot[aria-pressed="true"] { background: var(--rose-deep); border-color: var(--rose-deep); color: #FFF6F2; }
+
+/* Horizontal day strip */
+.daystrip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: none; }
+.daystrip::-webkit-scrollbar { display: none; }
+.day {
+  flex: 0 0 auto; width: 66px; padding: 10px 6px; border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--line-2); cursor: pointer;
+  text-align: center; font-family: var(--ft); color: var(--ink); transition: all .18s;
+}
+.day .dow  { display: block; font-size: 11.5px; color: var(--ink-3); line-height: 1.4; }
+.day .dnum { display: block; font-family: var(--fd); font-size: 20px; font-weight: 700; line-height: 1.2; }
+.day .free { display: block; font-size: 10.5px; color: var(--ok); font-weight: 700; line-height: 1.4;
+             unicode-bidi: isolate; }
+.day[aria-pressed="true"] { background: var(--rose-deep); border-color: var(--rose-deep); }
+.day[aria-pressed="true"] .dow,
+.day[aria-pressed="true"] .dnum,
+.day[aria-pressed="true"] .free { color: #FFF6F2; }
+.day[disabled] { opacity: .38; cursor: not-allowed; }
+.day[disabled] .free { color: var(--ink-3); font-weight: 400; }
+
+/* Counter (how many people want this service) */
+.stepper { display: flex; align-items: center; }
+.stepper button {
+  width: 36px; height: 36px; border: 1px solid var(--line-2); background: var(--surface-2);
+  color: var(--ink); font-size: 19px; font-family: var(--fd); font-weight: 700;
+  cursor: pointer; display: grid; place-items: center;
+}
+.stepper button:first-child { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.stepper button:last-child  { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+.stepper button:hover { background: var(--blush); color: var(--rose-deep); }
+.stepper .val {
+  width: 42px; height: 36px; line-height: 36px; text-align: center;
+  background: var(--surface); border-block: 1px solid var(--line-2);
+  font-family: var(--fd); font-weight: 700; font-variant-numeric: tabular-nums;
+}
+
+/* ── Progress ──────────────────────────────────────────────────────────── */
+.steps { display: flex; gap: 6px; margin-bottom: 18px; }
+.steps i { flex: 1; height: 3px; border-radius: 2px; background: var(--line-2); transition: background .3s; }
+.steps i.on { background: var(--rose); }
+
+/* ── Notices ───────────────────────────────────────────────────────────── */
+.note {
+  display: flex; gap: 10px; align-items: flex-start;
+  border-radius: var(--r); padding: 12px 14px; font-size: 14px;
+  background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line);
+}
+.note.ok     { background: var(--ok-bg);     color: var(--ok);     border-color: var(--ok-line); }
+.note.warn   { background: var(--warn-bg);   color: var(--warn);   border-color: var(--warn-line); }
+.note.danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-line); }
+
+.empty { text-align: center; padding: 34px 18px; color: var(--ink-3); }
+.empty .badge { margin: 0 auto 10px; }
+.empty p { font-size: 14px; }
+
+/* ── Sheet (modal) ─────────────────────────────────────────────────────── */
+.sheet {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(46, 42, 39, .5); backdrop-filter: blur(2px);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .24s;
+}
+.sheet[open], .sheet.open { opacity: 1; pointer-events: auto; }
+.sheet-body {
+  background: var(--cream); width: 100%; max-width: var(--page);
+  max-height: 90vh; overflow-y: auto; border-radius: var(--r-xl) var(--r-xl) 0 0;
+  box-shadow: var(--sh-3); transform: translateY(100%);
+  transition: transform .28s cubic-bezier(.4, 0, .2, 1);
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
+}
+.sheet.open .sheet-body { transform: translateY(0); }
+.sheet-head {
+  position: sticky; top: 0; z-index: 1; background: var(--cream);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 18px 18px 12px; border-bottom: 1px solid var(--line);
+}
+.sheet-content { padding: 16px 18px; }
+
+/* ── Toast ─────────────────────────────────────────────────────────────── */
+.toast-stack {
+  position: fixed; z-index: 120; inset-block-end: max(16px, env(safe-area-inset-bottom));
+  inset-inline: 0; display: flex; flex-direction: column; align-items: center;
+  gap: 8px; pointer-events: none; padding: 0 16px;
+}
+.toast {
+  background: var(--ink); color: var(--cream); border-radius: var(--r-pill);
+  padding: 11px 20px; font-size: 14px; font-weight: 500; box-shadow: var(--sh-2);
+  display: flex; align-items: center; gap: 8px; max-width: 100%;
+  animation: toast-in .28s cubic-bezier(.4, 0, .2, 1);
+}
+.toast.ok     { background: var(--ok);     color: #FFF; }
+.toast.danger { background: var(--danger); color: #FFF; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+/* ── Skeleton ──────────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--blush) 50%, var(--surface-2) 75%);
+  background-size: 220% 100%; animation: shimmer 1.3s linear infinite;
+  border-radius: var(--r); height: 62px;
+}
+@keyframes shimmer { to { background-position: -220% 0; } }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}

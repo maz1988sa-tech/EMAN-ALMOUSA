@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>حجز موعد — إيمان آل موسى</title>
+<meta name="description" content="احجزي موعد ميك اب عروس أو سهرة مع إيمان آل موسى.">
+<meta name="theme-color" content="#FBF4EE">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/theme.css">
+<style>
+  .top { text-align: center; padding: 26px 0 4px; }
+  .top .mark { margin: 0 auto 12px; }
+  .top .tagline { color: var(--rose-deep); font-family: var(--fd); font-size: 15px; }
+
+  .svc-list { display: grid; gap: 9px; }
+  .svc { display: flex; align-items: center; gap: 12px; padding: 14px 15px;
+         background: var(--surface); border: 1px solid var(--line-2);
+         border-radius: var(--r); transition: border-color .18s, background .18s; }
+  .svc.picked { border-color: var(--rose); background: var(--blush); }
+  .svc .meta { flex: 1; min-width: 0; }
+  .svc .nm { display: block; font-family: var(--fd); font-weight: 700; font-size: 16px; line-height: 1.4; }
+  .svc .dt { display: block; font-size: 12.5px; color: var(--ink-3); line-height: 1.5;
+             unicode-bidi: isolate; }
+  .svc .pr { font-family: var(--fd); font-weight: 700; font-variant-numeric: tabular-nums;
+             color: var(--rose-deep); white-space: nowrap; }
+
+  .summary { position: sticky; bottom: 0; z-index: 20; background: var(--cream);
+             border-top: 1px solid var(--line-2); padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+             margin: 20px -16px 0; box-shadow: var(--sh-3); }
+  .summary .row { display: flex; align-items: center; justify-content: space-between;
+                  gap: 12px; margin-bottom: 9px; font-size: 13.5px; color: var(--ink-2); }
+  .summary .tot { font-family: var(--fd); font-weight: 700; font-size: 17px; color: var(--ink); }
+
+  .ok-card { text-align: center; }
+  .ok-card .ref { font-family: var(--fd); font-size: 27px; font-weight: 700; letter-spacing: .06em;
+                  direction: ltr; color: var(--rose-deep); margin: 6px 0 2px; }
+  .linkbox { display: flex; gap: 8px; align-items: center; background: var(--surface-2);
+             border: 1px solid var(--line); border-radius: var(--r); padding: 9px 12px; }
+  .linkbox input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink-2);
+                   font-size: 12.5px; direction: ltr; outline: none; font-family: ui-monospace, monospace; }
+
+  .track-row { display: flex; align-items: center; gap: 10px; padding: 11px 0;
+               border-bottom: 1px solid var(--line); }
+  .track-row:last-child { border-bottom: 0; }
+  .track-row .k { color: var(--ink-3); font-size: 13.5px; flex: 1; }
+  .track-row .v { font-weight: 700; font-size: 14.5px; }
+
+  .stack { display: grid; gap: 10px; }
+  .center { text-align: center; }
+  .mt { margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<main class="shell" id="app">
+  <div class="top">
+    <div class="badge lg mark" data-icon="sparkle" data-icon-size="28"></div>
+    <h1 id="bizName">إيمان آل موسى</h1>
+    <p class="tagline" id="bizTagline">ميك اب عرائس ومناسبات</p>
+  </div>
+
+  <div id="view">
+    <div class="stack mt">
+      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+    </div>
+  </div>
+</main>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="assets/config.js"></script>
+<script type="module">
+import { icon, hydrateIcons } from './assets/icons.js';
+import {
+  getPublicSettings, getServices, getDaysWithAvailability, getAvailableSlots,
+  createBooking, getBookingByToken, requestCancel,
+  fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, esc,
+  today, addDays, parseDate, normalisePhone, prettyPhone, waHref,
+  statusLabel, toast,
+} from './assets/db.js';
+
+const view = document.getElementById('view');
+const DOW_SHORT = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+const HORIZON = 21;   // days of availability offered in the strip
+
+const state = {
+  settings: null,
+  services: [],
+  counts: {},          // serviceId -> how many people want it
+  date: null,
+  time: null,
+  days: [],
+  slots: [],
+  step: 1,
+  busy: false,
+};
+
+/* ── derived ──────────────────────────────────────────────────────────── */
+const picked = () => state.services
+  .filter((s) => state.counts[s.id] > 0)
+  .flatMap((s) => Array.from({ length: state.counts[s.id] }, () => s));
+const totalPrice = () => picked().reduce((n, s) => n + Number(s.price), 0);
+const totalMins  = () => picked().reduce((n, s) => n + Number(s.duration_min), 0);
+const people     = () => picked().length;
+
+/* ── boot ─────────────────────────────────────────────────────────────── */
+(async function boot() {
+  hydrateIcons(document);
+  const token = new URLSearchParams(location.search).get('t');
+  try {
+    state.settings = await getPublicSettings();
+    if (state.settings) {
+      document.getElementById('bizName').textContent = state.settings.business_name;
+      document.getElementById('bizTagline').textContent = state.settings.tagline || '';
+      document.title = `حجز موعد — ${state.settings.business_name}`;
+    }
+    if (token) { renderTracking(token); return; }
+    if (state.settings && !state.settings.accepting_bookings) { renderClosed(); return; }
+    state.services = await getServices();
+    renderStep1();
+  } catch (err) {
+    renderError(err);
+  }
+})();
+
+/* ── screens ──────────────────────────────────────────────────────────── */
+
+function renderError(err) {
+  console.error(err);
+  view.innerHTML = `
+    <div class="card center">
+      <div class="badge lg" data-icon="close" style="margin:0 auto 12px"></div>
+      <h2>تعذّر تحميل الصفحة</h2>
+      <p class="hint">تأكدي من الاتصال بالإنترنت ثم أعيدي المحاولة.</p>
+      <button class="btn btn-soft mt" onclick="location.reload()">إعادة المحاولة</button>
+    </div>`;
+  hydrateIcons(view);
+}
+
+function renderClosed() {
+  const wa = state.settings?.whatsapp_phone;
+  view.innerHTML = `
+    <div class="arch mt">
+      <div class="badge lg on-surface" data-icon="clock" style="margin:0 auto 12px"></div>
+      <h2>الحجز مغلق مؤقتًا</h2>
+      <p class="hint" style="margin-top:6px">${esc(state.settings?.closed_message || '')}</p>
+      ${wa ? `<a class="btn btn-primary mt" href="${waHref(wa)}" target="_blank" rel="noopener">
+                <span data-icon="whatsapp" data-icon-size="18"></span> تواصلي معنا</a>` : ''}
+    </div>`;
+  hydrateIcons(view);
+}
+
+function steps(n) {
+  return `<div class="steps" role="progressbar" aria-valuemin="1" aria-valuemax="3" aria-valuenow="${n}">
+    ${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}
+  </div>`;
+}
+
+/* Step 1 — what she wants done */
+function renderStep1() {
+  state.step = 1;
+  view.innerHTML = `
+    ${steps(1)}
+    <p class="eyebrow">الخطوة ١ من ٣</p>
+    <div class="sec-head"><h2>اختاري الخدمة</h2><span class="rule"></span></div>
+    <p class="hint" style="margin-bottom:12px">للحجز الجماعي زيدي العدد أمام كل خدمة.</p>
+    <div class="svc-list">
+      ${state.services.map((s) => `
+        <div class="svc ${state.counts[s.id] > 0 ? 'picked' : ''}" data-svc="${s.id}">
+          <span class="badge" data-icon="${esc(s.icon)}"></span>
+          <span class="meta">
+            <span class="nm">${esc(s.name)}</span>
+            <span class="dt">${fmtDuration(s.duration_min)}${s.description ? ` · ${esc(s.description)}` : ''}</span>
+          </span>
+          <span class="pr">${money(s.price)}</span>
+          <span class="stepper">
+            <button type="button" aria-label="إنقاص ${esc(s.name)}" data-dec="${s.id}">−</button>
+            <span class="val num" data-val="${s.id}">${state.counts[s.id] || 0}</span>
+            <button type="button" aria-label="زيادة ${esc(s.name)}" data-inc="${s.id}">+</button>
+          </span>
+        </div>`).join('')}
+    </div>
+    ${state.services.length ? '' : '<div class="empty"><p>لا توجد خدمات متاحة حاليًا.</p></div>'}
+    <div class="summary" id="bar"></div>`;
+  hydrateIcons(view);
+  bindSteppers();
+  renderBar();
+}
+
+function bindSteppers() {
+  view.querySelectorAll('[data-inc]').forEach((b) => b.onclick = () => bump(b.dataset.inc, +1));
+  view.querySelectorAll('[data-dec]').forEach((b) => b.onclick = () => bump(b.dataset.dec, -1));
+}
+
+function bump(id, delta) {
+  const next = Math.max(0, Math.min(12, (state.counts[id] || 0) + delta));
+  state.counts[id] = next;
+  view.querySelector(`[data-val="${id}"]`).textContent = next;
+  view.querySelector(`[data-svc="${id}"]`).classList.toggle('picked', next > 0);
+  renderBar();
+}
+
+function renderBar() {
+  const n = people();
+  document.getElementById('bar').innerHTML = `
+    <div class="row">
+      <span>${n ? `${n} ${n === 1 ? 'خدمة' : 'خدمات'} · ${fmtDuration(totalMins())}` : 'لم تختاري خدمة بعد'}</span>
+      <span class="tot num">${n ? riyal(totalPrice()) : ''}</span>
+    </div>
+    <button class="btn btn-primary" id="toStep2" ${n ? '' : 'disabled'}>
+      متابعة لاختيار الموعد ${icon('back', 18)}
+    </button>`;
+  const btn = document.getElementById('toStep2');
+  if (btn) btn.onclick = () => renderStep2();
+}
+
+/* Step 2 — when */
+async function renderStep2() {
+  state.step = 2;
+  view.innerHTML = `
+    ${steps(2)}
+    <p class="eyebrow">الخطوة ٢ من ٣</p>
+    <div class="sec-head"><h2>اختاري اليوم والوقت</h2><span class="rule"></span></div>
+    <div class="note" style="margin-bottom:14px">
+      <span data-icon="clock" data-icon-size="18"></span>
+      <span>مدة موعدك ${fmtDuration(totalMins())}. تظهر لك الأوقات التي تتّسع لها فقط.</span>
+    </div>
+    <div id="days" class="daystrip"><div class="skeleton" style="width:100%"></div></div>
+    <div id="slotArea" class="mt"></div>
+    <div class="summary">
+      <button class="btn btn-ghost" id="backTo1">${icon('chevron', 18)} رجوع للخدمات</button>
+    </div>`;
+  hydrateIcons(view);
+  document.getElementById('backTo1').onclick = () => renderStep1();
+
+  try {
+    state.days = await getDaysWithAvailability(today(), HORIZON, totalMins());
+    renderDays();
+  } catch (err) { renderError(err); }
+}
+
+function renderDays() {
+  const host = document.getElementById('days');
+  const open = state.days.filter((d) => d.slot_count > 0);
+  if (!open.length) {
+    host.outerHTML = `
+      <div class="empty">
+        <div class="badge lg" data-icon="calendar"></div>
+        <p>لا توجد أوقات متاحة خلال الأيام القادمة.</p>
+        ${state.settings?.whatsapp_phone
+          ? `<a class="btn btn-soft mt" href="${waHref(state.settings.whatsapp_phone)}" target="_blank" rel="noopener">تواصلي معنا مباشرة</a>`
+          : ''}
+      </div>`;
+    hydrateIcons(view);
+    return;
+  }
+  host.innerHTML = state.days.map((d) => {
+    const dt = parseDate(d.the_date);
+    const free = d.slot_count > 0;
+    return `<button type="button" class="day" data-day="${d.the_date}" ${free ? '' : 'disabled'}
+              aria-pressed="${state.date === d.the_date}">
+      <span class="dow">${DOW_SHORT[dt.getDay()]}</span>
+      <span class="dnum num">${dt.getDate()}</span>
+      <span class="free">${free ? (d.slot_count === 1 ? 'موعد واحد' : d.slot_count === 2 ? 'موعدان' : `${d.slot_count} مواعيد`) : 'مغلق'}</span>
+    </button>`;
+  }).join('');
+  host.querySelectorAll('[data-day]').forEach((b) => b.onclick = () => pickDay(b.dataset.day));
+  if (!state.date) pickDay(open[0].the_date);
+}
+
+async function pickDay(date) {
+  state.date = date; state.time = null;
+  document.querySelectorAll('[data-day]').forEach((b) =>
+    b.setAttribute('aria-pressed', String(b.dataset.day === date)));
+  const area = document.getElementById('slotArea');
+  area.innerHTML = '<div class="skeleton"></div>';
+  try {
+    state.slots = await getAvailableSlots(date, totalMins());
+    renderSlots();
+  } catch (err) { renderError(err); }
+}
+
+function renderSlots() {
+  const area = document.getElementById('slotArea');
+  if (!state.slots.length) {
+    area.innerHTML = '<div class="empty"><p>لا توجد أوقات متاحة في هذا اليوم.</p></div>';
+    return;
+  }
+  area.innerHTML = `
+    <div class="sec-head"><h3>${fmtDate(state.date)}</h3><span class="rule"></span>
+      <span class="count">${state.slots.length === 1 ? 'وقت واحد' : state.slots.length === 2 ? 'وقتان' : `${state.slots.length} أوقات`}</span></div>
+    <div class="slots">
+      ${state.slots.map((t) => `<button type="button" class="slot" data-slot="${t}"
+          aria-pressed="${state.time === t}">${fmtTime(t)}</button>`).join('')}
+    </div>`;
+  area.querySelectorAll('[data-slot]').forEach((b) => b.onclick = () => {
+    state.time = b.dataset.slot;
+    area.querySelectorAll('[data-slot]').forEach((x) =>
+      x.setAttribute('aria-pressed', String(x.dataset.slot === state.time)));
+    renderStep3();
+  });
+}
+
+/* Step 3 — who */
+function renderStep3() {
+  state.step = 3;
+  const names = picked();
+  view.innerHTML = `
+    ${steps(3)}
+    <p class="eyebrow">الخطوة ٣ من ٣</p>
+    <div class="sec-head"><h2>بياناتك</h2><span class="rule"></span></div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="leader"><span class="k">الموعد</span><span class="d"></span>
+        <span class="v">${fmtDate(state.date, { short: true })} · ${fmtTime(state.time)}</span></div>
+      <div class="leader"><span class="k">المدة</span><span class="d"></span>
+        <span class="v">${fmtDuration(totalMins())}</span></div>
+      <div class="leader"><span class="k">الإجمالي</span><span class="d"></span>
+        <span class="v">${riyal(totalPrice())}</span></div>
+    </div>
+
+    <form id="form" novalidate>
+      <div class="field">
+        <label class="label" for="f-name">الاسم</label>
+        <input class="input" id="f-name" name="name" autocomplete="name" required
+               placeholder="الاسم الكامل">
+      </div>
+      <div class="field">
+        <label class="label" for="f-phone">رقم الجوال</label>
+        <input class="input ltr" id="f-phone" name="phone" type="tel" inputmode="numeric"
+               autocomplete="tel" required placeholder="05xxxxxxxx">
+        <p class="hint">سيصلك التأكيد على هذا الرقم.</p>
+      </div>
+      ${names.length > 1 ? `
+      <div class="field">
+        <label class="label">أسماء المجموعة <span class="opt">(اختياري)</span></label>
+        <div class="stack">
+          ${names.map((s, i) => `
+            <div style="display:flex;gap:8px;align-items:center">
+              <span class="badge" data-icon="${esc(s.icon)}" data-icon-size="17"
+                    style="width:36px;height:36px"></span>
+              <input class="input" name="person" placeholder="${esc(s.name)} — الاسم"
+                     aria-label="اسم الشخص ${i + 1}">
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+      <div class="field">
+        <label class="label" for="f-loc">الموقع <span class="opt">(اختياري)</span></label>
+        <input class="input" id="f-loc" name="loc" placeholder="مثال: حي النخيل، الرياض">
+      </div>
+      <div class="field">
+        <label class="label" for="f-map">رابط الموقع على الخريطة <span class="opt">(اختياري)</span></label>
+        <input class="input ltr" id="f-map" name="map" type="url" placeholder="maps.app.goo.gl/...">
+      </div>
+      <div class="field">
+        <label class="label" for="f-notes">ملاحظات <span class="opt">(اختياري)</span></label>
+        <textarea class="input" id="f-notes" name="notes"
+                  placeholder="نوع البشرة، الستايل المفضّل، أي تفاصيل تهمّنا..."></textarea>
+      </div>
+      <div id="formErr" role="alert"></div>
+    </form>
+
+    <div class="summary">
+      <div class="row">
+        <span>${fmtDate(state.date, { short: true })} · ${fmtTime(state.time)}</span>
+        <span class="tot num">${riyal(totalPrice())}</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="backTo2">${icon('chevron', 18)} رجوع</button>
+        <button class="btn btn-primary" id="submit">تأكيد الطلب</button>
+      </div>
+    </div>`;
+  hydrateIcons(view);
+
+  // Paste of a rich Google Maps share sometimes carries a whole paragraph.
+  document.getElementById('f-map').addEventListener('paste', (e) => {
+    const text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
+    const url = text.match(/https?:\/\/\S+/);
+    if (url) { e.preventDefault(); e.target.value = url[0]; }
+  });
+
+  document.getElementById('backTo2').onclick = () => renderStep2();
+  document.getElementById('submit').onclick = submit;
+  document.getElementById('form').onsubmit = (e) => { e.preventDefault(); submit(); };
+}
+
+async function submit() {
+  if (state.busy) return;
+  const errBox = document.getElementById('formErr');
+  const name  = document.getElementById('f-name').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+
+  const fail = (msg, focus) => {
+    errBox.innerHTML = `<div class="note danger">${icon('close', 18)}<span>${esc(msg)}</span></div>`;
+    document.getElementById(focus)?.focus();
+  };
+
+  if (name.length < 2) return fail('يرجى كتابة الاسم.', 'f-name');
+  if (!normalisePhone(phone)) return fail('رقم الجوال غير صحيح. مثال: 0501234567', 'f-phone');
+  errBox.innerHTML = '';
+
+  const btn = document.getElementById('submit');
+  state.busy = true;
+  btn.disabled = true;
+  btn.textContent = 'جارٍ الإرسال...';
+
+  try {
+    const result = await createBooking({
+      name, phone,
+      date: state.date,
+      time: state.time,
+      serviceIds:  picked().map((s) => s.id),
+      personNames: Array.from(document.querySelectorAll('input[name="person"]')).map((i) => i.value.trim()),
+      locText: document.getElementById('f-loc').value.trim(),
+      locMap:  document.getElementById('f-map').value.trim(),
+      notes:   document.getElementById('f-notes').value.trim(),
+    });
+    remember(result);
+    renderSuccess(result);
+  } catch (err) {
+    state.busy = false;
+    btn.disabled = false;
+    btn.textContent = 'تأكيد الطلب';
+    // A slot taken while she was filling the form is the common case; send
+    // her back to a fresh list rather than leaving a dead button.
+    const msg = err?.message || 'تعذّر إرسال الطلب.';
+    fail(msg, 'f-name');
+    if (/لم يعد متاح/.test(msg)) {
+      toast('تم حجز هذا الوقت للتو، اختاري وقتًا آخر', 'danger');
+      state.time = null;
+      setTimeout(() => renderStep2(), 900);
+    }
+  }
+}
+
+/** Keep her booking links on this device so she can find them again. */
+function remember(result) {
+  try {
+    const key = 'eman_bookings';
+    const list = JSON.parse(localStorage.getItem(key) || '[]');
+    list.unshift({ ref: result.ref, token: result.public_token, date: result.the_date });
+    localStorage.setItem(key, JSON.stringify(list.slice(0, 20)));
+  } catch { /* private browsing — the link in the message is the real record */ }
+}
+
+function trackUrl(token) {
+  return `${location.origin}${location.pathname}?t=${token}`;
+}
+
+function renderSuccess(r) {
+  const url = trackUrl(r.public_token);
+  view.innerHTML = `
+    <div class="arch mt">
+      <div class="badge lg on-surface" data-icon="check" data-icon-size="26" style="margin:0 auto 12px"></div>
+      <h2>وصلنا طلبك</h2>
+      <p class="hint" style="margin-top:6px">سيتم التواصل معك لتأكيد الموعد قريبًا.</p>
+    </div>
+
+    <div class="card ok-card mt">
+      <p class="eyebrow">رقم الطلب</p>
+      <p class="ref">${esc(r.ref)}</p>
+      <div class="leader" style="margin-top:12px">
+        <span class="k">الموعد المطلوب</span><span class="d"></span>
+        <span class="v">${fmtDate(r.the_date, { short: true })} · ${fmtTime(r.start_time)}</span>
+      </div>
+      <div class="leader"><span class="k">الإجمالي</span><span class="d"></span>
+        <span class="v">${riyal(r.price)}</span></div>
+    </div>
+
+    <div class="card mt">
+      <p class="label">رابط متابعة حجزك</p>
+      <div class="linkbox">
+        <input id="trackLink" value="${esc(url)}" readonly aria-label="رابط متابعة الحجز">
+        <button class="iconbtn" id="copyLink" aria-label="نسخ الرابط" data-icon="export"></button>
+      </div>
+      <p class="hint">احفظي الرابط لمتابعة حالة طلبك في أي وقت.</p>
+      <a class="btn btn-soft mt" href="?t=${encodeURIComponent(r.public_token)}">فتح صفحة المتابعة</a>
+    </div>`;
+  hydrateIcons(view);
+  document.getElementById('copyLink').onclick = async () => {
+    const input = document.getElementById('trackLink');
+    try {
+      await navigator.clipboard.writeText(input.value);
+      toast('تم نسخ الرابط', 'ok');
+    } catch {
+      input.select();
+      toast('انسخي الرابط يدويًا');
+    }
+  };
+}
+
+/* Tracking view — one booking, by its own token */
+async function renderTracking(token) {
+  view.innerHTML = '<div class="stack mt"><div class="skeleton"></div><div class="skeleton"></div></div>';
+  let b;
+  try { b = await getBookingByToken(token); }
+  catch (err) { return renderError(err); }
+
+  if (!b) {
+    view.innerHTML = `
+      <div class="card center mt">
+        <div class="badge lg" data-icon="search" style="margin:0 auto 12px"></div>
+        <h2>لم نجد هذا الحجز</h2>
+        <p class="hint">تأكدي من الرابط، أو احجزي موعدًا جديدًا.</p>
+        <a class="btn btn-soft mt" href="${location.pathname}">حجز موعد جديد</a>
+      </div>`;
+    hydrateIcons(view);
+    return;
+  }
+
+  const items = b.items || [];
+  const due = Number(b.price) - Number(b.deposit);
+  const tone = { pending: 'warn', confirmed: 'ok', done: 'ok' }[b.status] || 'danger';
+  const headline = {
+    pending:   'طلبك قيد المراجعة',
+    confirmed: 'موعدك مؤكّد',
+    done:      'تم إنجاز الموعد',
+    cancelled: 'تم إلغاء الحجز',
+    rejected:  'نعتذر، الموعد غير متاح',
+    no_show:   'لم يتم الحضور',
+  }[b.status] || statusLabel(b.status);
+
+  view.innerHTML = `
+    <div class="arch mt">
+      <div class="badge lg on-surface" data-icon="${b.status === 'pending' ? 'clock' : b.status === 'confirmed' || b.status === 'done' ? 'check' : 'close'}"
+           data-icon-size="26" style="margin:0 auto 12px"></div>
+      <h2>${esc(headline)}</h2>
+      <p class="hint" style="margin-top:6px">رقم الطلب <strong dir="ltr">${esc(b.ref)}</strong></p>
+    </div>
+
+    <div class="card mt">
+      <div class="track-row"><span class="k">الحالة</span>
+        <span class="pill ${esc(b.status)}">${esc(statusLabel(b.status))}</span></div>
+      <div class="track-row"><span class="k">التاريخ</span><span class="v">${fmtDate(b.the_date)}</span></div>
+      <div class="track-row"><span class="k">الوقت</span><span class="v">${fmtTime(b.start_time)}</span></div>
+      <div class="track-row"><span class="k">المدة</span><span class="v">${fmtDuration(b.duration_min)}</span></div>
+      ${b.loc_text ? `<div class="track-row"><span class="k">الموقع</span><span class="v">${esc(b.loc_text)}</span></div>` : ''}
+    </div>
+
+    <div class="card mt">
+      <p class="label">الخدمات</p>
+      ${items.map((i) => `
+        <div class="leader">
+          <span class="k">${esc(i.person_name || i.service_name)}</span>
+          <span class="d"></span>
+          <span class="v">${riyal(i.price)}</span>
+        </div>`).join('')}
+      <div class="leader" style="border-top:1px solid var(--line);margin-top:6px;padding-top:9px">
+        <span class="k">الإجمالي</span><span class="d"></span>
+        <span class="v">${riyal(b.price)}</span>
+      </div>
+      ${Number(b.deposit) > 0 ? `
+        <div class="leader"><span class="k">العربون المستلم</span><span class="d"></span>
+          <span class="v paid">${riyal(b.deposit)}</span></div>
+        <div class="leader"><span class="k">المتبقي</span><span class="d"></span>
+          <span class="v ${due > 0 ? 'due' : 'paid'}">${due > 0 ? riyal(due) : 'مسدّد بالكامل'}</span></div>` : ''}
+    </div>
+
+    ${b.cancel_requested && ['pending', 'confirmed'].includes(b.status) ? `
+      <div class="note warn mt">${icon('clock', 18)}
+        <span>وصلنا طلب الإلغاء وسيتم التواصل معك.</span></div>` : ''}
+
+    ${['pending', 'confirmed'].includes(b.status) && !b.cancel_requested ? `
+      <button class="btn btn-danger mt" id="askCancel">طلب إلغاء الحجز</button>` : ''}
+
+    ${state.settings?.whatsapp_phone ? `
+      <a class="btn btn-soft mt" href="${waHref(state.settings.whatsapp_phone,
+          `استفسار عن الحجز رقم ${b.ref}`)}" target="_blank" rel="noopener">
+        ${icon('whatsapp', 18)} تواصلي معنا</a>` : ''}
+
+    <p class="center mt"><a href="${location.pathname}" class="hint">حجز موعد جديد</a></p>`;
+  hydrateIcons(view);
+
+  const cancelBtn = document.getElementById('askCancel');
+  if (cancelBtn) cancelBtn.onclick = async () => {
+    cancelBtn.disabled = true;
+    try {
+      await requestCancel(token);
+      toast('تم إرسال طلب الإلغاء', 'ok');
+      renderTracking(token);
+    } catch {
+      cancelBtn.disabled = false;
+      toast('تعذّر إرسال الطلب', 'danger');
+    }
+  };
+}
+</script>
+</body>
+</html>

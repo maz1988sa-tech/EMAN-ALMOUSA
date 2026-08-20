@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>لوحة التحكم — إيمان آل موسى</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#A9675C">
+<link rel="manifest" href="manifest-admin.webmanifest">
+<link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/theme.css">
+<style>
+  .appbar { position: sticky; top: 0; z-index: 40; background: var(--surface);
+            border-bottom: 1px solid var(--line); }
+  .appbar .row { display: flex; align-items: center; justify-content: space-between;
+                 gap: 10px; padding: 12px 16px 10px; max-width: var(--page); margin: 0 auto; }
+  .appbar .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .appbar .nm  { display: block; font-family: var(--fs); font-size: 16px; line-height: 1.3; }
+  .appbar .sub { display: block; font-size: 11px; color: var(--ink-3); line-height: 1.3; }
+  .tabs { display: flex; gap: 4px; overflow-x: auto; padding: 0 16px 10px;
+          max-width: var(--page); margin: 0 auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; border: 0;
+         background: transparent; color: var(--ink-3); font-family: var(--ft);
+         font-size: 13.5px; font-weight: 500; padding: 8px 14px; min-height: 38px;
+         border-radius: var(--r-pill); cursor: pointer; }
+  .tab[aria-current="page"] { background: var(--blush); color: var(--rose-deep); font-weight: 700; }
+  .tab .dot { background: var(--danger); color: #FFF; border-radius: 999px;
+              font-size: 10.5px; font-weight: 700; padding: 1px 6px; min-width: 18px; }
+
+  .bk { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+        padding: 14px 15px; box-shadow: var(--sh); position: relative; overflow: hidden;
+        width: 100%; text-align: start; font-family: var(--ft); color: var(--ink); cursor: pointer; }
+  .bk::before { content: ""; position: absolute; inset-block: 0; inset-inline-start: 0;
+                width: 3px; background: var(--line-2); }
+  .bk.s-pending::before   { background: var(--warn); }
+  .bk.s-confirmed::before { background: var(--rose); }
+  .bk.s-done::before      { background: var(--ok); }
+  .bk.s-cancelled::before, .bk.s-rejected::before, .bk.s-no_show::before { background: var(--danger); }
+  .bk .head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .bk .who { flex: 1; min-width: 0; }
+  .bk .nm { display: block; font-family: var(--fd); font-weight: 700; font-size: 15.5px;
+            line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bk .when { display: block; font-size: 12px; color: var(--ink-3); unicode-bidi: isolate; }
+  .bk .chips { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 9px;
+               padding-top: 9px; border-top: 1px solid var(--line); }
+  .bk.dim { opacity: .62; }
+
+  .acts { display: flex; gap: 6px; flex-shrink: 0; }
+  .acts .iconbtn { width: 38px; height: 38px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .stat .l { display: block; font-size: 11.5px; color: var(--ink-3); line-height: 1.5; }
+  .stat .v { display: block; font-family: var(--fd); font-size: 24px; font-weight: 700;
+             line-height: 1.25; font-variant-numeric: tabular-nums; }
+  .stat .s { display: block; font-size: 11px; color: var(--rose-deep); line-height: 1.5;
+             unicode-bidi: isolate; }
+
+  .list { display: grid; gap: 9px; }
+  .rowline { display: flex; align-items: center; gap: 10px; padding: 12px 0;
+             border-bottom: 1px solid var(--line); }
+  .rowline:last-child { border-bottom: 0; }
+  .rowline .grow { flex: 1; min-width: 0; }
+  .rowline .t { display: block; font-weight: 700; font-size: 14.5px; }
+  .rowline .s { display: block; font-size: 12px; color: var(--ink-3); unicode-bidi: isolate; }
+
+  .tl { position: relative; padding-inline-start: 18px; }
+  .tl::before { content: ""; position: absolute; inset-block: 6px; inset-inline-start: 4px;
+                width: 1px; background: var(--line-2); }
+  .tl .stop { position: relative; padding: 9px 0; }
+  .tl .stop::before { content: ""; position: absolute; inset-inline-start: -18px; top: 16px;
+                      width: 9px; height: 9px; border-radius: 50%; background: var(--rose);
+                      box-shadow: 0 0 0 3px var(--cream); }
+  .tl .gap { font-size: 11.5px; color: var(--ink-3); padding-inline-start: 2px; }
+
+  .login { max-width: 380px; margin: 8vh auto 0; }
+  .hide { display: none !important; }
+  .mt { margin-top: 16px; }
+  .mb { margin-bottom: 16px; }
+  .center { text-align: center; }
+  .muted { color: var(--ink-3); font-size: 13px; }
+  .split { display: flex; gap: 8px; align-items: flex-end; }
+  .split > * { flex: 1; }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <main class="shell login">
+    <div class="arch" style="margin-top:6vh">
+      <div class="badge lg on-surface" data-icon="sparkle" data-icon-size="26" style="margin:0 auto 12px"></div>
+      <h1>لوحة التحكم</h1>
+      <p class="muted" style="margin-top:4px">إيمان آل موسى</p>
+    </div>
+    <form class="card mt" id="loginForm">
+      <div class="field">
+        <label class="label" for="email">البريد الإلكتروني</label>
+        <input class="input ltr" id="email" type="email" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label class="label" for="pass">كلمة المرور</label>
+        <input class="input ltr" id="pass" type="password" autocomplete="current-password" required>
+      </div>
+      <div id="loginErr" role="alert"></div>
+      <button class="btn btn-primary" type="submit" id="loginBtn">دخول</button>
+    </form>
+  </main>
+</div>
+
+<div id="app" class="hide">
+  <header class="appbar">
+    <div class="row">
+      <div class="brand">
+        <span class="badge" data-icon="sparkle" data-icon-size="19"></span>
+        <span>
+          <span class="nm" id="bizName">إيمان آل موسى</span>
+          <span class="sub">لوحة التحكم</span>
+        </span>
+      </div>
+      <div class="acts">
+        <button class="iconbtn" id="btnRefresh" aria-label="تحديث" data-icon="export"></button>
+        <button class="iconbtn" id="btnSignOut" aria-label="خروج" data-icon="back"></button>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="أقسام اللوحة"></nav>
+  </header>
+
+  <main class="shell" id="view">
+    <div class="list mt"><div class="skeleton"></div><div class="skeleton"></div></div>
+  </main>
+</div>
+
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet-body">
+    <div class="sheet-head">
+      <h2 id="sheetTitle">تفاصيل</h2>
+      <button class="iconbtn" id="sheetClose" aria-label="إغلاق" data-icon="close"></button>
+    </div>
+    <div class="sheet-content" id="sheetContent"></div>
+  </div>
+</div>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="assets/config.js"></script>
+<script type="module">
+import { icon, hydrateIcons } from './assets/icons.js';
+import {
+  sb, admin, templates, WEEKDAYS,
+  fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
+  today, addDays, parseDate, weekday, addMinutes, prettyPhone, telHref, waHref,
+  normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
+} from './assets/db.js';
+
+const view = document.getElementById('view');
+const sheet = document.getElementById('sheet');
+
+const TABS = [
+  { id: 'home',     label: 'الرئيسية',    icon: 'home' },
+  { id: 'agenda',   label: 'الأجندة',     icon: 'calendar' },
+  { id: 'dues',     label: 'المستحقات',   icon: 'riyal' },
+  { id: 'hours',    label: 'أوقات العمل', icon: 'clock' },
+  { id: 'services', label: 'الخدمات',     icon: 'lipstick' },
+  { id: 'settings', label: 'الإعدادات',   icon: 'gear' },
+];
+
+const S = {
+  tab: 'home',
+  settings: null,
+  services: [],
+  bookings: [],
+  rules: [],
+  overrides: [],
+  agendaDate: today(),
+  unsubscribe: null,
+};
+
+const pendingCount = () => S.bookings.filter((b) => b.status === 'pending').length;
+
+/* ── Auth gate ────────────────────────────────────────────────────────── */
+
+document.getElementById('loginForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const box = document.getElementById('loginErr');
+  btn.disabled = true; btn.textContent = 'جارٍ الدخول...';
+  box.innerHTML = '';
+  try {
+    await admin.signIn(document.getElementById('email').value.trim(),
+                       document.getElementById('pass').value);
+    await start();
+  } catch (err) {
+    box.innerHTML = `<div class="note danger mb">${icon('close', 18)}<span>${
+      /Invalid login/i.test(err.message || '') ? 'البريد أو كلمة المرور غير صحيحة.' : esc(err.message)
+    }</span></div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'دخول';
+  }
+};
+
+document.getElementById('btnSignOut').onclick = async () => {
+  S.unsubscribe?.();
+  await admin.signOut();
+  location.reload();
+};
+document.getElementById('btnRefresh').onclick = () => reload(true);
+document.getElementById('sheetClose').onclick = () => closeSheet(sheet);
+
+(async function boot() {
+  hydrateIcons(document);
+  if (await admin.session()) start();
+})();
+
+async function start() {
+  document.getElementById('gate').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  renderTabs();
+  await reload();
+
+  // A request that lands while the dashboard is open should announce itself.
+  S.unsubscribe = admin.onBookingChange(async (payload) => {
+    await reload();
+    if (payload.eventType === 'INSERT' && payload.new?.status === 'pending') {
+      toast(`طلب حجز جديد من ${payload.new.client_name}`, 'ok');
+      notify(payload.new);
+    }
+  });
+
+  if ('Notification' in window && Notification.permission === 'default') {
+    setTimeout(() => Notification.requestPermission().catch(() => {}), 4000);
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+}
+
+function notify(b) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    new Notification('طلب حجز جديد', {
+      body: `${b.client_name} — ${fmtDate(b.the_date, { short: true })} ${fmtTime(b.start_time)}`,
+      icon: 'assets/icon-192.svg', tag: `bk-${b.id}`,
+    });
+  } catch { /* notifications unavailable in this context */ }
+}
+
+async function reload(announce = false) {
+  try {
+    const [settings, services, bookings, rules, overrides] = await Promise.all([
+      admin.settings(), admin.services(),
+      admin.bookings({ from: addDays(today(), -120) }),
+      admin.rules(), admin.overrides(addDays(today(), -30), addDays(today(), 180)),
+    ]);
+    Object.assign(S, { settings, services, bookings, rules, overrides });
+    if (settings?.business_name) document.getElementById('bizName').textContent = settings.business_name;
+    renderTabs();
+    render();
+    if (announce) toast('تم التحديث', 'ok');
+  } catch (err) {
+    console.error(err);
+    view.innerHTML = `<div class="note danger mt">${icon('close', 18)}
+      <span>تعذّر تحميل البيانات: ${esc(err.message || '')}</span></div>`;
+  }
+}
+
+/* ── Chrome ───────────────────────────────────────────────────────────── */
+
+function renderTabs() {
+  const host = document.getElementById('tabs');
+  const n = pendingCount();
+  host.innerHTML = TABS.map((t) => `
+    <button class="tab" data-tab="${t.id}" ${S.tab === t.id ? 'aria-current="page"' : ''}>
+      ${icon(t.icon, 17)} ${t.label}
+      ${t.id === 'home' && n ? `<span class="dot num">${int(n)}</span>` : ''}
+    </button>`).join('');
+  host.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => {
+    S.tab = b.dataset.tab; renderTabs(); render(); window.scrollTo({ top: 0 });
+  });
+}
+
+function render() {
+  ({ home: renderHome, agenda: renderAgenda, dues: renderDues,
+     hours: renderHours, services: renderServices, settings: renderSettings }[S.tab] || renderHome)();
+  hydrateIcons(view);
+}
+
+/* ── Booking card ─────────────────────────────────────────────────────── */
+
+function bookingCard(b, { showDate = true } = {}) {
+  const items = b.booking_items || [];
+  const due = Number(b.price) - Number(b.deposit);
+  const lead = items[0] || {};
+  const dim = ['cancelled', 'rejected', 'no_show'].includes(b.status);
+  const end = addMinutes(b.start_time, b.duration_min).time;
+
+  return `
+    <button class="bk s-${esc(b.status)} ${dim ? 'dim' : ''}" data-open="${b.id}">
+      <span class="head">
+        <span class="badge" data-icon="${esc(lead.service_icon || 'sparkle')}" data-icon-size="19"></span>
+        <span class="who">
+          <span class="nm">${esc(b.client_name)}</span>
+          <span class="when">${showDate ? `${fmtDateRelative(b.the_date)} · ` : ''}${fmtTime(b.start_time)} — ${fmtTime(end)}</span>
+        </span>
+      </span>
+      <span class="leader"><span class="k">الإجمالي</span><span class="d"></span>
+        <span class="v">${riyal(b.price)}</span></span>
+      ${Number(b.deposit) > 0 || due > 0 ? `
+        <span class="leader"><span class="k">${due > 0 ? 'المتبقي' : 'مسدّد'}</span><span class="d"></span>
+          <span class="v ${due > 0 ? 'due' : 'paid'}">${due > 0 ? riyal(due) : riyal(b.price)}</span></span>` : ''}
+      <span class="chips">
+        <span class="pill ${esc(b.status)}">${esc(statusLabel(b.status))}</span>
+        ${items.length > 1 ? `<span class="pill">${icon('users', 13)} ${int(items.length)}</span>` : ''}
+        <span class="pill quiet">${fmtDuration(b.duration_min)}</span>
+        ${b.cancel_requested && ['pending', 'confirmed'].includes(b.status)
+          ? '<span class="pill cancelled">طلبت الإلغاء</span>' : ''}
+        ${b.source === 'client' ? '<span class="pill quiet">من العميلة</span>' : ''}
+      </span>
+    </button>`;
+}
+
+function bindCards(root = view) {
+  root.querySelectorAll('[data-open]').forEach((el) =>
+    el.onclick = () => openBooking(el.dataset.open));
+}
+
+/* ── Home ─────────────────────────────────────────────────────────────── */
+
+function renderHome() {
+  const t = today();
+  const pending  = S.bookings.filter((b) => b.status === 'pending')
+                             .sort((a, b) => (a.the_date + a.start_time).localeCompare(b.the_date + b.start_time));
+  const todays   = S.bookings.filter((b) => b.the_date === t && !['cancelled', 'rejected'].includes(b.status));
+  const upcoming = S.bookings.filter((b) => b.the_date > t && b.status === 'confirmed').slice(0, 6);
+
+  const month = t.slice(0, 7);
+  const mine = S.bookings.filter((b) => b.the_date.startsWith(month) && !['cancelled', 'rejected'].includes(b.status));
+  const collected = S.bookings.filter((b) => !['cancelled', 'rejected'].includes(b.status))
+                              .reduce((n, b) => n + Number(b.deposit), 0);
+  const outstanding = S.bookings.filter((b) => ['confirmed', 'done'].includes(b.status))
+                                .reduce((n, b) => n + (Number(b.price) - Number(b.deposit)), 0);
+
+  view.innerHTML = `
+    ${pending.length ? `
+      <div class="sec-head" style="margin-top:18px">
+        <h2>طلبات بانتظارك</h2><span class="rule"></span>
+        <span class="count">${int(pending.length)}</span>
+      </div>
+      <div class="list">${pending.map((b) => bookingCard(b)).join('')}</div>` : `
+      <div class="arch" style="margin-top:18px">
+        <div class="badge lg on-surface" data-icon="check" data-icon-size="24" style="margin:0 auto 10px"></div>
+        <h2>لا طلبات معلّقة</h2>
+        <p class="muted" style="margin-top:4px">كل شيء تحت السيطرة.</p>
+      </div>`}
+
+    <div class="sec-head"><h2>اليوم</h2><span class="rule"></span>
+      <span class="count">${fmtDate(t, { withDow: true, short: true })}</span></div>
+    ${todays.length
+      ? `<div class="list">${todays.map((b) => bookingCard(b, { showDate: false })).join('')}</div>
+         ${todays.length > 1 || S.settings?.driver_phone ? `
+           <button class="btn btn-soft mt" id="shareDay">${icon('driver', 18)} إرسال خطة اليوم للسائق</button>` : ''}`
+      : '<div class="empty"><div class="badge lg" data-icon="calendar"></div><p>لا مواعيد اليوم.</p></div>'}
+
+    <div class="sec-head"><h2>نظرة سريعة</h2><span class="rule"></span></div>
+    <div class="grid2">
+      <div class="card stat"><span class="l">حجوزات هذا الشهر</span>
+        <span class="v num">${int(mine.length)}</span>
+        <span class="s">${int(mine.filter((b) => b.status === 'done').length)} مكتمل</span></div>
+      <div class="card stat"><span class="l">المحصّل فعليًا</span>
+        <span class="v num">${money(collected)}</span>
+        <span class="s">${outstanding > 0 ? `${money(outstanding)} ر.س مستحقة` : 'لا مستحقات'}</span></div>
+    </div>
+
+    ${upcoming.length ? `
+      <div class="sec-head"><h2>القادمة</h2><span class="rule"></span></div>
+      <div class="list">${upcoming.map((b) => bookingCard(b)).join('')}</div>` : ''}
+
+    <button class="btn btn-ghost mt" id="btnNew">${icon('plus', 18)} إضافة حجز يدويًا</button>`;
+
+  bindCards();
+  const share = document.getElementById('shareDay');
+  if (share) share.onclick = () => shareDayPlan(t);
+  document.getElementById('btnNew').onclick = () => openNewBooking();
+}
+
+function shareDayPlan(date) {
+  const list = S.bookings
+    .filter((b) => b.the_date === date && ['confirmed', 'pending', 'done'].includes(b.status))
+    .sort((a, b) => a.start_time.localeCompare(b.start_time));
+  if (!list.length) return toast('لا مواعيد في هذا اليوم');
+  const phone = S.settings?.driver_phone;
+  const text = templates.driverDay(list, date);
+  if (!phone) {
+    navigator.clipboard?.writeText(text);
+    return toast('لم يُضبط رقم السائق — نُسخت الخطة', 'ok');
+  }
+  window.open(waHref(phone, text), '_blank', 'noopener');
+}
+
+/* ── Agenda ───────────────────────────────────────────────────────────── */
+
+function renderAgenda() {
+  const d = S.agendaDate;
+  const list = S.bookings.filter((b) => b.the_date === d && !['cancelled', 'rejected'].includes(b.status))
+                         .sort((a, b) => a.start_time.localeCompare(b.start_time));
+  const buffer = S.settings?.travel_buffer_min ?? 40;
+
+  const stops = list.map((b, i) => {
+    const end = addMinutes(b.start_time, b.duration_min).time;
+    const next = list[i + 1];
+    let gap = '';
+    if (next) {
+      const free = addMinutes(next.start_time, 0).absolute - addMinutes(end, 0).absolute;
+      gap = free < buffer
+        ? `<div class="gap" style="color:var(--danger)">${icon('close', 13)} ${free} دقيقة فقط حتى الموعد التالي — أقل من وقت الانتقال (${buffer})</div>`
+        : `<div class="gap">${free} دقيقة حتى الموعد التالي</div>`;
+    }
+    return `
+      <div class="stop">
+        ${bookingCard(b, { showDate: false })}
+      </div>${gap}`;
+  }).join('');
+
+  view.innerHTML = `
+    <div class="sec-head" style="margin-top:18px"><h2>الأجندة</h2><span class="rule"></span></div>
+    <div class="split mb">
+      <div class="field" style="margin:0">
+        <label class="label" for="agDate">اليوم</label>
+        <input class="input" type="date" id="agDate" value="${d}">
+      </div>
+      <button class="btn btn-ghost" id="agToday" style="flex:0 0 auto;width:auto">اليوم</button>
+    </div>
+    <p class="muted mb">${fmtDate(d)}</p>
+    ${list.length
+      ? `<div class="tl">${stops}</div>
+         <button class="btn btn-soft mt" id="agShare">${icon('driver', 18)} إرسال خطة اليوم للسائق</button>`
+      : '<div class="empty"><div class="badge lg" data-icon="calendar"></div><p>لا مواعيد في هذا اليوم.</p></div>'}`;
+
+  bindCards();
+  document.getElementById('agDate').onchange = (e) => { S.agendaDate = e.target.value; render(); };
+  document.getElementById('agToday').onclick = () => { S.agendaDate = today(); render(); };
+  const sh = document.getElementById('agShare');
+  if (sh) sh.onclick = () => shareDayPlan(d);
+}
+
+/* ── Outstanding balances ─────────────────────────────────────────────── */
+
+function renderDues() {
+  const rows = S.bookings
+    .filter((b) => ['confirmed', 'done'].includes(b.status) && Number(b.price) - Number(b.deposit) > 0)
+    .sort((a, b) => a.the_date.localeCompare(b.the_date));
+  const total = rows.reduce((n, b) => n + (Number(b.price) - Number(b.deposit)), 0);
+
+  view.innerHTML = `
+    <div class="sec-head" style="margin-top:18px"><h2>المبالغ المستحقة</h2><span class="rule"></span>
+      <span class="count">${int(rows.length)}</span></div>
+    ${rows.length ? `
+      <div class="card mb">
+        <div class="leader"><span class="k">إجمالي المستحق</span><span class="d"></span>
+          <span class="v due">${riyal(total)}</span></div>
+      </div>
+      <div class="list">${rows.map((b) => bookingCard(b)).join('')}</div>`
+    : `<div class="arch" style="margin-top:18px">
+        <div class="badge lg on-surface" data-icon="check" data-icon-size="24" style="margin:0 auto 10px"></div>
+        <h2>لا مستحقات</h2><p class="muted" style="margin-top:4px">كل الحجوزات مسدّدة.</p></div>`}`;
+  bindCards();
+}
+
+/* ── Working hours ────────────────────────────────────────────────────── */
+
+function renderHours() {
+  const byDay = WEEKDAYS.map((d) => ({
+    ...d, rules: S.rules.filter((r) => r.weekday === d.value),
+  }));
+  const future = S.overrides.filter((o) => o.the_date >= today())
+                            .sort((a, b) => a.the_date.localeCompare(b.the_date));
+
+  view.innerHTML = `
+    <div class="sec-head" style="margin-top:18px"><h2>أوقات العمل الأسبوعية</h2><span class="rule"></span></div>
+    <p class="muted mb">حدّدي أيامك وساعاتك، والعميلات يرَين المتاح منها فقط بعد خصم الحجوزات ووقت الانتقال.</p>
+
+    <div class="list mb">
+      ${byDay.map((d) => `
+        <div class="card">
+          <div class="rowline" style="border:0;padding:0 0 8px">
+            <span class="grow"><span class="t">${d.name}</span>
+              <span class="s">${d.rules.length ? `${d.rules.length} فترة` : 'مغلق'}</span></span>
+            <button class="iconbtn" data-addrule="${d.value}" aria-label="إضافة فترة لـ${d.name}"
+                    data-icon="plus"></button>
+          </div>
+          ${d.rules.map((r) => `
+            <div class="rowline">
+              <span class="badge" data-icon="clock" data-icon-size="17" style="width:34px;height:34px"></span>
+              <span class="grow"><span class="t">${fmtTime(r.start_time)} — ${fmtTime(r.end_time)}</span>
+                ${r.label ? `<span class="s">${esc(r.label)}</span>` : ''}</span>
+              ${r.active ? '' : '<span class="pill quiet">موقوفة</span>'}
+              <button class="iconbtn" data-editrule="${r.id}" aria-label="تعديل الفترة" data-icon="edit"></button>
+              <button class="iconbtn" data-delrule="${r.id}" aria-label="حذف الفترة" data-icon="trash"></button>
+            </div>`).join('')}
+        </div>`).join('')}
+    </div>
+
+    <div class="sec-head"><h2>أيام استثنائية</h2><span class="rule"></span></div>
+    <p class="muted mb">إجازة، أو ساعات مختلفة ليوم واحد. تتقدّم على الجدول الأسبوعي.</p>
+    <div class="card mb">
+      ${future.length ? future.map((o) => `
+        <div class="rowline">
+          <span class="badge" data-icon="${o.kind === 'closed' ? 'close' : 'clock'}" data-icon-size="17"
+                style="width:34px;height:34px"></span>
+          <span class="grow"><span class="t">${fmtDate(o.the_date, { short: true })}</span>
+            <span class="s">${o.kind === 'closed' ? 'إجازة' : `${fmtTime(o.start_time)} — ${fmtTime(o.end_time)}`}${o.note && o.note !== 'إجازة' ? ` · ${esc(o.note)}` : ''}</span></span>
+          <button class="iconbtn" data-delov="${o.id}" aria-label="حذف" data-icon="trash"></button>
+        </div>`).join('') : '<p class="muted center" style="padding:12px 0">لا أيام استثنائية.</p>'}
+    </div>
+    <button class="btn btn-ghost" id="addOverride">${icon('plus', 18)} إضافة يوم استثنائي</button>`;
+
+  view.querySelectorAll('[data-addrule]').forEach((b) =>
+    b.onclick = () => editRule({ weekday: Number(b.dataset.addrule), start_time: '16:00', end_time: '22:00', active: true }));
+  view.querySelectorAll('[data-editrule]').forEach((b) =>
+    b.onclick = () => editRule(S.rules.find((r) => r.id === b.dataset.editrule)));
+  view.querySelectorAll('[data-delrule]').forEach((b) =>
+    b.onclick = async () => { await admin.deleteRule(b.dataset.delrule); toast('حُذفت الفترة', 'ok'); reload(); });
+  view.querySelectorAll('[data-delov]').forEach((b) =>
+    b.onclick = async () => { await admin.deleteOverride(b.dataset.delov); toast('حُذف اليوم', 'ok'); reload(); });
+  document.getElementById('addOverride').onclick = () => editOverride();
+}
+
+function editRule(rule) {
+  showSheet(rule.id ? 'تعديل الفترة' : 'فترة عمل جديدة', `
+    <div class="field">
+      <label class="label" for="r-day">اليوم</label>
+      <select class="input" id="r-day">
+        ${WEEKDAYS.map((d) => `<option value="${d.value}" ${d.value === rule.weekday ? 'selected' : ''}>${d.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="split mb">
+      <div class="field" style="margin:0"><label class="label" for="r-from">من</label>
+        <input class="input" type="time" id="r-from" value="${(rule.start_time || '16:00').slice(0, 5)}"></div>
+      <div class="field" style="margin:0"><label class="label" for="r-to">إلى</label>
+        <input class="input" type="time" id="r-to" value="${(rule.end_time || '22:00').slice(0, 5)}"></div>
+    </div>
+    <div class="field">
+      <label class="label" for="r-label">تسمية <span class="opt">(اختياري)</span></label>
+      <input class="input" id="r-label" value="${esc(rule.label || '')}" placeholder="مثال: دوام صباحي">
+    </div>
+    <div id="r-err"></div>
+    <button class="btn btn-primary" id="r-save">حفظ</button>`);
+
+  document.getElementById('r-save').onclick = async () => {
+    const from = document.getElementById('r-from').value;
+    const to   = document.getElementById('r-to').value;
+    if (!from || !to || to <= from) {
+      document.getElementById('r-err').innerHTML =
+        `<div class="note danger mb">${icon('close', 18)}<span>وقت النهاية يجب أن يكون بعد البداية.</span></div>`;
+      return;
+    }
+    await admin.saveRule({
+      ...(rule.id ? { id: rule.id } : {}),
+      weekday: Number(document.getElementById('r-day').value),
+      start_time: from, end_time: to,
+      label: document.getElementById('r-label').value.trim() || null,
+      active: true,
+    });
+    closeSheet(sheet); toast('حُفظت الفترة', 'ok'); reload();
+  };
+}
+
+function editOverride() {
+  showSheet('يوم استثنائي', `
+    <div class="field">
+      <label class="label" for="o-date">التاريخ</label>
+      <input class="input" type="date" id="o-date" min="${today()}" value="${today()}">
+    </div>
+    <div class="field">
+      <label class="label">النوع</label>
+      <div class="btn-row">
+        <button class="choice" id="o-closed" aria-pressed="true" style="justify-content:center">إجازة</button>
+        <button class="choice" id="o-custom" aria-pressed="false" style="justify-content:center">ساعات خاصة</button>
+      </div>
+    </div>
+    <div class="split mb hide" id="o-hours">
+      <div class="field" style="margin:0"><label class="label" for="o-from">من</label>
+        <input class="input" type="time" id="o-from" value="09:00"></div>
+      <div class="field" style="margin:0"><label class="label" for="o-to">إلى</label>
+        <input class="input" type="time" id="o-to" value="13:00"></div>
+    </div>
+    <div class="field">
+      <label class="label" for="o-note">ملاحظة <span class="opt">(اختياري)</span></label>
+      <input class="input" id="o-note" placeholder="مثال: سفر">
+    </div>
+    <div id="o-err"></div>
+    <button class="btn btn-primary" id="o-save">حفظ</button>`);
+
+  let kind = 'closed';
+  const pick = (k) => {
+    kind = k;
+    document.getElementById('o-closed').setAttribute('aria-pressed', String(k === 'closed'));
+    document.getElementById('o-custom').setAttribute('aria-pressed', String(k === 'custom'));
+    document.getElementById('o-hours').classList.toggle('hide', k !== 'custom');
+  };
+  document.getElementById('o-closed').onclick = () => pick('closed');
+  document.getElementById('o-custom').onclick = () => pick('custom');
+
+  document.getElementById('o-save').onclick = async () => {
+    const row = {
+      the_date: document.getElementById('o-date').value,
+      kind,
+      note: document.getElementById('o-note').value.trim() || null,
+      start_time: kind === 'custom' ? document.getElementById('o-from').value : null,
+      end_time:   kind === 'custom' ? document.getElementById('o-to').value   : null,
+    };
+    if (!row.the_date) return;
+    if (kind === 'custom' && (!row.start_time || !row.end_time || row.end_time <= row.start_time)) {
+      document.getElementById('o-err').innerHTML =
+        `<div class="note danger mb">${icon('close', 18)}<span>وقت النهاية يجب أن يكون بعد البداية.</span></div>`;
+      return;
+    }
+    try {
+      await admin.saveOverride(row);
+      closeSheet(sheet); toast('حُفظ اليوم', 'ok'); reload();
+    } catch (err) {
+      document.getElementById('o-err').innerHTML =
+        `<div class="note danger mb">${icon('close', 18)}<span>${esc(err.message)}</span></div>`;
+    }
+  };
+}
+
+/* ── Services ─────────────────────────────────────────────────────────── */
+
+function renderServices() {
+  view.innerHTML = `
+    <div class="sec-head" style="margin-top:18px"><h2>الخدمات والأسعار</h2><span class="rule"></span></div>
+    <p class="muted mb">المدة هنا هي ما يبني الأوقات المتاحة للعميلة.</p>
+    <div class="card mb">
+      ${S.services.filter((s) => s.active).map((s) => `
+        <div class="rowline">
+          <span class="badge" data-icon="${esc(s.icon)}" data-icon-size="18" style="width:36px;height:36px"></span>
+          <span class="grow"><span class="t">${esc(s.name)}</span>
+            <span class="s">${fmtDuration(s.duration_min)}${s.bookable_by_client ? '' : ' · غير ظاهرة للعميلات'}</span></span>
+          <span class="v num" style="font-family:var(--fd);font-weight:700">${money(s.price)}</span>
+          <button class="iconbtn" data-editsvc="${s.id}" aria-label="تعديل ${esc(s.name)}" data-icon="edit"></button>
+        </div>`).join('') || '<p class="muted center" style="padding:12px 0">لا خدمات.</p>'}
+    </div>
+    <button class="btn btn-ghost" id="addSvc">${icon('plus', 18)} إضافة خدمة</button>`;
+
+  view.querySelectorAll('[data-editsvc]').forEach((b) =>
+    b.onclick = () => editService(S.services.find((s) => s.id === b.dataset.editsvc)));
+  document.getElementById('addSvc').onclick = () =>
+    editService({ name: '', icon: 'sparkle', price: 0, duration_min: 45, active: true, bookable_by_client: true, sort: S.services.length + 1 });
+}
+
+const ICON_CHOICES = ['bride', 'evening', 'lipstick', 'brush', 'mirror', 'sparkle', 'heart', 'user'];
+
+function editService(s) {
+  showSheet(s.id ? 'تعديل الخدمة' : 'خدمة جديدة', `
+    <div class="field"><label class="label" for="s-name">الاسم</label>
+      <input class="input" id="s-name" value="${esc(s.name)}" placeholder="مثال: ميك اب خطوبة"></div>
+    <div class="field">
+      <label class="label">الأيقونة</label>
+      <div class="slots" style="grid-template-columns:repeat(4,1fr)">
+        ${ICON_CHOICES.map((n) => `
+          <button class="slot" data-ico="${n}" aria-pressed="${n === s.icon}" aria-label="${n}"
+                  style="display:grid;place-items:center">${icon(n, 21)}</button>`).join('')}
+      </div>
+    </div>
+    <div class="split mb">
+      <div class="field" style="margin:0"><label class="label" for="s-price">السعر (ر.س)</label>
+        <input class="input ltr" id="s-price" type="number" min="0" inputmode="numeric" value="${Number(s.price)}"></div>
+      <div class="field" style="margin:0"><label class="label" for="s-dur">المدة (دقيقة)</label>
+        <input class="input ltr" id="s-dur" type="number" min="15" max="600" step="5" inputmode="numeric" value="${Number(s.duration_min)}"></div>
+    </div>
+    <div class="field"><label class="label" for="s-desc">وصف مختصر <span class="opt">(اختياري)</span></label>
+      <input class="input" id="s-desc" value="${esc(s.description || '')}"></div>
+    <label class="choice mb"><input type="checkbox" id="s-public" ${s.bookable_by_client ? 'checked' : ''}
+        style="width:20px;height:20px;accent-color:var(--rose-deep)">
+      <span class="grow"><span class="t">تظهر لصفحة العميلات</span>
+        <span class="s">أوقفيها لخدمة تحجزينها أنتِ فقط</span></span></label>
+    <div id="s-err"></div>
+    <div class="btn-row">
+      ${s.id ? '<button class="btn btn-danger" id="s-del">إخفاء</button>' : ''}
+      <button class="btn btn-primary" id="s-save">حفظ</button>
+    </div>`);
+
+  let ico = s.icon;
+  view.ownerDocument.querySelectorAll('[data-ico]').forEach((b) => b.onclick = () => {
+    ico = b.dataset.ico;
+    document.querySelectorAll('[data-ico]').forEach((x) =>
+      x.setAttribute('aria-pressed', String(x.dataset.ico === ico)));
+  });
+
+  document.getElementById('s-save').onclick = async () => {
+    const name = document.getElementById('s-name').value.trim();
+    const price = Number(document.getElementById('s-price').value);
+    const dur = Number(document.getElementById('s-dur').value);
+    const err = document.getElementById('s-err');
+    if (name.length < 2) { err.innerHTML = note('اكتبي اسم الخدمة.'); return; }
+    if (!(dur >= 15 && dur <= 600)) { err.innerHTML = note('المدة بين 15 و600 دقيقة.'); return; }
+    if (!(price >= 0)) { err.innerHTML = note('السعر غير صحيح.'); return; }
+    if (price === 0 && !confirm('السعر صفر. هل تريدين المتابعة؟')) return;
+    await admin.saveService({
+      ...(s.id ? { id: s.id } : {}), name, icon: ico, price, duration_min: dur,
+      description: document.getElementById('s-desc').value.trim() || null,
+      bookable_by_client: document.getElementById('s-public').checked,
+      active: true, sort: s.sort ?? 0,
+    });
+    closeSheet(sheet); toast('حُفظت الخدمة', 'ok'); reload();
+  };
+  const del = document.getElementById('s-del');
+  if (del) del.onclick = async () => {
+    await admin.deleteService(s.id);
+    closeSheet(sheet); toast('أُخفيت الخدمة — الحجوزات السابقة لم تتأثر', 'ok'); reload();
+  };
+}
+
+const note = (msg) => `<div class="note danger mb">${icon('close', 18)}<span>${esc(msg)}</span></div>`;
+
+/* ── Settings ─────────────────────────────────────────────────────────── */
+
+function renderSettings() {
+  const s = S.settings || {};
+  view.innerHTML = `
+    <div class="sec-head" style="margin-top:18px"><h2>الإعدادات</h2><span class="rule"></span></div>
+
+    <div class="card mb">
+      <p class="label">صفحة الحجز</p>
+      <label class="choice mb"><input type="checkbox" id="set-open" ${s.accepting_bookings ? 'checked' : ''}
+          style="width:20px;height:20px;accent-color:var(--rose-deep)">
+        <span class="grow"><span class="t">استقبال حجوزات جديدة</span>
+          <span class="s">أوقفيه لإغلاق الصفحة مؤقتًا</span></span></label>
+      <div class="field"><label class="label" for="set-name">الاسم المعروض</label>
+        <input class="input" id="set-name" value="${esc(s.business_name || '')}"></div>
+      <div class="field"><label class="label" for="set-tag">الوصف</label>
+        <input class="input" id="set-tag" value="${esc(s.tagline || '')}"></div>
+      <div class="field" style="margin:0"><label class="label">رابط صفحة العميلات</label>
+        <div class="linkbox" style="display:flex;gap:8px;align-items:center;background:var(--surface-2);
+             border:1px solid var(--line);border-radius:var(--r);padding:9px 12px">
+          <input id="pubLink" readonly value="${esc(location.origin + location.pathname.replace(/admin\.html$/, 'index.html'))}"
+                 style="flex:1;min-width:0;border:0;background:transparent;color:var(--ink-2);
+                        font-size:12.5px;direction:ltr;outline:none;font-family:ui-monospace,monospace">
+          <button class="iconbtn" id="copyPub" aria-label="نسخ" data-icon="export"></button>
+        </div>
+        <p class="hint">شاركي هذا الرابط مع العميلات.</p>
+      </div>
+    </div>
+
+    <div class="card mb">
+      <p class="label">المواعيد</p>
+      <div class="split mb">
+        <div class="field" style="margin:0"><label class="label" for="set-buffer">وقت الانتقال (دقيقة)</label>
+          <input class="input ltr" id="set-buffer" type="number" min="0" max="240" inputmode="numeric"
+                 value="${Number(s.travel_buffer_min ?? 40)}"></div>
+        <div class="field" style="margin:0"><label class="label" for="set-step">تباعد المواعيد</label>
+          <select class="input" id="set-step">
+            ${[15, 20, 30, 60].map((n) => `<option value="${n}" ${Number(s.slot_step_min) === n ? 'selected' : ''}>${n} دقيقة</option>`).join('')}
+          </select></div>
+      </div>
+      <div class="split" style="margin:0">
+        <div class="field" style="margin:0"><label class="label" for="set-lead">أقل مهلة للحجز (ساعة)</label>
+          <input class="input ltr" id="set-lead" type="number" min="0" max="720" inputmode="numeric"
+                 value="${Number(s.min_lead_hours ?? 4)}"></div>
+        <div class="field" style="margin:0"><label class="label" for="set-adv">أبعد حجز (يوم)</label>
+          <input class="input ltr" id="set-adv" type="number" min="1" max="730" inputmode="numeric"
+                 value="${Number(s.max_advance_days ?? 120)}"></div>
+      </div>
+    </div>
+
+    <div class="card mb">
+      <p class="label">أرقام التواصل</p>
+      <div class="field"><label class="label" for="set-wa">واتساب الأعمال</label>
+        <input class="input ltr" id="set-wa" type="tel" inputmode="numeric" placeholder="05xxxxxxxx"
+               value="${s.whatsapp_phone ? esc(prettyPhone(s.whatsapp_phone)) : ''}"></div>
+      <div class="field" style="margin:0"><label class="label" for="set-drv">جوال السائق</label>
+        <input class="input ltr" id="set-drv" type="tel" inputmode="numeric" placeholder="05xxxxxxxx"
+               value="${s.driver_phone ? esc(prettyPhone(s.driver_phone)) : ''}"></div>
+    </div>
+
+    <div id="set-err"></div>
+    <button class="btn btn-primary mb" id="saveSettings">حفظ الإعدادات</button>
+
+    <div class="sec-head"><h2>النسخ الاحتياطي</h2><span class="rule"></span></div>
+    <p class="muted mb">نزّلي نسخة كاملة من كل شيء. احتفظي بها خارج الجهاز.</p>
+    <div class="btn-row">
+      <button class="btn btn-soft" id="btnBackup">${icon('wallet', 18)} نسخة JSON</button>
+      <button class="btn btn-ghost" id="btnCsv">${icon('export', 18)} تصدير CSV</button>
+    </div>`;
+
+  document.getElementById('copyPub').onclick = async () => {
+    try { await navigator.clipboard.writeText(document.getElementById('pubLink').value); toast('نُسخ الرابط', 'ok'); }
+    catch { document.getElementById('pubLink').select(); }
+  };
+
+  document.getElementById('saveSettings').onclick = async () => {
+    const err = document.getElementById('set-err');
+    const wa  = document.getElementById('set-wa').value.trim();
+    const drv = document.getElementById('set-drv').value.trim();
+    if (wa && !normalisePhone(wa))  { err.innerHTML = note('رقم واتساب غير صحيح.'); return; }
+    if (drv && !normalisePhone(drv)) { err.innerHTML = note('رقم السائق غير صحيح.'); return; }
+    err.innerHTML = '';
+    try {
+      await admin.saveSettings({
+        accepting_bookings: document.getElementById('set-open').checked,
+        business_name: document.getElementById('set-name').value.trim(),
+        tagline: document.getElementById('set-tag').value.trim() || null,
+        travel_buffer_min: Number(document.getElementById('set-buffer').value),
+        slot_step_min: Number(document.getElementById('set-step').value),
+        min_lead_hours: Number(document.getElementById('set-lead').value),
+        max_advance_days: Number(document.getElementById('set-adv').value),
+        whatsapp_phone: wa ? normalisePhone(wa) : null,
+        driver_phone: drv ? normalisePhone(drv) : null,
+      });
+      toast('حُفظت الإعدادات', 'ok'); reload();
+    } catch (e) { err.innerHTML = note(e.message); }
+  };
+
+  document.getElementById('btnBackup').onclick = async () => {
+    const data = await admin.exportAll();
+    download(`نسخة-احتياطية-${today()}.json`, JSON.stringify(data, null, 2));
+    toast('نُزّلت النسخة', 'ok');
+  };
+
+  document.getElementById('btnCsv').onclick = () => {
+    const csv = toCSV(S.bookings, [
+      { label: 'رقم الطلب', get: (b) => b.ref },
+      { label: 'الاسم',      get: (b) => b.client_name },
+      { label: 'الجوال',     get: (b) => prettyPhone(b.client_phone) },
+      { label: 'التاريخ',    get: (b) => b.the_date },
+      { label: 'الوقت',      get: (b) => fmtTime(b.start_time) },
+      { label: 'المدة',      get: (b) => b.duration_min },
+      { label: 'الخدمات',    get: (b) => (b.booking_items || []).map((i) => i.service_name).join(' + ') },
+      { label: 'الموقع',     get: (b) => b.loc_text || '' },
+      { label: 'الإجمالي',   get: (b) => b.price },
+      { label: 'المدفوع',    get: (b) => b.deposit },
+      { label: 'المتبقي',    get: (b) => Number(b.price) - Number(b.deposit) },
+      { label: 'الحالة',     get: (b) => statusLabel(b.status) },
+    ]);
+    download(`حجوزات-${today()}.csv`, csv, 'text/csv');
+    toast('نُزّل الملف', 'ok');
+  };
+}
+
+/* ── Booking detail ───────────────────────────────────────────────────── */
+
+function showSheet(title, html) {
+  document.getElementById('sheetTitle').textContent = title;
+  document.getElementById('sheetContent').innerHTML = html;
+  hydrateIcons(sheet);
+  openSheet(sheet);
+}
+
+async function openBooking(id) {
+  const b = S.bookings.find((x) => x.id === id);
+  if (!b) return;
+  const items = b.booking_items || [];
+  const due = Number(b.price) - Number(b.deposit);
+  const end = addMinutes(b.start_time, b.duration_min).time;
+  const track = `${location.origin}${location.pathname.replace(/admin\.html$/, 'index.html')}?t=${b.public_token}`;
+
+  showSheet(b.client_name, `
+    <div class="card mb">
+      <div class="rowline" style="padding-top:0">
+        <span class="grow"><span class="t">${fmtDate(b.the_date)}</span>
+          <span class="s">${fmtTime(b.start_time)} — ${fmtTime(end)} · ${fmtDuration(b.duration_min)}</span></span>
+        <span class="pill ${esc(b.status)}">${esc(statusLabel(b.status))}</span>
+      </div>
+      <div class="rowline">
+        <span class="grow"><span class="t" dir="ltr" style="text-align:start">${esc(prettyPhone(b.client_phone))}</span>
+          <span class="s">رقم الطلب ${esc(b.ref)}</span></span>
+        <a class="iconbtn" href="${telHref(b.client_phone)}" aria-label="اتصال" data-icon="phone"></a>
+        <a class="iconbtn accent" href="${waHref(b.client_phone)}" target="_blank" rel="noopener"
+           aria-label="واتساب" data-icon="whatsapp"></a>
+      </div>
+      ${b.loc_text || b.loc_map ? `
+        <div class="rowline">
+          <span class="grow"><span class="t">${esc(b.loc_text || 'موقع على الخريطة')}</span>
+            <span class="s">الموقع</span></span>
+          ${b.loc_map ? `<a class="iconbtn" href="${esc(b.loc_map)}" target="_blank" rel="noopener"
+                            aria-label="فتح الخريطة" data-icon="pin"></a>` : ''}
+          ${b.loc_map && S.settings?.driver_phone ? `
+            <a class="iconbtn" href="${waHref(S.settings.driver_phone, templates.driverOne(b))}"
+               target="_blank" rel="noopener" aria-label="إرسال للسائق" data-icon="driver"></a>` : ''}
+        </div>` : ''}
+      ${b.client_notes ? `<div class="rowline"><span class="grow">
+          <span class="t">${esc(b.client_notes)}</span><span class="s">ملاحظات العميلة</span></span></div>` : ''}
+      ${b.cancel_requested ? `<div class="note warn" style="margin-top:10px">${icon('clock', 18)}
+        <span>العميلة طلبت إلغاء هذا الحجز.</span></div>` : ''}
+    </div>
+
+    <div class="card mb">
+      <p class="label">الخدمات</p>
+      ${items.map((i) => `
+        <div class="leader"><span class="k">${esc(i.person_name || i.service_name)}${
+          i.person_name ? ` · ${esc(i.service_name)}` : ''}</span>
+          <span class="d"></span><span class="v">${riyal(i.price)}</span></div>`).join('')}
+      ${b.price_override != null ? `
+        <div class="leader"><span class="k">قبل التعديل</span><span class="d"></span>
+          <span class="v" style="text-decoration:line-through;color:var(--ink-3)">${riyal(b.items_total)}</span></div>` : ''}
+      <div class="leader" style="border-top:1px solid var(--line);margin-top:6px;padding-top:9px">
+        <span class="k">الإجمالي</span><span class="d"></span><span class="v">${riyal(b.price)}</span></div>
+      <div class="leader"><span class="k">المدفوع</span><span class="d"></span>
+        <span class="v ${Number(b.deposit) > 0 ? 'paid' : ''}">${riyal(b.deposit)}</span></div>
+      <div class="leader"><span class="k">المتبقي</span><span class="d"></span>
+        <span class="v ${due > 0 ? 'due' : 'paid'}">${due > 0 ? riyal(due) : 'مسدّد'}</span></div>
+    </div>
+
+    <div class="card mb">
+      <p class="label">تحديث المبالغ</p>
+      <div class="split">
+        <div class="field" style="margin:0"><label class="label" for="d-price">الإجمالي</label>
+          <input class="input ltr" id="d-price" type="number" min="0" inputmode="numeric" value="${Number(b.price)}"></div>
+        <div class="field" style="margin:0"><label class="label" for="d-dep">المدفوع</label>
+          <input class="input ltr" id="d-dep" type="number" min="0" inputmode="numeric" value="${Number(b.deposit)}"></div>
+      </div>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn btn-ghost" data-dep="q">ربع</button>
+        <button class="btn btn-ghost" data-dep="h">نصف</button>
+        <button class="btn btn-ghost" data-dep="f">كامل</button>
+      </div>
+      <div id="d-err"></div>
+      <button class="btn btn-soft" id="d-money" style="margin-top:10px">حفظ المبالغ</button>
+    </div>
+
+    <div class="card mb">
+      <p class="label">رسائل واتساب</p>
+      <div class="list">
+        <a class="choice" href="${waHref(b.client_phone, templates.confirm(b, track))}" target="_blank" rel="noopener">
+          ${icon('check', 18)}<span class="grow"><span class="t">تأكيد الموعد</span>
+          <span class="s">التفاصيل ورابط المتابعة</span></span></a>
+        <a class="choice" href="${waHref(b.client_phone, templates.reminder(b))}" target="_blank" rel="noopener">
+          ${icon('bell', 18)}<span class="grow"><span class="t">تذكير قبل الموعد</span></span></a>
+        ${due > 0 ? `<a class="choice" href="${waHref(b.client_phone, templates.deposit(b))}" target="_blank" rel="noopener">
+          ${icon('riyal', 18)}<span class="grow"><span class="t">طلب العربون</span></span></a>` : ''}
+        <a class="choice" href="${waHref(b.client_phone, templates.thanks(b))}" target="_blank" rel="noopener">
+          ${icon('heart', 18)}<span class="grow"><span class="t">شكر بعد المناسبة</span></span></a>
+      </div>
+    </div>
+
+    <div id="d-actions"></div>`);
+
+  // Quick deposit buttons work off whatever total is currently in the field.
+  sheet.querySelectorAll('[data-dep]').forEach((btn) => btn.onclick = () => {
+    const total = Number(document.getElementById('d-price').value) || 0;
+    const v = btn.dataset.dep === 'q' ? Math.round(total / 4)
+            : btn.dataset.dep === 'h' ? Math.round(total / 2) : total;
+    document.getElementById('d-dep').value = v;
+  });
+
+  document.getElementById('d-money').onclick = async () => {
+    const price = Number(document.getElementById('d-price').value);
+    const dep   = Number(document.getElementById('d-dep').value);
+    const err = document.getElementById('d-err');
+    if (!(price >= 0) || !(dep >= 0)) { err.innerHTML = note('المبالغ غير صحيحة.'); return; }
+    if (dep > price) { err.innerHTML = note('المدفوع أكبر من الإجمالي.'); return; }
+    err.innerHTML = '';
+    // price_override records the charged total explicitly, so the line items
+    // keep their own real prices and the two never contradict each other.
+    await admin.update(b.id, { price_override: price === Number(b.items_total) ? null : price, deposit: dep });
+    closeSheet(sheet); toast('حُفظت المبالغ', 'ok'); reload();
+  };
+
+  renderActions(b);
+}
+
+function renderActions(b) {
+  const host = document.getElementById('d-actions');
+  const act = (label, cls, fn, ico) => {
+    const el = document.createElement('button');
+    el.className = `btn ${cls}`;
+    el.innerHTML = `${ico ? icon(ico, 18) : ''} ${label}`;
+    el.onclick = fn;
+    return el;
+  };
+  const set = async (status, msg) => {
+    await admin.setStatus(b.id, status);
+    closeSheet(sheet); toast(msg, 'ok'); reload();
+  };
+
+  host.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'btn-row mb';
+
+  if (b.status === 'pending') {
+    row.append(
+      act('تأكيد الحجز', 'btn-primary', () => set('confirmed', 'تم تأكيد الحجز'), 'check'),
+      act('اعتذار', 'btn-danger', () => confirmThen('الاعتذار عن هذا الطلب؟', () => set('rejected', 'تم الاعتذار'))),
+    );
+  } else if (b.status === 'confirmed') {
+    row.append(
+      act('تم الإنجاز', 'btn-primary', () => set('done', 'تم وضعه مكتملًا'), 'check'),
+      act('لم تحضر', 'btn-ghost', () => confirmThen('تسجيل عدم الحضور؟', () => set('no_show', 'سُجّل عدم الحضور'))),
+    );
+  } else {
+    row.append(act('إعادة للمؤكدة', 'btn-ghost', () => set('confirmed', 'أُعيد الحجز'), 'back'));
+  }
+  host.append(row);
+
+  if (['pending', 'confirmed'].includes(b.status)) {
+    const cancel = act('إلغاء الحجز', 'btn-danger',
+      () => confirmThen(`إلغاء حجز ${b.client_name}؟`, () => set('cancelled', 'أُلغي الحجز')));
+    host.append(cancel);
+  }
+  hydrateIcons(host);
+}
+
+function confirmThen(question, fn) {
+  const content = document.getElementById('sheetContent');
+  const prev = content.innerHTML;
+  content.innerHTML = `
+    <div class="arch mb">
+      <div class="badge lg on-surface" data-icon="close" data-icon-size="24" style="margin:0 auto 10px"></div>
+      <h2>${esc(question)}</h2>
+      <p class="muted" style="margin-top:6px">يمكن التراجع لاحقًا من نفس الشاشة.</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="c-no">تراجع</button>
+      <button class="btn btn-danger" id="c-yes">نعم، متابعة</button>
+    </div>`;
+  hydrateIcons(content);
+  document.getElementById('c-no').onclick = () => { content.innerHTML = prev; hydrateIcons(content); };
+  document.getElementById('c-yes').onclick = fn;
+}
+
+/* ── Manual booking (walk-in / phone) ─────────────────────────────────── */
+
+function openNewBooking() {
+  const svcs = S.services.filter((s) => s.active);
+  if (!svcs.length) return toast('أضيفي خدمة أولًا');
+
+  showSheet('حجز يدوي', `
+    <div class="field"><label class="label" for="n-name">اسم العميلة</label>
+      <input class="input" id="n-name" placeholder="الاسم الكامل"></div>
+    <div class="field"><label class="label" for="n-phone">رقم الجوال</label>
+      <input class="input ltr" id="n-phone" type="tel" inputmode="numeric" placeholder="05xxxxxxxx"></div>
+    <div class="field"><label class="label" for="n-svc">الخدمة</label>
+      <select class="input" id="n-svc">
+        ${svcs.map((s) => `<option value="${s.id}">${esc(s.name)} — ${money(s.price)} ر.س · ${s.duration_min}د</option>`).join('')}
+      </select></div>
+    <div class="split mb">
+      <div class="field" style="margin:0"><label class="label" for="n-date">التاريخ</label>
+        <input class="input" type="date" id="n-date" value="${today()}"></div>
+      <div class="field" style="margin:0"><label class="label" for="n-time">الوقت</label>
+        <input class="input" type="time" id="n-time" value="16:00"></div>
+    </div>
+    <div class="field"><label class="label" for="n-loc">الموقع <span class="opt">(اختياري)</span></label>
+      <input class="input" id="n-loc"></div>
+    <div class="note mb">${icon('clock', 18)}
+      <span>الحجز اليدوي يُحفظ مؤكّدًا مباشرة ولا يمرّ بفحص الأوقات المتاحة — راجعي الأجندة بعده.</span></div>
+    <div id="n-err"></div>
+    <button class="btn btn-primary" id="n-save">حفظ الحجز</button>`);
+
+  document.getElementById('n-save').onclick = async () => {
+    const err = document.getElementById('n-err');
+    const name = document.getElementById('n-name').value.trim();
+    const phone = normalisePhone(document.getElementById('n-phone').value);
+    const svc = svcs.find((s) => s.id === document.getElementById('n-svc').value);
+    const date = document.getElementById('n-date').value;
+    const time = document.getElementById('n-time').value;
+    if (name.length < 2) { err.innerHTML = note('اكتبي اسم العميلة.'); return; }
+    if (!phone) { err.innerHTML = note('رقم الجوال غير صحيح.'); return; }
+    if (!date || !time) { err.innerHTML = note('اختاري التاريخ والوقت.'); return; }
+    err.innerHTML = '';
+    try {
+      await admin.createBooking({
+        client_name: name, client_phone: phone, the_date: date, start_time: time,
+        duration_min: svc.duration_min, status: 'confirmed',
+        loc_text: document.getElementById('n-loc').value.trim() || null,
+        confirmed_at: new Date().toISOString(),
+      }, [{
+        service_id: svc.id, service_name: svc.name, service_icon: svc.icon,
+        price: svc.price, duration_min: svc.duration_min,
+      }]);
+      closeSheet(sheet); toast('حُفظ الحجز', 'ok'); reload();
+    } catch (e) { err.innerHTML = note(e.message); }
+  };
+}
+</script>
+</body>
+</html>
