@@ -62,6 +62,7 @@
     <p class="tagline" id="bizTagline">ميك اب عرائس ومناسبات</p>
   </div>
 
+  <div id="recentBar" hidden></div>
   <div id="view">
     <div class="stack mt">
       <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
@@ -117,6 +118,21 @@ const people     = () => picked().length;
       document.title = `حجز موعد — ${state.settings.business_name}`;
     }
     if (token) { renderTracking(token); return; }
+
+    let recent = null;
+    try { recent = JSON.parse(localStorage.getItem('lastBooking') || 'null'); } catch { /* ignore */ }
+    if (recent && recent.token) {
+      const bar = document.getElementById('recentBar');
+      if (bar) {
+        bar.innerHTML = `<a class="recent" href="?t=${encodeURIComponent(recent.token)}">
+            <span data-icon="clock" data-icon-size="16"></span>
+            <span>متابعة طلبك ${esc(recent.ref || '')}</span>
+            <span data-icon="chevron" data-icon-size="16" class="chev"></span>
+          </a>`;
+        bar.hidden = false;
+        hydrateIcons(bar);
+      }
+    }
     if (state.settings && !state.settings.accepting_bookings) { renderClosed(); return; }
     state.services = await getServices();
     renderStep1();
@@ -467,6 +483,14 @@ function trackUrl(token) {
 
 function renderSuccess(r) {
   const url = trackUrl(r.public_token);
+
+  // Without this the address bar still points at the empty booking form, so
+  // refreshing loses the only route back to the request she just made.
+  try {
+    history.replaceState(null, '', url);
+    localStorage.setItem('lastBooking', JSON.stringify({ token: r.public_token, ref: r.ref }));
+  } catch { /* private mode: the on-screen link below still works */ }
+
   view.innerHTML = `
     <div class="arch mt">
       <div class="badge lg on-surface" data-icon="check" data-icon-size="26" style="margin:0 auto 12px"></div>
