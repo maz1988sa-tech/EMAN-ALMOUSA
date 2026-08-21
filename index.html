@@ -10,10 +10,10 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <!-- ?v= يطابق VERSION في sw.js: بدونه يخدم متصفح العميلة نسخة CSS
      القديمة من ذاكرته بعد كل نشر، فتظهر الواجهة كما كانت. -->
-<link rel="stylesheet" href="assets/fonts.css?v=11">
+<link rel="stylesheet" href="assets/fonts.css?v=12">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=11">
+<link rel="stylesheet" href="assets/client-theme.css?v=12">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -199,7 +199,7 @@
           <p class="c-eyebrow"><span>CONTACT</span></p>
           <h2 class="c-title">تواصلي معنا</h2>
           <p class="c-sub" id="bizLine">EMAN AAL MOUSA · MAKEUP ARTIST</p>
-          <p class="c-body">إيمان الموسى ميك أب أرتست في الرياض.<br>تواصلي عبر قنواتنا في الأسفل.</p>
+          <p class="c-body">إيمان آل موسى ميك أب أرتست في الرياض.<br>تواصلي عبر قنواتنا في الأسفل.</p>
         </div>
 
         <div class="c-stack">
@@ -388,7 +388,7 @@ import {
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositDue, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
-} from './assets/db.js?v=11';
+} from './assets/db.js?v=12';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -566,20 +566,18 @@ function renderServices() {
             <div class="svc-hr"></div>
             <div class="meta"><span>المدة <b>${esc(fmtDuration(Number(s.duration_min)))}</b></span><i class="dot"></i><span>القيمة <b>${money(s.price)}</b><i class="rs"></i></span></div>
             <p>${esc(s.description || 'إطلالة متوازنة بتفاصيل مصمّمة لمناسبتك.')}</p>
-            <button class="pick" type="button" data-pick="${esc(s.id)}">
-              <span class="lbl">احجزي هذه الخدمة</span>
-              <svg class="i-arrow" width="20" height="12" viewBox="0 0 20 12" fill="none" aria-hidden="true"><path d="M19 6H1m5 5L1 6l5-5" stroke="currentColor" stroke-width="1.1"/></svg>
-              <svg class="i-check" width="17" height="13" viewBox="0 0 17 13" fill="none" aria-hidden="true"><path d="M1 6.5 6 12 16 1" stroke="currentColor" stroke-width="1.6"/></svg>
-            </button>
-            <div class="qty-row">
-              <span class="lab">عدد الأشخاص</span>
-              <div class="qty">
-                <button class="q-minus" type="button" data-dec="${esc(s.id)}" aria-label="إنقاص">−</button>
+            <div class="pick pick-wrap">
+              <button class="pick-main" type="button" data-pick="${esc(s.id)}">
+                <span class="lbl">احجزي هذه الخدمة</span>
+                <svg class="i-plus" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.6v16.8M3.6 12h16.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              </button>
+              <div class="pick-qty">
+                <button class="q-minus" type="button" data-dec="${esc(s.id)}" aria-label="إنقاص العدد">−</button>
                 <b class="q-val" data-val="${esc(s.id)}">1</b>
-                <button class="q-plus" type="button" data-inc="${esc(s.id)}" aria-label="زيادة">+</button>
+                <button class="q-plus" type="button" data-inc="${esc(s.id)}" aria-label="زيادة العدد">+</button>
               </div>
             </div>
-            ${state.services.length > 1 ? '<div class="svc-swipe"><svg width="18" height="11" viewBox="0 0 18 11" fill="none" aria-hidden="true"><path d="M17 5.5H1m5 5-5-5 5-5" stroke="currentColor" stroke-width="1.2"/></svg>اسحبي جانبًا لبقية الخدمات</div>' : ''}
+            ${state.services.length > 1 ? '<div class="svc-swipe"><svg width="22" height="13" viewBox="0 0 18 11" fill="none" aria-hidden="true"><path d="M17 5.5H1m5 5-5-5 5-5" stroke="currentColor" stroke-width="1.3"/></svg>اسحبي جانبًا لبقية الخدمات</div>' : ''}
           </div>
         </div>
       </article>`;
@@ -606,9 +604,14 @@ function paintCards() {
     card.classList.toggle('picked', on);
     const pick = card.querySelector('.pick');
     pick.classList.toggle('on', on);
-    pick.querySelector('.lbl').textContent = on ? 'تم الاختيار — اضغطي للإلغاء' : 'احجزي هذه الخدمة';
+    pick.querySelector('.lbl').textContent = on ? 'عدد الأشخاص' : 'احجزي هذه الخدمة';
+    /* بعد الاختيار يصير الإطار عدّادًا: الزر النصّي يهدأ والتحكّم كلّه في − و +،
+       و«−» عند الرقم ١ يلغي الخدمة ويعيد الإطار إلى «احجزي هذه الخدمة». */
+    pick.querySelector('.pick-main').disabled = on;
     card.querySelector(`[data-val="${CSS.escape(s.id)}"]`).textContent = n || 1;
-    card.querySelector('.q-minus').disabled = n <= 1;
+    const minus = card.querySelector('.q-minus');
+    minus.disabled = false;
+    minus.setAttribute('aria-label', n <= 1 ? 'إزالة الخدمة' : 'إنقاص العدد');
     card.querySelector('.q-plus').disabled = n >= UI.maxQty;
   });
   renderCart(); sync();
@@ -616,7 +619,6 @@ function paintCards() {
 function togglePick(id) { state.counts[id] = state.counts[id] > 0 ? 0 : 1; onCartChange(); }
 function bump(id, d) {
   const next = Math.max(0, Math.min(UI.maxQty, (state.counts[id] || 0) + d));
-  if (next === 0) return;
   state.counts[id] = next; onCartChange();
 }
 /* تغيير السلة يُبطل الموعد المختار: المدة تغيّرت فتغيّرت الأوقات المتاحة،

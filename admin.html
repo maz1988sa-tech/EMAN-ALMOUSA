@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#A9675C">
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/fonts.css?v=11">
-<link rel="stylesheet" href="assets/theme.css?v=11">
+<link rel="stylesheet" href="assets/fonts.css?v=12">
+<link rel="stylesheet" href="assets/theme.css?v=12">
 <style>
   .appbar { position: sticky; top: 0; z-index: 40; background: var(--surface);
             border-bottom: 1px solid var(--line); }
@@ -155,14 +155,14 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=11';
+import { icon, hydrateIcons } from './assets/icons.js?v=12';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
   today, addDays, parseDate, weekday, addMinutes, prettyPhone, telHref, waHref,
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
   receiptUrl, depositDue, purgeOrphanReceipts,
-} from './assets/db.js?v=11';
+} from './assets/db.js?v=12';
 
 const view = document.getElementById('view');
 const sheet = document.getElementById('sheet');

@@ -51,7 +51,7 @@ button{border:0;background:none;cursor:pointer}
 
 .bar{position:absolute;top:0;inset-inline:0;height:var(--bar);z-index:40;direction:ltr;display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:0 16px;color:var(--ink);transition:color .45s ease}
 .app[data-theme="dark"] .bar{color:#fff}
-.brand{height:30px;width:auto;display:block;opacity:0;transform:translateY(-5px);transition:opacity .5s ease,transform .5s ease}
+.brand{height:34px;width:auto;display:block;opacity:0;transform:translateY(-5px);transition:opacity .5s ease,transform .5s ease}
 .app:not([data-screen="0"]) .brand{opacity:1;transform:none}
 .brand-light{display:none}
 .app[data-theme="dark"] .brand-dark,.app.menu-open .brand-dark{display:none}
@@ -106,20 +106,36 @@ button{border:0;background:none;cursor:pointer}
 .meta b{font:500 17px/1 var(--serif);direction:ltr;color:#fff}
 .meta .dot{width:3px;height:3px;border-radius:3px;background:rgba(255,255,255,.4)}
 .svc-body p{margin:12px 0 0;font-size:11.5px;font-weight:200;line-height:2;color:rgba(255,255,255,.68);max-width:305px}
-.pick{margin-top:18px;width:100%;height:52px;border:1px solid rgba(255,255,255,.42);border-radius:999px;background:rgba(255,255,255,.08);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12.5px;transition:background .25s ease,transform .18s ease}
+.pick{margin-top:18px;width:100%;height:60px;border:1px solid rgba(255,255,255,.42);border-radius:999px;background:rgba(255,255,255,.08);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 20px;font-size:16px;transition:background .25s ease,transform .18s ease}
+/* النداء الرئيسي في الشاشة: يُقرأ من نظرة، ويبقى سطرًا واحدًا داخل
+   الزر مهما طال (حالة «تم الاختيار» أطول من حالة الدعوة). */
+.pick .lbl{flex:1;min-width:0;font-weight:500;text-align:start;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick .i-plus,.pick .i-check{flex:0 0 auto}
 .pick:active{transform:scale(.985);background:rgba(255,255,255,.16)}
 .pick .i-check{display:none}
 .pick.on{background:rgba(255,255,255,.94);color:var(--ink);border-color:transparent}
-.pick.on .i-arrow{display:none}
+.pick.on .i-plus{display:none}
 .pick.on .i-check{display:block}
-.qty-row{max-height:0;opacity:0;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:max-height .38s var(--ease),opacity .3s ease,margin .38s var(--ease)}
-.svc.picked .qty-row{max-height:60px;opacity:1;margin-top:12px}
-.qty-row .lab{font-size:11.5px;color:rgba(255,255,255,.78)}
-.qty{direction:ltr;display:grid;grid-template-columns:40px 44px 40px;align-items:center;border:1px solid rgba(255,255,255,.4);border-radius:999px;background:rgba(255,255,255,.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);overflow:hidden}
-.qty button{height:40px;color:#fff;font:400 19px/1 var(--serif);transition:background .2s ease}
-.qty button:active{background:rgba(255,255,255,.18)}
-.qty button[disabled]{opacity:.3}
-.qty b{text-align:center;font:500 17px/1 var(--serif);direction:ltr}
+/* الإطار الواحد: نصّ الحجز والعدّاد داخل نفس الحدود — يتحوّل الزر إلى عدّاد بعد الاختيار */
+.pick-wrap{padding-inline:20px 6px}
+.pick-wrap:active{transform:none;background:rgba(255,255,255,.08)}
+.pick-wrap.on:active{background:rgba(255,255,255,.94)}
+.pick-main{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  height:100%;padding:0;border:0;background:none;color:inherit;font:inherit}
+.pick-main:active{opacity:.7}
+.pick-main[disabled]{opacity:1}
+.pick-qty{flex:0 0 auto;direction:ltr;display:grid;grid-template-columns:32px 34px 32px;align-items:center;
+  height:44px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.12);
+  border:0 solid rgba(255,255,255,.34);
+  width:0;opacity:0;transform:scale(.72);pointer-events:none;
+  transition:width .36s var(--ease),opacity .26s ease,transform .36s var(--ease)}
+.pick.on .pick-qty{width:98px;opacity:1;transform:none;pointer-events:auto;border-width:1px;
+  background:rgba(28,16,12,.07);border-color:rgba(28,16,12,.16)}
+.pick-qty button{height:44px;color:#fff;font:400 20px/1 var(--serif);transition:background .2s ease}
+.pick.on .pick-qty button{color:var(--ink)}
+.pick-qty button:active{background:rgba(28,16,12,.12)}
+.pick-qty button[disabled]{opacity:.32}
+.pick-qty b{text-align:center;font:600 17px/1 var(--serif);direction:ltr;color:var(--ink)}
 .svc-cart{position:absolute;z-index:5;inset-inline:18px;bottom:calc(var(--gut) + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:11px 14px;border-radius:15px;background:rgba(26,15,11,.76);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.18);box-shadow:0 16px 40px rgba(12,6,4,.4);transform:translateY(calc(100% + var(--gut) + 24px));transition:transform .45s var(--ease)}
 .svc-cart.on{transform:none}
 .svc-cart small{display:block;font-size:10px;color:rgba(255,255,255,.62)}
@@ -150,7 +166,9 @@ button{border:0;background:none;cursor:pointer}
 .arrow{position:absolute;z-index:4;top:46%;width:30px;height:30px;display:grid;place-items:center;color:rgba(255,255,255,.42);transition:opacity .3s ease}
 .arrow.l{left:4px}.arrow.r{right:4px}
 .arrow[disabled]{opacity:0}
-.svc-swipe{margin-top:15px;display:flex;align-items:center;justify-content:center;gap:9px;text-align:center;font-size:12.5px;font-weight:300;letter-spacing:.04em;color:rgba(255,255,255,.82)}
+/* الدعوة إلى السحب الجانبي: كثيرات لا ينتبهن أن ثمّة خدمة أخرى،
+   فتُقرأ بحجم الجملة لا بحجم الحاشية. */
+.svc-swipe{margin-top:15px;display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;font-size:15px;font-weight:400;letter-spacing:.02em;color:rgba(255,255,255,.9)}
 .svc-swipe svg{animation:swipeX 1.9s ease-in-out infinite}
 @keyframes swipeX{0%,100%{transform:translateX(0);opacity:.55}50%{transform:translateX(-6px);opacity:1}}
 
