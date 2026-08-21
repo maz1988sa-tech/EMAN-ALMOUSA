@@ -16,7 +16,7 @@
   --ease:cubic-bezier(.66,0,.2,1);
 }
 *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{height:100%}
+html{height:100%;height:100dvh}
 body{
   margin:0;position:fixed;inset:0;overflow:hidden;overscroll-behavior:none;
   background:var(--paper);color:#fff;font-family:var(--ar);
@@ -26,9 +26,15 @@ button,input{font:inherit;color:inherit}
 button{border:0;background:none;cursor:pointer}
 
 .app{
-  position:relative;width:min(100%,430px);height:100%;
-  overflow:hidden;background:var(--paper);
-  box-shadow:0 30px 90px rgba(20,10,7,.35);isolation:isolate;
+  /* على الجوال يملأ الشاشة عرضًا وطولًا: أي سقف للعرض يترك هوامش
+     جانبية، وأي ارتفاع بالنسبة المئوية يترك فراغًا أسفل الصفحة حين
+     يتغيّر شريط المتصفح. dvh يتبع الارتفاع المرئي فعلًا. */
+  position:relative;width:100%;height:100%;height:100dvh;
+  overflow:hidden;background:var(--paper);isolation:isolate;
+}
+/* إطار الجوال يظهر على الشاشات الكبيرة وحدها — هناك يصحّ التوسيط والظل. */
+@media (min-width:600px){
+  .app{width:430px;box-shadow:0 30px 90px rgba(20,10,7,.35)}
 }
 .grain{
   position:absolute;inset:0;z-index:60;pointer-events:none;opacity:.34;mix-blend-mode:overlay;
