@@ -124,6 +124,9 @@ button{border:0;background:none;cursor:pointer}
 .svc-cart.on{transform:none}
 .svc-cart small{display:block;font-size:10px;color:rgba(255,255,255,.62)}
 .svc-cart b{display:block;margin-top:3px;font:500 21px/1 var(--serif);direction:ltr;color:#fff}
+/* خبر سارّ لا تحذير: بلون الهوية الفاتح على الشريط الداكن. */
+.cart-off{display:block;margin-top:4px;font-size:10px;color:var(--blush)}
+.cart-off[hidden]{display:none}
 
 .cart-go{height:46px;padding:0 20px;border-radius:999px;background:#fff;color:var(--ink);font-size:12.5px;display:flex;align-items:center;gap:10px;transition:transform .18s ease}
 .cart-go:active{transform:scale(.97)}
@@ -197,8 +200,10 @@ button{border:0;background:none;cursor:pointer}
 /* confirm */
 .ticket{text-align:center}
 .arts{display:flex;justify-content:center;align-items:flex-end;gap:13px}
-.arts .art{position:relative;width:112px;height:134px;border-radius:63px 63px 6px 6px;background-size:cover;background-position:center 30%;box-shadow:0 16px 40px rgba(75,48,39,.2)}
-.arts.pair .art{width:106px;height:131px;border-radius:56px 56px 6px 6px}
+/* <figure> يأتي بهامش 40px من المتصفح، فكان يضغط الصورتين تحت العرض
+   المطلوب مهما كُتب في width. */
+.arts .art{position:relative;margin:0;flex:0 0 auto;width:158px;height:190px;border-radius:79px 79px 6px 6px;background-size:cover;background-position:center 30%;box-shadow:0 16px 40px rgba(75,48,39,.2)}
+.arts.pair .art{width:150px;height:185px;border-radius:75px 75px 6px 6px}
 .arts .art b{position:absolute;left:50%;bottom:-11px;transform:translateX(-50%);min-width:36px;height:22px;padding:0 9px;border-radius:999px;background:var(--ink);color:#fff;font:500 12px/22px var(--serif);text-align:center;box-shadow:0 5px 14px rgba(75,48,39,.3)}
 .ticket .lines{margin-top:21px;display:grid;gap:9px;text-align:start}
 .ticket .ln{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px;font-weight:500}
@@ -374,8 +379,8 @@ button{border:0;background:none;cursor:pointer}
   .time{height:47px}
   .stack{padding-block:8px}
   .chip{padding:11px}
-  .arts .art{width:104px;height:124px}
-  .arts.pair .art{width:96px;height:118px}
+  .arts .art{width:146px;height:175px;border-radius:73px 73px 6px 6px}
+  .arts.pair .art{width:138px;height:170px;border-radius:69px 69px 6px 6px}
   .ticket .lines{margin-top:18px}
 }
 /* بعد إتمام الحجز يصبح صندوق الحجز هو البطل، فيتقلّص قسم التواصل
@@ -406,6 +411,11 @@ button{border:0;background:none;cursor:pointer}
   .contact.has-booking .c-stack{gap:9px}
 }
 @media (max-height:780px){
+  .ticket .note,.screen .note{display:none}
+  .summary .row{padding:8px 14px}
+  .ticket .lines{margin-top:14px}
+  .arts.pair .art{width:130px;height:160px;border-radius:65px 65px 6px 6px}
+  .arts .art{width:136px;height:163px;border-radius:68px 68px 6px 6px}
   .day{height:34px}
   .time{height:43px}
   .summary .row{padding:8px 14px}
@@ -414,6 +424,17 @@ button{border:0;background:none;cursor:pointer}
   .contact.has-booking .arch{min-height:118px}
 }
 @media (max-height:660px){
+  .arts.pair .art{width:112px;height:138px;border-radius:56px 56px 6px 6px}
+  .arts .art{width:118px;height:142px;border-radius:59px 59px 6px 6px}
+  .ticket .lines{margin-top:10px;gap:6px}
+  /* أضيق الشاشات: يُشذَّب ما حول الصور لا الصور نفسها. */
+  .summary .row{padding:6px 14px}
+}
+@media (max-height:640px){
+  .screen[data-name="التأكيد"] .eyebrow{display:none}
+  .screen[data-name="التأكيد"] .title{font-size:26px}
+  .arts.pair .art{width:106px;height:130px;border-radius:53px 53px 6px 6px}
+  .arts .art{width:112px;height:134px;border-radius:56px 56px 6px 6px}
   .pane[data-pane="pay"] .sub-line{display:none}
   .pane[data-pane="pay"] .grow{gap:8px}
   .rcpt-prev{padding:8px}
