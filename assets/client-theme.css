@@ -124,13 +124,26 @@ button{border:0;background:none;cursor:pointer}
 .svc-cart.on{transform:none}
 .svc-cart small{display:block;font-size:10px;color:rgba(255,255,255,.62)}
 .svc-cart b{display:block;margin-top:3px;font:500 21px/1 var(--serif);direction:ltr;color:#fff}
-/* خبر سارّ لا تحذير: بلون الهوية الفاتح على الشريط الداكن. */
-.cart-off{display:block;margin-top:4px;font-size:10px;color:var(--blush)}
-.cart-off[hidden]{display:none}
+/* خبر سارّ لا تحذير: بلون الهوية الفاتح على الشريط الداكن، وبحجم
+   يُقرأ من نظرة — هو سبب نزول الرقم فوقه. */
+/* الوسم <small> داخل الشريط مضبوط على 10px بانتقائية أعلى، فيُطابَق هنا
+   بنفس العمق وإلا بقي السطر صغيرًا. */
+.svc-cart .cart-off{display:block;margin-top:5px;font-size:12.5px;font-weight:500;
+  color:var(--blush);transform-origin:right center}
+.svc-cart .cart-off[hidden]{display:none}
+/* يظهر بقفزة تلفت العين ثم يستقرّ — يُشغَّل عند أول ظهور وعند تغيّر المبلغ. */
+@keyframes offPop{
+  0%  {opacity:0;transform:scale(.82) translateY(4px)}
+  42% {opacity:1;transform:scale(1.16)}
+  64% {transform:scale(.96)}
+  82% {transform:scale(1.05)}
+  100%{opacity:1;transform:none}
+}
+.cart-off.pop{animation:offPop .62s var(--ease) both}
 
 .cart-go{height:46px;padding:0 20px;border-radius:999px;background:#fff;color:var(--ink);font-size:12.5px;display:flex;align-items:center;gap:10px;transition:transform .18s ease}
 .cart-go:active{transform:scale(.97)}
-.svc-screen.has-cart .svc-inner{padding-bottom:calc(var(--gut) + 88px + env(safe-area-inset-bottom))}
+.svc-screen.has-cart .svc-inner{padding-bottom:calc(var(--gut) + 104px + env(safe-area-inset-bottom))}
 .svc-progress{position:absolute;z-index:4;top:calc(var(--bar) + 4px);inset-inline:24px;display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
 .svc-progress i{display:block;height:2px;background:rgba(255,255,255,.22);transition:background .3s ease}
 .svc-progress i.on{background:var(--clay-2)}

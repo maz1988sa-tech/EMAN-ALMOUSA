@@ -10,10 +10,10 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <!-- ?v= يطابق VERSION في sw.js: بدونه يخدم متصفح العميلة نسخة CSS
      القديمة من ذاكرته بعد كل نشر، فتظهر الواجهة كما كانت. -->
-<link rel="stylesheet" href="assets/fonts.css?v=10">
+<link rel="stylesheet" href="assets/fonts.css?v=11">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=10">
+<link rel="stylesheet" href="assets/client-theme.css?v=11">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -388,7 +388,7 @@ import {
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositDue, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
-} from './assets/db.js?v=10';
+} from './assets/db.js?v=11';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -667,9 +667,17 @@ function renderCart() {
     el('cartTotal').textContent = money(totalPrice());
     // الإجمالي في الشريط مخصوم أصلًا، فتُقال قيمة الخصم صراحةً لئلا
     // يبدو الرقم أقلّ مما تتوقّعه العميلة بلا سبب ظاهر.
-    const off = groupDiscount();
-    el('cartOff').hidden = !off;
-    if (off) el('cartOffVal').textContent = money(off);
+    const off = groupDiscount(), box = el('cartOff');
+    const shown = box.hidden ? null : box.dataset.val || null;
+    box.hidden = !off;
+    if (off) {
+      el('cartOffVal').textContent = money(off);
+      // القفزة تُعاد عند أول ظهور وعند تغيّر المبلغ، لا مع كل رسم.
+      if (String(off) !== shown) {
+        box.dataset.val = String(off);
+        box.classList.remove('pop'); void box.offsetWidth; box.classList.add('pop');
+      }
+    } else { delete box.dataset.val; box.classList.remove('pop'); }
   }
 }
 el('cartGo').addEventListener('click', () => go(2));
