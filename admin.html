@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#A9675C">
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/fonts.css?v=8">
-<link rel="stylesheet" href="assets/theme.css?v=8">
+<link rel="stylesheet" href="assets/fonts.css?v=9">
+<link rel="stylesheet" href="assets/theme.css?v=9">
 <style>
   .appbar { position: sticky; top: 0; z-index: 40; background: var(--surface);
             border-bottom: 1px solid var(--line); }
@@ -28,6 +28,17 @@
   .tab[aria-current="page"] { background: var(--blush); color: var(--rose-deep); font-weight: 700; }
   .tab .dot { background: var(--danger); color: #FFF; border-radius: 999px;
               font-size: 10.5px; font-weight: 700; padding: 1px 6px; min-width: 18px; }
+
+  /* شريط أقسام الإعدادات: أخفّ من التبويبات الرئيسية لأنه مستوى أدنى. */
+  .panebar { display: flex; gap: 6px; margin: 16px 0 2px; padding: 4px;
+             background: var(--surface-2); border: 1px solid var(--line);
+             border-radius: var(--r-pill); }
+  .panetab { flex: 1; border: 0; background: transparent; color: var(--ink-2);
+             font-family: var(--ft); font-size: 13px; font-weight: 500;
+             padding: 9px 8px; min-height: 40px; border-radius: var(--r-pill);
+             cursor: pointer; transition: background .18s, color .18s; }
+  .panetab[aria-current="true"] { background: var(--surface); color: var(--rose-deep);
+                                  font-weight: 700; box-shadow: var(--sh); }
 
   .bk { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
         padding: 14px 15px; box-shadow: var(--sh); position: relative; overflow: hidden;
@@ -144,29 +155,36 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=8';
+import { icon, hydrateIcons } from './assets/icons.js?v=9';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
   today, addDays, parseDate, weekday, addMinutes, prettyPhone, telHref, waHref,
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
   receiptUrl, depositDue, purgeOrphanReceipts,
-} from './assets/db.js?v=8';
+} from './assets/db.js?v=9';
 
 const view = document.getElementById('view');
 const sheet = document.getElementById('sheet');
 
 const TABS = [
-  { id: 'home',     label: 'الرئيسية',    icon: 'home' },
-  { id: 'agenda',   label: 'الأجندة',     icon: 'calendar' },
-  { id: 'dues',     label: 'المستحقات',   icon: 'riyal' },
+  { id: 'home',     label: 'الرئيسية',  icon: 'home' },
+  { id: 'agenda',   label: 'الأجندة',   icon: 'calendar' },
+  { id: 'dues',     label: 'المستحقات', icon: 'riyal' },
+  { id: 'settings', label: 'الإعدادات', icon: 'gear' },
+];
+
+// أوقات العمل والخدمات والإعدادات صارت أقسامًا تحت تبويب واحد: كلها
+// ضبطٌ يُفتح مرة كل حين، لا شاشات عمل يومي.
+const SETTING_PANES = [
+  { id: 'general',  label: 'عام',        icon: 'gear' },
   { id: 'hours',    label: 'أوقات العمل', icon: 'clock' },
   { id: 'services', label: 'الخدمات',     icon: 'lipstick' },
-  { id: 'settings', label: 'الإعدادات',   icon: 'gear' },
 ];
 
 const S = {
   tab: 'home',
+  settingsPane: 'general',
   settings: null,
   services: [],
   bookings: [],
@@ -288,8 +306,28 @@ function renderTabs() {
 
 function render() {
   ({ home: renderHome, agenda: renderAgenda, dues: renderDues,
-     hours: renderHours, services: renderServices, settings: renderSettings }[S.tab] || renderHome)();
+     settings: renderSettingsTab }[S.tab] || renderHome)();
   hydrateIcons(view);
+}
+
+/* القسم الفرعي يكتب `view` كاملًا كما كان يفعل حين كان تبويبًا مستقلًا،
+   ثم يُدسّ شريط الأقسام فوقه — الإدراج في المقدّمة لا يمسّ العناصر
+   الموجودة ولا مستمعاتها. */
+function renderSettingsTab() {
+  const pane = SETTING_PANES.find((p) => p.id === S.settingsPane) || SETTING_PANES[0];
+  ({ general: renderSettings, hours: renderHours, services: renderServices }[pane.id])();
+
+  view.insertAdjacentHTML('afterbegin', `
+    <div class="panebar">
+      ${SETTING_PANES.map((p) => `
+        <button class="panetab" data-pane="${p.id}"
+                ${p.id === pane.id ? 'aria-current="true"' : ''}>${esc(p.label)}</button>`).join('')}
+    </div>`);
+
+  view.querySelectorAll('[data-pane]').forEach((b) => b.onclick = () => {
+    S.settingsPane = b.dataset.pane;
+    render(); hydrateIcons(view); window.scrollTo({ top: 0 });
+  });
 }
 
 /* ── Booking card ─────────────────────────────────────────────────────── */
@@ -682,6 +720,10 @@ function editService(s) {
         style="width:20px;height:20px;accent-color:var(--rose-deep)">
       <span class="grow"><span class="t">تظهر لصفحة العميلات</span>
         <span class="s">أوقفيها لخدمة تحجزينها أنتِ فقط</span></span></label>
+    <label class="choice mb"><input type="checkbox" id="s-group" ${s.group_discount ? 'checked' : ''}
+        style="width:20px;height:20px;accent-color:var(--rose-deep)">
+      <span class="grow"><span class="t">يشملها خصم المجموعة</span>
+        <span class="s">يُطبَّق تلقائيًا من شخصين فأكثر، بالمبلغ المحدَّد في الإعدادات</span></span></label>
     <div id="s-err"></div>
     <div class="btn-row">
       ${s.id ? '<button class="btn btn-danger" id="s-del">إخفاء</button>' : ''}
@@ -708,6 +750,7 @@ function editService(s) {
       ...(s.id ? { id: s.id } : {}), name, icon: ico, price, duration_min: dur,
       description: document.getElementById('s-desc').value.trim() || null,
       bookable_by_client: document.getElementById('s-public').checked,
+      group_discount: document.getElementById('s-group').checked,
       active: true, sort: s.sort ?? 0,
     });
     closeSheet(sheet); toast('حُفظت الخدمة', 'ok'); reload();
@@ -801,6 +844,17 @@ function renderSettings() {
     </div>
 
     <div class="card mb">
+      <p class="label">خصم المجموعة</p>
+      <p class="hint" style="margin-top:0">يُطبَّق تلقائيًا حين تحجز العميلة خدمةً
+        مؤهَّلة <b>لشخصين فأكثر</b>، ويُضرب في عدد الأشخاص. حدّدي الخدمات المؤهَّلة
+        من قسم الخدمات.</p>
+      <div class="field" style="margin:0"><label class="label" for="set-grp">الخصم عن كل شخص (ريال)</label>
+        <input class="input ltr" id="set-grp" type="number" min="0" step="10" inputmode="numeric"
+               value="${Number(s.group_discount_amount ?? 0)}">
+        <p class="hint">صفر = لا خصم. مثال: 100 يعني ٣ أشخاص سهرة ⇒ خصم 300 ريال.</p></div>
+    </div>
+
+    <div class="card mb">
       <p class="label">روابط التواصل الاجتماعي</p>
       <p class="hint" style="margin-top:0">تظهر في أسفل صفحة العميلة. اتركيها فارغة لإخفاء الأيقونة.</p>
       <div class="field"><label class="label" for="set-ig">إنستقرام</label>
@@ -837,6 +891,8 @@ function renderSettings() {
     if (!(depPct >= 0 && depPct <= 100)) {
       err.innerHTML = note('نسبة العربون يجب أن تكون بين 0 و 100.'); return;
     }
+    const grp = Number(document.getElementById('set-grp').value);
+    if (!(grp >= 0)) { err.innerHTML = note('مبلغ خصم المجموعة غير صحيح.'); return; }
     // الآيبان يُخزَّن بلا مسافات: SA ثم 22 رقمًا. القاعدة ترفض غير ذلك،
     // فالأفضل أن تعرف صاحبته السبب هنا لا في رسالة خطأ من الخادم.
     const ibanRaw = document.getElementById('set-iban').value.replace(/\s+/g, '').toUpperCase();
@@ -863,6 +919,7 @@ function renderSettings() {
         whatsapp_phone: wa ? normalisePhone(wa) : null,
         driver_phone: drv ? normalisePhone(drv) : null,
         deposit_rate: depPct / 100,
+        group_discount_amount: grp,
         bank_name: document.getElementById('set-bank').value.trim() || null,
         iban: ibanRaw || null,
         beneficiary_name: document.getElementById('set-benef').value.trim() || null,
@@ -955,8 +1012,16 @@ async function openBooking(id) {
       ${b.price_override != null ? `
         <div class="leader"><span class="k">قبل التعديل</span><span class="d"></span>
           <span class="v" style="text-decoration:line-through;color:var(--ink-3)">${riyal(b.items_total)}</span></div>` : ''}
-      <div class="leader" style="border-top:1px solid var(--line);margin-top:6px;padding-top:9px">
-        <span class="k">الإجمالي</span><span class="d"></span><span class="v">${riyal(b.price)}</span></div>
+      ${Number(b.discount) > 0 ? `
+        <div class="leader" style="border-top:1px solid var(--line);margin-top:6px;padding-top:9px">
+          <span class="k">قبل الخصم</span><span class="d"></span>
+          <span class="v">${riyal(b.items_total)}</span></div>
+        <div class="leader"><span class="k">خصم المجموعة</span><span class="d"></span>
+          <span class="v" style="color:var(--rose-deep)">−${riyal(b.discount)}</span></div>
+        <div class="leader"><span class="k">الإجمالي</span><span class="d"></span>
+          <span class="v">${riyal(b.price)}</span></div>` : `
+        <div class="leader" style="border-top:1px solid var(--line);margin-top:6px;padding-top:9px">
+          <span class="k">الإجمالي</span><span class="d"></span><span class="v">${riyal(b.price)}</span></div>`}
       <div class="leader"><span class="k">المدفوع</span><span class="d"></span>
         <span class="v ${Number(b.deposit) > 0 ? 'paid' : ''}">${riyal(b.deposit)}</span></div>
       <div class="leader"><span class="k">المتبقي</span><span class="d"></span>

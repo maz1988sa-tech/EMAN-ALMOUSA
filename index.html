@@ -10,10 +10,10 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <!-- ?v= يطابق VERSION في sw.js: بدونه يخدم متصفح العميلة نسخة CSS
      القديمة من ذاكرته بعد كل نشر، فتظهر الواجهة كما كانت. -->
-<link rel="stylesheet" href="assets/fonts.css?v=8">
+<link rel="stylesheet" href="assets/fonts.css?v=9">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=8">
+<link rel="stylesheet" href="assets/client-theme.css?v=9">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -345,6 +345,7 @@
 
           <div class="summary">
             <div class="row"><span>الخدمات</span><b id="pySvc">—</b></div>
+            <div class="row" id="pyDiscRow" hidden><span>خصم المجموعة</span><b id="pyDisc">—</b></div>
             <div class="row"><span>الموعد</span><b id="pyWhen">—</b></div>
           </div>
           <div class="err-line" id="payErr" hidden></div>
@@ -385,7 +386,7 @@ import {
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositDue, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
-} from './assets/db.js?v=8';
+} from './assets/db.js?v=9';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -418,7 +419,21 @@ const state = {
 
 const picked    = () => state.services.filter((s) => state.counts[s.id] > 0);
 const flatPicked= () => state.services.flatMap((s) => Array.from({ length: state.counts[s.id] || 0 }, () => s));
-const totalPrice= () => flatPicked().reduce((n, s) => n + Number(s.price), 0);
+const subtotal  = () => flatPicked().reduce((n, s) => n + Number(s.price), 0);
+
+/* خصم المجموعة: مبلغ ثابت عن كل شخص في الخدمات المؤهَّلة، ولا يبدأ إلا
+   من شخصين. العتبة نفسها مكتوبة في group_discount_for بقاعدة البيانات،
+   والخادم هو من يحسب الخصم فعليًا — هذا للعرض فقط. */
+const GROUP_MIN = 2;
+function discountPeople() {
+  return flatPicked().filter((s) => s.group_discount).length;
+}
+function groupDiscount() {
+  const per = Number(state.settings?.group_discount_amount || 0);
+  const n = discountPeople();
+  return per > 0 && n >= GROUP_MIN ? Math.min(per * n, subtotal()) : 0;
+}
+const totalPrice= () => subtotal() - groupDiscount();
 const totalMins = () => flatPicked().reduce((n, s) => n + Number(s.duration_min), 0);
 const people    = () => flatPicked().length;
 
@@ -805,9 +820,11 @@ function sync() {
   arts.innerHTML = c.map((s) => `<figure class="art" style="background-image:url('${mediaFor(s, state.services.indexOf(s)).thumb}')">${
     state.counts[s.id] > 1 ? `<b dir="ltr">×${state.counts[s.id]}</b>` : ''}</figure>`).join('');
 
-  el('sumLines').innerHTML = c.length
+  const disc = groupDiscount();
+  el('sumLines').innerHTML = (c.length
     ? c.map((s) => `<div class="ln"><span>${esc(s.name)}${state.counts[s.id] > 1 ? ` <em dir="ltr">×${state.counts[s.id]}</em>` : ''}</span><b>${money(Number(s.price) * state.counts[s.id])}<i class="rs"></i></b></div>`).join('')
-    : '<div class="ln"><span>لم تختاري خدمة بعد</span></div>';
+    : '<div class="ln"><span>لم تختاري خدمة بعد</span></div>')
+    + (disc ? `<div class="ln off"><span>خصم المجموعة <em dir="ltr">×${discountPeople()}</em></span><b>−${money(disc)}<i class="rs"></i></b></div>` : '');
 
   el('total1').innerHTML = `${money(totalPrice())}<i class="rs"></i>`;
   el('sumDate').textContent = state.date ? fmtDate(state.date, { short: true }) : '—';
@@ -899,6 +916,9 @@ function paintPay() {
   el('pySvc').innerHTML = c.length
     ? c.map((s) => esc(s.name) + (state.counts[s.id] > 1 ? ` <span dir="ltr">×${state.counts[s.id]}</span>` : '')).join(' + ')
     : '—';
+  const disc = groupDiscount();
+  el('pyDiscRow').hidden = !disc;
+  if (disc) el('pyDisc').innerHTML = `−${money(disc)}<i class="rs"></i>`;
   el('pyWhen').textContent = `${state.date ? fmtDate(state.date, { short: true }) : '—'} · ${time12(state.time)}`;
 }
 
@@ -1173,6 +1193,9 @@ async function renderTracking(token) {
       </div>
       <div class="t-rows">
         ${items.map((i) => `<div class="row"><span>${esc(i.service_name)}${i.person_name ? ` — ${esc(i.person_name)}` : ''}</span><b>${money(i.price)}<i class="rs"></i></b></div>`).join('')}
+        ${Number(b.discount) > 0 ? `
+          <div class="row"><span>المجموع قبل الخصم</span><b>${money(b.items_total)}<i class="rs"></i></b></div>
+          <div class="row"><span>خصم المجموعة</span><b>−${money(b.discount)}<i class="rs"></i></b></div>` : ''}
         <div class="row"><span>الإجمالي</span><b>${money(b.price)}<i class="rs"></i></b></div>
         ${Number(b.deposit) > 0 ? `
           <div class="row"><span>العربون المستلم</span><b>${money(b.deposit)}<i class="rs"></i></b></div>
@@ -1238,6 +1261,8 @@ async function renderTracking(token) {
 /* أدوات اختبار */
 window.__pick = (i, q) => { const s = state.services[i]; if (s) { state.counts[s.id] = q; onCartChange(); } };
 window.__sheet = () => openSheetPanel();
+window.__money = () => ({ sub: subtotal(), disc: groupDiscount(),
+                          total: totalPrice(), people: discountPeople() });
 </script>
 </body>
 </html>

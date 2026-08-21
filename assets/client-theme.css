@@ -204,9 +204,14 @@ button{border:0;background:none;cursor:pointer}
 .ticket .ln{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px;font-weight:500}
 .ticket .ln em{font-style:normal;font-size:11px;color:var(--muted);font-weight:400}
 .ticket .ln b{font:500 16px/1 var(--serif);direction:ltr;font-weight:500}
+/* سطر الخصم يُقرأ كخصم لا كخدمة أخرى: أخفّ وزنًا وبلون الهوية. */
+.ticket .ln.off{padding-top:7px;margin-top:3px;border-top:1px dashed rgba(176,112,92,.4)}
+.ticket .ln.off span,.ticket .ln.off b{color:var(--clay)}
+.ticket .ln.off b{font-size:15px}
 .summary{border:1px solid var(--line-l);background:rgba(255,255,255,.62)}
 .summary .row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line-l);font-size:12px}
 .summary .row:last-child{border-bottom:0}
+.summary .row[hidden]{display:none}
 .summary .row span{color:var(--muted);font-size:10.5px}
 .summary .row b{font-weight:500}
 .summary .row b.num{font-family:var(--serif);font-size:17px;direction:ltr}
