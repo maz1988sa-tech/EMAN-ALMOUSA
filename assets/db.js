@@ -196,6 +196,56 @@ export async function getDaysWithAvailability(from, days, durationMin) {
   return data || [];
 }
 
+/* ── إيصال العربون ──────────────────────────────────────────────────────
+
+   المخزن خاص: العميلة ترفع ولا تقرأ، وصاحبة اللوحة تقرأ برابط موقّع
+   قصير العمر. الرفع يسبق إنشاء الحجز لأن الحجز مرفوض بلا إيصال، ثم
+   تربط create_booking الملفَ بالحجز داخل نفس العملية.                */
+
+const RECEIPT_TYPES = {
+  'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
+  'image/heic': 'heic', 'image/heif': 'heic', 'application/pdf': 'pdf',
+};
+export const RECEIPT_ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf';
+export const RECEIPT_MAX_BYTES = 5 * 1024 * 1024;
+
+export async function uploadReceipt(file) {
+  if (!file) throw new Error('اختاري صورة التحويل أولًا');
+  const ext = RECEIPT_TYPES[file.type];
+  if (!ext) throw new Error('صيغة الملف غير مدعومة — أرسلي صورة أو PDF');
+  if (file.size > RECEIPT_MAX_BYTES) throw new Error('حجم الملف كبير — الحد 5 ميجابايت');
+
+  const path = `pending/${crypto.randomUUID()}.${ext}`;
+  const { error } = await sb.storage.from('receipts')
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw new Error('تعذّر رفع الإيصال، تأكدي من الاتصال وحاولي مرة أخرى');
+  return path;
+}
+
+// Supabase يمنع الحذف المباشر من جداول التخزين، فالتنظيف يمرّ بواجهته.
+// القاعدة تسمّي اليتيم فقط، واللوحة تحذفه بمفتاح جلستها.
+export async function purgeOrphanReceipts() {
+  const { data, error } = await sb.rpc('orphan_receipts');
+  if (error || !data?.length) return 0;
+  const names = data.map((r) => (typeof r === 'string' ? r : r.orphan_receipts)).filter(Boolean);
+  if (!names.length) return 0;
+  const { error: rmErr } = await sb.storage.from('receipts').remove(names);
+  if (rmErr) throw rmErr;
+  return names.length;
+}
+
+// للوحة التحكم وحدها: رابط مؤقت لعرض الإيصال.
+export async function receiptUrl(path, seconds = 300) {
+  if (!path) return null;
+  const { data, error } = await sb.storage.from('receipts').createSignedUrl(path, seconds);
+  if (error) throw error;
+  return data?.signedUrl || null;
+}
+
+// العربون المطلوب من الإجمالي، بنسبة الإعدادات، مقرَّبًا لأقرب ريال.
+export const depositDue = (price, rate) =>
+  Math.round(Number(price || 0) * Number(rate ?? 0.25));
+
 export async function createBooking(payload) {
   const { data, error } = await sb.rpc('create_booking', {
     p_client_name:  payload.name,
@@ -207,6 +257,7 @@ export async function createBooking(payload) {
     p_loc_text:     payload.locText || null,
     p_loc_map:      payload.locMap || null,
     p_notes:        payload.notes || null,
+    p_receipt_path: payload.receiptPath || null,
   });
   if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
@@ -418,9 +469,10 @@ export const templates = {
     + `${Number(b.price - b.deposit) > 0 ? `\nالمتبقي: ${riyal(b.price - b.deposit)}` : ''}`
     + `\n\nنراكِ غدًا 💗`,
 
-  deposit: (b) =>
+  // النسبة تأتي من الإعدادات، فلا يفترق ما يقوله القالب عمّا تعرضه الصفحة.
+  deposit: (b, rate) =>
     `أهلاً ${b.client_name} 🌸\nلتثبيت موعدك بتاريخ ${fmtDate(b.the_date)} الساعة ${fmtTime(b.start_time)}، `
-    + `يلزم عربون ${riyal(Math.round(b.price / 4))} من إجمالي ${riyal(b.price)}.\n\nشاكرين لكِ 💗`,
+    + `يلزم عربون ${riyal(depositDue(b.price, rate))} من إجمالي ${riyal(b.price)}.\n\nشاكرين لكِ 💗`,
 
   thanks: (b) =>
     `شكرًا لثقتك ${b.client_name} 🌸\nسعدنا بخدمتك اليوم.\n\n`

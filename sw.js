@@ -9,7 +9,7 @@
    gone, the page's own error state explains it.
 */
 
-const VERSION = 'v4';
+const VERSION = 'v7';
 const SHELL = `shell-${VERSION}`;
 
 const ASSETS = [
@@ -19,6 +19,7 @@ const ASSETS = [
   './manifest.webmanifest',
   './manifest-admin.webmanifest',
   './assets/theme.css',
+  './assets/client-theme.css',
   './assets/fonts.css',
   './assets/icons.js',
   './assets/db.js',
@@ -26,6 +27,7 @@ const ASSETS = [
   './assets/vendor/supabase.js',
   './assets/favicon.svg',
   './assets/favicon-admin.svg',
+  './assets/brand-identity.jpg',
   './assets/icon-192.svg',
   './assets/icon-512.svg',
   './assets/icon-admin-192.svg',
@@ -42,6 +44,21 @@ const ASSETS = [
   './assets/fonts/tajawal-latin-700-normal.woff2',
   './assets/fonts/aref-ruqaa-arabic-400-normal.woff2',
   './assets/fonts/aref-ruqaa-latin-400-normal.woff2',
+
+  // وسائط الواجهة الجديدة: الصور والفيديوهات جزء من القشرة، فبدونها
+  // تفتح الصفحة بلا خلفيات في بيت العميلة حيث لا شبكة.
+  './assets/brand/hero_still.jpg',
+  './assets/brand/logo_dark.png',
+  './assets/brand/logo_light.png',
+  './assets/brand/dust_a.jpg',
+  './assets/brand/dust_light.jpg',
+  './assets/brand/riyal.png',
+  './assets/brand/pst_bridal.jpg',
+  './assets/brand/pst_evening.jpg',
+  './assets/brand/thumb_bridal.jpg',
+  './assets/brand/thumb_evening.jpg',
+  './assets/brand/svc_bridal.mp4',
+  './assets/brand/svc_evening.mp4',
 ];
 
 self.addEventListener('install', (event) => {

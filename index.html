@@ -2,630 +2,1240 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>حجز موعد — إيمان آل موسى</title>
 <meta name="description" content="احجزي موعد ميك اب عروس أو سهرة مع إيمان آل موسى.">
-<meta name="theme-color" content="#FBF4EE">
+<meta name="theme-color" content="#faf5f0">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/fonts.css">
-<link rel="stylesheet" href="assets/theme.css">
+<!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
+     تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
+<link rel="stylesheet" href="assets/client-theme.css">
+<script>
+  if (new URLSearchParams(location.search).has('t')) {
+    document.documentElement.classList.add('tracking-mode');
+  }
+</script>
 <style>
-  .top { text-align: center; padding: 26px 0 4px; }
-  .top .mark { margin: 0 auto 12px; }
-  .top .tagline { color: var(--rose-deep); font-family: var(--fd); font-size: 15px; }
-
-  .svc-list { display: grid; gap: 9px; }
-  .svc { display: flex; align-items: center; gap: 12px; padding: 14px 15px;
-         background: var(--surface); border: 1px solid var(--line-2);
-         border-radius: var(--r); transition: border-color .18s, background .18s; }
-  .svc.picked { border-color: var(--rose); background: var(--blush); }
-  .svc .meta { flex: 1; min-width: 0; }
-  .svc .nm { display: block; font-family: var(--fd); font-weight: 700; font-size: 16px; line-height: 1.4; }
-  .svc .dt { display: block; font-size: 12.5px; color: var(--ink-3); line-height: 1.5;
-             unicode-bidi: isolate; }
-  .svc .pr { font-family: var(--fd); font-weight: 700; font-variant-numeric: tabular-nums;
-             color: var(--rose-deep); white-space: nowrap; }
-
-  .summary { position: sticky; bottom: 0; z-index: 20; background: var(--cream);
-             border-top: 1px solid var(--line-2); padding: 12px 16px max(12px, env(safe-area-inset-bottom));
-             margin: 20px -16px 0; box-shadow: var(--sh-3); }
-  .summary .row { display: flex; align-items: center; justify-content: space-between;
-                  gap: 12px; margin-bottom: 9px; font-size: 13.5px; color: var(--ink-2); }
-  .summary .tot { font-family: var(--fd); font-weight: 700; font-size: 17px; color: var(--ink); }
-
-  .ok-card { text-align: center; }
-  .ok-card .ref { font-family: var(--fd); font-size: 27px; font-weight: 700; letter-spacing: .06em;
-                  direction: ltr; color: var(--rose-deep); margin: 6px 0 2px; }
-  .linkbox { display: flex; gap: 8px; align-items: center; background: var(--surface-2);
-             border: 1px solid var(--line); border-radius: var(--r); padding: 9px 12px; }
-  .linkbox input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink-2);
-                   font-size: 12.5px; direction: ltr; outline: none; font-family: ui-monospace, monospace; }
-
-  .track-row { display: flex; align-items: center; gap: 10px; padding: 11px 0;
-               border-bottom: 1px solid var(--line); }
-  .track-row:last-child { border-bottom: 0; }
-  .track-row .k { color: var(--ink-3); font-size: 13.5px; flex: 1; }
-  .track-row .v { font-weight: 700; font-size: 14.5px; }
-
-  .stack { display: grid; gap: 10px; }
-  .center { text-align: center; }
-  .mt { margin-top: 16px; }
+  /* في وضع المتابعة يُخفى ديك الشاشات الخمس وحده — لا كل ما يحمل .app،
+     فشاشة المتابعة نفسها تعيد استخدام نفس الغلاف. */
+  html.tracking-mode #app{display:none}
+  html:not(.tracking-mode) #trackScreen{display:none}
+  #trackScreen{position:fixed;inset:0;display:flex;justify-content:center;background:var(--paper)}
 </style>
 </head>
-<body>
+<body class="public-site">
 
-<main class="shell" id="app">
-  <div class="top">
-    <div class="badge lg mark" data-icon="sparkle" data-icon-size="28"></div>
-    <h1 id="bizName">إيمان آل موسى</h1>
-    <p class="tagline" id="bizTagline">ميك اب عرائس ومناسبات</p>
+<!-- ══ التطبيق: خمس شاشات، سحبة واحدة = شاشة كاملة ══════════════════════ -->
+<div class="app" id="app" data-screen="0" data-theme="light">
+
+  <div class="chapters"><i id="chapterFill"></i></div>
+
+  <header class="bar">
+    <button class="burger" id="burger" type="button" aria-label="القائمة"><i></i></button>
+    <img class="brand brand-dark" src="assets/brand/logo_dark.png" alt="EMAN AAL MOUSA — Makeup Artist">
+    <img class="brand brand-light" src="assets/brand/logo_light.png" alt="">
+  </header>
+
+  <div class="deck" id="deck">
+
+    <!-- 01 الواجهة -->
+    <section class="screen hero on" data-name="الواجهة">
+      <div class="hero-media">
+        <div class="hero-shift">
+          <img class="hero-img" src="assets/brand/hero_still.jpg" alt="إيمان آل موسى — ميك اب أرتست">
+          <div class="discover">اكتشفي المزيد</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 الخدمات -->
+    <section class="screen svc-screen" data-name="الخدمات">
+      <div class="svc-rail" id="svcRail"></div>
+      <div class="svc-progress" id="svcProgress"></div>
+      <button class="arrow l" id="svcNext" type="button" aria-label="التالي"><svg width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M8 1 1.5 7.5 8 14" stroke="currentColor" stroke-width="1.2"/></svg></button>
+      <button class="arrow r" id="svcPrev" type="button" aria-label="السابق" disabled><svg width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="m1 1 6.5 6.5L1 14" stroke="currentColor" stroke-width="1.2"/></svg></button>
+      <div class="svc-cart" id="svcCart">
+        <div><small id="cartMeta"></small><b><span id="cartTotal">0</span><i class="rs"></i></b></div>
+        <button class="cart-go" type="button" id="cartGo">متابعة
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M17 6H1m5 5L1 6l5-5" stroke="currentColor" stroke-width="1.1"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- 03 التاريخ والوقت -->
+    <section class="screen light" data-name="الموعد">
+      <div class="pad">
+        <div data-anim="1">
+          <p class="eyebrow">APPOINTMENT — 02</p>
+          <h2 class="title">اختاري التاريخ والوقت</h2>
+          <p class="sub-line" id="dateLead">اختاري شهر المناسبة، ثم اليوم والوقت المناسب.</p>
+        </div>
+
+        <div class="stack">
+          <div class="chip" data-anim="2">
+            <div class="thumbs" id="chipThumb"></div>
+            <div><small>الخدمات المختارة</small><strong id="chipName">—</strong></div>
+            <button type="button" id="changeSvc">تغيير</button>
+          </div>
+
+          <div data-anim="3" class="block-wrap">
+            <div class="block-head"><h3>التاريخ</h3>
+              <button class="month-btn" type="button" id="monthBtn"><span id="monthLabel">—</span>
+                <svg width="9" height="6" viewBox="0 0 9 6" fill="none" aria-hidden="true"><path d="m1 1 3.5 3.5L8 1" stroke="currentColor" stroke-width="1.1"/></svg>
+              </button>
+            </div>
+            <div class="mpick" id="mpick" hidden>
+              <div class="mp-head">
+                <button type="button" id="yPrev" aria-label="سنة سابقة">‹</button>
+                <b id="yLabel">—</b>
+                <button type="button" id="yNext" aria-label="سنة تالية">›</button>
+              </div>
+              <div class="mp-grid" id="mpGrid"></div>
+            </div>
+            <div class="cal" id="cal">
+              <div class="dow"><span>أحد</span><span>اثنين</span><span>ثلاثاء</span><span>أربعاء</span><span>خميس</span><span>جمعة</span><span>سبت</span></div>
+              <div class="week" id="week"></div>
+            </div>
+            <button class="date-chip" type="button" id="dateChip" hidden>
+              <span class="dc-ic"><svg width="13" height="14" viewBox="0 0 14 15" fill="none" aria-hidden="true"><path d="M.6 4.4h12.8M3.6 1v3m6.8-3v3M.6 3.4h12.8v10.9H.6z" stroke="currentColor" stroke-width="1.1"/></svg></span>
+              <b id="dateChipLabel">—</b>
+              <i>تغيير</i>
+            </button>
+          </div>
+
+          <div data-anim="4" id="timeBlock" hidden>
+            <div class="block-head"><h3>الوقت</h3><span id="dateHint">—</span></div>
+            <div class="times" id="times"></div>
+          </div>
+        </div>
+
+        <div class="footbar" data-anim="5">
+          <div class="total"><small>الإجمالي</small><b id="total1">0<i class="rs"></i></b></div>
+          <button class="cta" type="button" id="toConfirm" disabled>
+            <span>متابعة</span>
+            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M17 6H1m5 5L1 6l5-5" stroke="currentColor" stroke-width="1.1"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 تأكيد الخدمات -->
+    <section class="screen light" data-name="التأكيد">
+      <div class="pad">
+        <div data-anim="1">
+          <p class="eyebrow">REVIEW — 03</p>
+          <h2 class="title">تأكيد الخدمات</h2>
+        </div>
+
+        <div class="stack">
+          <div class="ticket" data-anim="2">
+            <div class="arts" id="sumThumb"></div>
+            <div class="lines" id="sumLines"></div>
+          </div>
+
+          <div class="summary" data-anim="3">
+            <div class="row"><span>التاريخ</span><b id="sumDate">—</b></div>
+            <div class="row"><span>الوقت</span><b class="num" id="sumTime">—</b></div>
+            <div class="row"><span>المدة</span><b id="sumDur">—</b></div>
+            <div class="row"><span>الإجمالي</span><b class="num" id="sumTotal">—</b></div>
+          </div>
+
+          <p class="note" data-anim="5">خطوة أخيرة: بياناتك وموقعك، ثم يصلك رقم الطلب ورابط المتابعة.</p>
+        </div>
+
+        <div class="footbar" data-anim="6" style="grid-template-columns:.85fr 1.6fr">
+          <button class="edit-back" type="button" id="editBack">
+            <svg width="16" height="11" viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M1 6h16m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.2"/></svg>
+            تعديل
+          </button>
+          <button class="cta" type="button" id="confirmBtn">
+            <span>تأكيد الخدمات</span>
+            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M17 6H1m5 5L1 6l5-5" stroke="currentColor" stroke-width="1.1"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 تواصل -->
+    <section class="screen light contact" data-name="تواصل">
+      <div class="dust" style="background-image:url('assets/brand/dust_light.jpg')"></div>
+      <div class="pad">
+
+        <div class="booked" id="booked" hidden>
+          <div class="bk-top">
+            <span class="bk-seal"><svg width="15" height="11" viewBox="0 0 17 13" fill="none" aria-hidden="true"><path d="M1 6.5 6 12 16 1" stroke="currentColor" stroke-width="1.5"/></svg></span>
+            <div><b>وصلنا طلبك</b><small>سيتم التواصل معك لتأكيد الموعد قريبًا.</small></div>
+          </div>
+          <div class="bk-ref"><span>رقم الطلب</span><b id="refNo">—</b></div>
+          <div class="bk-rows">
+            <div><span>الخدمة</span><b id="dnSvc">—</b></div>
+            <div><span>الموعد</span><b id="dnWhen">—</b></div>
+            <div><span>الإجمالي</span><b id="dnDep">—</b></div>
+          </div>
+          <div class="link-box" style="margin-top:10px">
+            <input id="trackLink" readonly aria-label="رابط متابعة الحجز">
+            <button class="copy" type="button" id="copyTrack">نسخ</button>
+            <a class="copy" id="trackOpen" href="#" target="_blank" rel="noopener">فتح</a>
+          </div>
+          <div class="bk-actions">
+            <button class="bk-cal" type="button" id="saveCard">
+              <svg width="13" height="14" viewBox="0 0 14 15" fill="none" aria-hidden="true"><path d="M7 .9v9m0 0L3.6 6.5M7 9.9l3.4-3.4M.9 11.4v2.7h12.2v-2.7" stroke="currentColor" stroke-width="1.1"/></svg>
+              <span>حفظ صورة الحجز</span>
+            </button>
+            <button class="bk-cal" type="button" id="addCal">
+              <svg width="13" height="14" viewBox="0 0 14 15" fill="none" aria-hidden="true"><path d="M.6 4.4h12.8M3.6 1v3m6.8-3v3M.6 3.4h12.8v10.9H.6z" stroke="currentColor" stroke-width="1.1"/></svg>
+              <span>إضافة إلى التقويم</span>
+            </button>
+          </div>
+        </div>
+
+        <div data-anim="1">
+          <p class="c-eyebrow"><span>CONTACT</span></p>
+          <h2 class="c-title">تواصلي معنا</h2>
+          <p class="c-sub" id="bizLine">EMAN AAL MOUSA · MAKEUP ARTIST</p>
+          <p class="c-body">إيمان الموسى ميك أب أرتست في الرياض.<br>تواصلي عبر قنواتنا في الأسفل.</p>
+        </div>
+
+        <div class="c-stack">
+          <div class="c-section" data-anim="2">
+            <h3>اختاري طريقة التواصل</h3>
+            <span>GET IN TOUCH</span>
+          </div>
+
+          <a class="wa" id="waCard" href="#" data-anim="3">
+            <span class="wa-ic">
+              <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2a8.8 8.8 0 0 0-7.6 13.2L3.2 20.8l4.5-1.2A8.8 8.8 0 1 0 12 3.2Z"/><path d="M9.3 8.6c.25-.2.6-.16.78.1l.85 1.3c.16.25.1.57-.13.75l-.42.34c.45.93 1.2 1.68 2.13 2.13l.34-.42c.18-.23.5-.29.75-.13l1.3.85c.26.18.3.53.1.78-.8.8-2 .82-3.3.15-1.45-.8-2.65-2-3.3-3.3-.66-1.3-.64-2.5.15-3.3Z"/></svg>
+            </span>
+            <span class="wa-txt"><b>واتساب</b><i>WHATSAPP</i><small>للحجز والاستفسارات المباشرة</small></span>
+            <span class="wa-go">
+              <svg width="17" height="12" viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M17 6H1m5 5L1 6l5-5" stroke="currentColor" stroke-width="1.2"/></svg>
+            </span>
+          </a>
+
+          <div class="c-pair" data-anim="4">
+            <a class="arch" href="#" data-link="tiktok">
+              <span class="a-row"><span class="a-ic">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 3.5v10.2a3.3 3.3 0 1 1-2.4-3.17"/><path d="M14.5 3.5c.5 2.2 2 3.5 4.2 3.7"/></svg>
+              </span><b>تيك توك</b></span>
+              <i>TIKTOK</i><em></em>
+              <small>تابعي المقاطع ونصائح الجمال</small>
+            </a>
+            <a class="arch" href="#" data-link="instagram">
+              <span class="a-row"><span class="a-ic">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><circle cx="12" cy="12" r="4"/><circle cx="17.1" cy="6.9" r=".95" fill="currentColor" stroke="none"/></svg>
+              </span><b>إنستقرام</b></span>
+              <i>INSTAGRAM</i><em></em>
+              <small>شاهدي أحدث أعمال وإطلالات إيمان</small>
+            </a>
+          </div>
+
+          <button class="c-top" type="button" id="toTop" data-anim="5">العودة إلى الأعلى ↑</button>
+        </div>
+
+        <div class="c-foot">© 2026 EMAN AAL MOUSA · RIYADH</div>
+      </div>
+    </section>
+
   </div>
 
-  <div id="recentBar" hidden></div>
-  <div id="view">
-    <div class="stack mt">
-      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+  <nav class="menu" id="menu">
+    <a href="#" data-go="0">الواجهة<i>HOME</i></a>
+    <a href="#" data-go="1">الخدمات<i>SERVICES</i></a>
+    <a href="#" data-go="2">الموعد<i>APPOINTMENT</i></a>
+    <a href="#" data-go="3">التأكيد<i>CONFIRM</i></a>
+    <a href="#" data-go="4">تواصل<i>CONTACT</i></a>
+    <div class="menu-foot">EMAN AAL MOUSA · RIYADH</div>
+  </nav>
+
+  <!-- لوحة البيانات -->
+  <section class="sheet" id="sheet" aria-label="بيانات الحجز">
+    <div class="sheet-head">
+      <!-- عنوان اللوحة مكتوب داخلها؛ لا يُكرَّر في الشريط. -->
+      <span class="step-of"></span>
+      <button class="sheet-close" id="sheetClose" type="button" aria-label="إغلاق">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M1 1l13 13M14 1L1 14" stroke="currentColor" stroke-width="1.2"/></svg>
+      </button>
     </div>
+    <div class="sheet-body" id="sheetBody">
+      <div class="pane on" data-pane="form">
+        <div>
+          <p class="eyebrow">YOUR DETAILS</p>
+          <h2 class="title">بياناتك</h2>
+          <p class="sub-line">نحتاجها لتثبيت الموعد وإرسال التأكيد.</p>
+        </div>
+        <div class="grow">
+          <div class="fields">
+            <div class="field"><label for="nm">الاسم الكامل</label><input id="nm" type="text" autocomplete="name" placeholder="مثال: نورة العتيبي"></div>
+            <div class="field phone">
+              <div><label for="ph">رقم الجوال</label><input id="ph" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel" placeholder="05X XXX XXXX"></div>
+              <span class="pre">+966</span>
+            </div>
+            <div id="peopleFields"></div>
+            <div class="field"><label for="locTxt">الحي والمدينة <span class="opt">اختياري</span></label><input id="locTxt" type="text" placeholder="مثال: حي النخيل، الرياض"></div>
+            <div class="field map" id="locField">
+              <div>
+                <label for="loc">الموقع <span class="opt">رابط من خرائط قوقل — اختياري</span></label>
+                <input id="loc" type="url" inputmode="url" dir="ltr" placeholder="https://maps.app.goo.gl/…">
+              </div>
+              <a class="mapbtn" href="https://maps.google.com" target="_blank" rel="noopener">
+                <svg width="12" height="15" viewBox="0 0 12 15" fill="none" aria-hidden="true"><path d="M6 14s5-5.1 5-8.4A5 5 0 0 0 1 5.6C1 8.9 6 14 6 14Z" stroke="currentColor" stroke-width="1.1"/><circle cx="6" cy="5.6" r="1.7" stroke="currentColor" stroke-width="1.1"/></svg>
+                فتح الخرائط
+              </a>
+            </div>
+            <p class="err" id="locErr">يُقبل رابط خرائط قوقل فقط — مثل maps.app.goo.gl/… أو google.com/maps/…</p>
+            <div class="field"><label for="prf">ملاحظات <span class="opt">اختياري</span></label><input id="prf" type="text" placeholder="نوع البشرة، الستايل المفضّل، وقت الوصول…"></div>
+          </div>
+          <div class="recap">
+            <div><span>الخدمات</span><b id="rcSvc">—</b></div>
+            <div><span>الموعد</span><b id="rcWhen">—</b></div>
+            <div><span>الإجمالي</span><b id="rcDep">—</b></div>
+          </div>
+          <div class="err-line" id="formErr" hidden></div>
+        </div>
+        <div class="sheet-foot">
+          <button class="cta" type="button" id="toPay" disabled><span>تأكيد البيانات</span>
+            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M17 6H1m5 5L1 6l5-5" stroke="currentColor" stroke-width="1.1"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ══ العربون: الحجز لا يُسجَّل قبل وصول صورة التحويل ══════════ -->
+      <div class="pane" data-pane="pay">
+        <div>
+          <p class="eyebrow">DEPOSIT</p>
+          <h2 class="title">تثبيت الموعد</h2>
+          <p class="sub-line">حوّلي العربون ثم أرفقي صورة التحويل، ويُسجَّل حجزك فورًا.</p>
+        </div>
+        <div class="grow">
+          <div class="ref-card">
+            <div><small>العربون المطلوب</small><b id="payAmt">—</b></div>
+            <div style="text-align:end"><small>من إجمالي</small><b id="payTotal" style="font-size:13px">—</b></div>
+          </div>
+
+          <div class="bank" id="bankBox">
+            <div class="row"><span>البنك</span><b id="bkName">—</b></div>
+            <div class="row"><span>المستفيد</span><b id="bkBenef">—</b></div>
+            <div class="row"><span>الآيبان</span><b class="iban" id="bkIban">—</b>
+              <button class="copy" type="button" id="copyIban">نسخ</button></div>
+            <p class="bank-note">اكتبي رقم جوالك في ملاحظات التحويل ليسهل ربط الإيصال بحجزك.</p>
+          </div>
+          <div class="state-msg" id="bankMissing" hidden>
+            <h3>بيانات التحويل غير مضافة بعد</h3>
+            <p>تواصلي معنا عبر واتساب لاستلامها، ثم أرفقي صورة التحويل هنا.</p>
+            <div class="btn-line"><a class="mini-btn solid" id="bankWa" href="#" target="_blank" rel="noopener">فتح واتساب</a></div>
+          </div>
+
+          <button class="drop" type="button" id="drop">
+            <span class="drop-ic"><svg width="21" height="21" viewBox="0 0 22 22" fill="none" aria-hidden="true"><path d="M11 15.4V4m0 0L6.4 8.6M11 4l4.6 4.6M2.6 15v3.4h16.8V15" stroke="currentColor" stroke-width="1.2"/></svg></span>
+            <span class="drop-t">أرفقي صورة التحويل</span>
+            <span class="drop-s">صورة أو PDF — حتى 5 ميجابايت</span>
+          </button>
+          <input id="rcptFile" type="file" hidden>
+
+          <div class="rcpt-prev" id="rcptPrev" hidden>
+            <img id="rcptImg" alt="" src="">
+            <span class="rcpt-pdf" id="rcptPdf" hidden>PDF</span>
+            <div><b id="rcptName">—</b><small class="num" id="rcptSize">—</small></div>
+            <button type="button" id="rcptClear">إزالة</button>
+          </div>
+
+          <div class="summary">
+            <div class="row"><span>الخدمات</span><b id="pySvc">—</b></div>
+            <div class="row"><span>الموعد</span><b id="pyWhen">—</b></div>
+          </div>
+          <div class="err-line" id="payErr" hidden></div>
+        </div>
+        <div class="sheet-foot">
+          <button class="cta" type="button" id="sendBooking" disabled><span>إرسال الإيصال وتأكيد الحجز</span>
+            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M17 6H1m5 5L1 6l5-5" stroke="currentColor" stroke-width="1.1"/></svg>
+          </button>
+          <button class="mini-btn" type="button" id="payBack" style="margin-top:9px">رجوع لتعديل البيانات</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="veil" id="veil"></div>
+  <div class="grain"></div>
+</div>
+
+<!-- ══ صفحة متابعة الحجز ?t=<token> ═══════════════════════════════════════ -->
+<div class="track-screen" id="trackScreen">
+  <div class="app" style="box-shadow:none">
+    <header class="bar">
+      <a class="burger" href="./" aria-label="الرئيسية" style="display:grid;place-items:center;text-decoration:none;color:var(--ink)">
+        <svg width="16" height="12" viewBox="0 0 18 12" fill="none"><path d="M1 6h16m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.2"/></svg>
+      </a>
+      <img class="brand brand-dark" src="assets/brand/logo_dark.png" alt="EMAN AAL MOUSA" style="opacity:1;transform:none">
+    </header>
+    <div class="pad" id="trackView" style="height:100%"></div>
   </div>
-</main>
+</div>
 
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js';
 import {
   getPublicSettings, getServices, getDaysWithAvailability, getAvailableSlots,
   createBooking, getBookingByToken, requestCancel,
-  fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, esc,
-  today, addDays, parseDate, normalisePhone, prettyPhone, waHref,
-  statusLabel, toast,
+  fmtDate, fmtDuration, money, riyal, esc,
+  uploadReceipt, depositDue, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
+  today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
 } from './assets/db.js';
 
-const view = document.getElementById('view');
-const DOW_SHORT = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
-const HORIZON = 21;   // days of availability offered in the strip
+/* ════════════════════════════════════════════════════════════════════════
+   إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
+   ════════════════════════════════════════════════════════════════════════ */
+const UI = {
+  maxQty: 12,                 // نفس سقف النظام القائم
+  monthsAhead: 2,             // سنوات التنقل في منتقي الشهور
+  media: [                    // خلفية بطاقة الخدمة: تُطابق بالاسم ثم بالترتيب
+    { match: /عروس|عرائس|زفاف|bridal/i, video: 'assets/brand/svc_bridal.mp4',  poster: 'assets/brand/pst_bridal.jpg',  thumb: 'assets/brand/thumb_bridal.jpg' },
+    { match: /سهر|مناسب|evening/i,      video: 'assets/brand/svc_evening.mp4', poster: 'assets/brand/pst_evening.jpg', thumb: 'assets/brand/thumb_evening.jpg' },
+  ],
+  fallback: { video: '', poster: 'assets/brand/dust_a.jpg', thumb: 'assets/brand/dust_a.jpg' },
+};
 
+/* ── الحالة (نفس نموذج النظام القائم) ─────────────────────────────────── */
 const state = {
   settings: null,
   services: [],
-  counts: {},          // serviceId -> how many people want it
-  date: null,
-  time: null,
-  days: [],
+  counts: {},        // serviceId -> عدد الأشخاص
+  date: null,        // 'YYYY-MM-DD'
+  time: null,        // 'HH:MM'
   slots: [],
-  step: 1,
+  monthDays: {},     // 'YYYY-MM-DD' -> slot_count
   busy: false,
+  booking: null,     // نتيجة createBooking
+  receiptFile: null,    // الملف الذي اختارته العميلة
+  receiptPath: null,    // مساره بعد الرفع — يُعاد استخدامه إن سقط إنشاء الحجز
+  receiptPreview: null, // object URL للمعاينة، يُحرَّر عند الإزالة
 };
 
-/* ── derived ──────────────────────────────────────────────────────────── */
-const picked = () => state.services
-  .filter((s) => state.counts[s.id] > 0)
-  .flatMap((s) => Array.from({ length: state.counts[s.id] }, () => s));
-const totalPrice = () => picked().reduce((n, s) => n + Number(s.price), 0);
-const totalMins  = () => picked().reduce((n, s) => n + Number(s.duration_min), 0);
-const people     = () => picked().length;
+const picked    = () => state.services.filter((s) => state.counts[s.id] > 0);
+const flatPicked= () => state.services.flatMap((s) => Array.from({ length: state.counts[s.id] || 0 }, () => s));
+const totalPrice= () => flatPicked().reduce((n, s) => n + Number(s.price), 0);
+const totalMins = () => flatPicked().reduce((n, s) => n + Number(s.duration_min), 0);
+const people    = () => flatPicked().length;
 
-/* ── boot ─────────────────────────────────────────────────────────────── */
+const mediaFor = (s, i) => UI.media.find((m) => m.match.test(s.name)) || UI.media[i] || UI.fallback;
+const arN = (n, one, two, few) => (n === 1 ? one : n === 2 ? two : `${n} ${few}`);
+const el = (id) => document.getElementById(id);
+
+/* وقت لاتيني AM/PM كما اعتُمد في التصميم */
+function time12(t) {
+  if (!t) return '—';
+  const [h, m] = String(t).split(':');
+  const H = Number(h);
+  return `${H % 12 === 0 ? 12 : H % 12}:${String(m).padStart(2, '0')} ${H < 12 ? 'AM' : 'PM'}`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   التنقل — سحبة واحدة = شاشة كاملة
+   ════════════════════════════════════════════════════════════════════════ */
+const app = el('app'), deck = el('deck');
+const screens = [...deck.querySelectorAll('.screen')];
+const THEMES = ['light', 'dark', 'light', 'light', 'light'];
+const BARCOLOR = { light: '#faf5f0', dark: '#150c09' };
+const veil = el('veil'), menu = el('menu'), fill = el('chapterFill');
+let idx = 0, busy = false, sheetOpen = false;
+
+function paint() {
+  app.dataset.screen = idx;
+  app.dataset.theme = THEMES[idx];
+  fill.style.width = `${((idx + 1) / screens.length) * 100}%`;
+  document.querySelector('meta[name=theme-color]').setAttribute('content', BARCOLOR[THEMES[idx]]);
+  screens.forEach((s, i) => s.classList.toggle('on', i === idx));
+}
+function go(n) {
+  n = Math.max(0, Math.min(screens.length - 1, n));
+  if (busy || n === idx) return;
+  busy = true; idx = n;
+  deck.style.transform = `translate3d(0,${-n * 100}%,0)`;
+  veil.classList.remove('flash'); void veil.offsetWidth; veil.classList.add('flash');
+  paint(); app.classList.remove('menu-open'); playVideos();
+  setTimeout(() => { busy = false; }, 600);
+}
+/* المتصفح يمرّر أقرب حاوية قابلة للتمرير ليُظهر الحقل الذي لمسته العميلة،
+   و.app منها رغم overflow:hidden — فينزاح التطبيق كله للأعلى ولا يعود.
+   التمرير الصحيح داخل .sheet-body وحدها، فنُثبّت .app عند الصفر. */
+app.addEventListener('scroll', () => {
+  if (app.scrollTop || app.scrollLeft) { app.scrollTop = 0; app.scrollLeft = 0; }
+}, { passive: true });
+
+window.__goto = go;
+
+const TH = 42, MAXT = 800;
+let x0 = 0, y0 = 0, t0 = 0, track = false;
+document.addEventListener('touchstart', (e) => {
+  if (e.touches.length > 1 || sheetOpen) { track = false; return; }
+  const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; t0 = Date.now(); track = true;
+}, { passive: true });
+document.addEventListener('touchmove', (e) => {
+  if (sheetOpen || document.documentElement.classList.contains('tracking-mode')) return;
+  if (!(e.target.closest && e.target.closest('input, textarea, .mp-grid, .sheet-body'))) e.preventDefault();
+}, { passive: false });
+document.addEventListener('touchend', (e) => {
+  if (!track) return; track = false;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - x0, dy = t.clientY - y0, dt = Date.now() - t0;
+  if (dt > MAXT) return;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (Math.abs(dx) < TH) return;
+    if (idx === 1) goSvc(sIdx + (dx < 0 ? 1 : -1));
+    return;
+  }
+  if (Math.abs(dy) < TH) return;
+  go(idx + (dy < 0 ? 1 : -1));
+}, { passive: true });
+
+let wheelLock = 0;
+addEventListener('wheel', (e) => {
+  const now = Date.now();
+  if (sheetOpen || now - wheelLock < 700 || Math.abs(e.deltaY) < 18) return;
+  wheelLock = now; go(idx + (e.deltaY > 0 ? 1 : -1));
+}, { passive: true });
+addEventListener('keydown', (e) => {
+  if (sheetOpen) { if (e.key === 'Escape') closeSheet(); return; }
+  if (e.key === 'ArrowDown' || e.key === 'PageDown') go(idx + 1);
+  if (e.key === 'ArrowUp' || e.key === 'PageUp') go(idx - 1);
+  if (idx === 1 && e.key === 'ArrowLeft') goSvc(sIdx + 1);
+  if (idx === 1 && e.key === 'ArrowRight') goSvc(sIdx - 1);
+});
+
+el('burger').addEventListener('click', () => app.classList.toggle('menu-open'));
+menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', (ev) => {
+  ev.preventDefault(); const n = +a.dataset.go;
+  app.classList.remove('menu-open'); setTimeout(() => go(n), 120);
+}));
+
+/* ════════════════════════════════════════════════════════════════════════
+   شاشة الخدمات — تُبنى من قاعدة البيانات
+   ════════════════════════════════════════════════════════════════════════ */
+const svcRail = el('svcRail'), svcProgress = el('svcProgress');
+const nextBtn = el('svcNext'), prevBtn = el('svcPrev');
+let sIdx = 0, cards = [];
+
+function renderServices() {
+  if (!state.services.length) {
+    svcRail.innerHTML = `<article class="svc active"><div class="bgwrap"><img class="bg" src="${UI.fallback.poster}" alt=""></div>
+      <div class="svc-inner"><div class="svc-body">
+        <h2>لا توجد خدمات متاحة</h2>
+        <p>سيتم عرض الخدمات هنا فور إتاحتها.</p>
+      </div></div></article>`;
+    svcProgress.innerHTML = '';
+    cards = [];
+    return;
+  }
+  svcRail.innerHTML = state.services.map((s, i) => {
+    const m = mediaFor(s, i);
+    const bg = m.video
+      ? `<video class="bg" muted loop playsinline preload="metadata" poster="${m.poster}"><source src="${m.video}" type="video/mp4"></video>`
+      : `<img class="bg" src="${m.poster}" alt="">`;
+    return `
+      <article class="svc${i === 0 ? ' active' : ''}" data-svc="${esc(s.id)}">
+        <div class="bgwrap">${bg}</div>
+        <div class="svc-num">${String(i + 1).padStart(2, '0')}</div>
+        <div class="svc-inner">
+          <div class="svc-kicker">اختاري إطلالتك</div>
+          <div class="svc-body">
+            <div class="svc-count">${String(i + 1).padStart(2, '0')} / ${String(state.services.length).padStart(2, '0')}<em></em></div>
+            <h2>${esc(s.name)}</h2>
+            <p class="sub">${esc((s.name.match(/عروس|عرائس/) ? 'BRIDAL LOOK' : s.name.match(/سهر/) ? 'EVENING LOOK' : 'SIGNATURE LOOK'))}</p>
+            <div class="svc-hr"></div>
+            <div class="meta"><span>المدة <b>${esc(fmtDuration(Number(s.duration_min)))}</b></span><i class="dot"></i><span>تبدأ من <b>${money(s.price)}</b><i class="rs"></i></span></div>
+            <p>${esc(s.description || 'إطلالة متوازنة بتفاصيل مصمّمة لمناسبتك.')}</p>
+            <button class="pick" type="button" data-pick="${esc(s.id)}">
+              <span class="lbl">احجزي هذه الخدمة</span>
+              <svg class="i-arrow" width="20" height="12" viewBox="0 0 20 12" fill="none" aria-hidden="true"><path d="M19 6H1m5 5L1 6l5-5" stroke="currentColor" stroke-width="1.1"/></svg>
+              <svg class="i-check" width="17" height="13" viewBox="0 0 17 13" fill="none" aria-hidden="true"><path d="M1 6.5 6 12 16 1" stroke="currentColor" stroke-width="1.6"/></svg>
+            </button>
+            <div class="qty-row">
+              <span class="lab">عدد الأشخاص</span>
+              <div class="qty">
+                <button class="q-minus" type="button" data-dec="${esc(s.id)}" aria-label="إنقاص">−</button>
+                <b class="q-val" data-val="${esc(s.id)}">1</b>
+                <button class="q-plus" type="button" data-inc="${esc(s.id)}" aria-label="زيادة">+</button>
+              </div>
+            </div>
+            ${state.services.length > 1 ? '<div class="svc-swipe"><svg width="18" height="11" viewBox="0 0 18 11" fill="none" aria-hidden="true"><path d="M17 5.5H1m5 5-5-5 5-5" stroke="currentColor" stroke-width="1.2"/></svg>اسحبي جانبًا لبقية الخدمات</div>' : ''}
+          </div>
+        </div>
+      </article>`;
+  }).join('');
+
+  svcProgress.style.gridTemplateColumns = `repeat(${state.services.length},1fr)`;
+  svcProgress.innerHTML = state.services.map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join('');
+  cards = [...svcRail.querySelectorAll('.svc')];
+
+  svcRail.querySelectorAll('[data-pick]').forEach((b) => b.onclick = () => togglePick(b.dataset.pick));
+  svcRail.querySelectorAll('[data-inc]').forEach((b) => b.onclick = () => bump(b.dataset.inc, +1));
+  svcRail.querySelectorAll('[data-dec]').forEach((b) => b.onclick = () => bump(b.dataset.dec, -1));
+  nextBtn.disabled = state.services.length < 2;
+  prevBtn.disabled = true;
+  sIdx = 0;
+  paintCards();
+}
+
+function paintCards() {
+  state.services.forEach((s) => {
+    const card = svcRail.querySelector(`[data-svc="${CSS.escape(s.id)}"]`);
+    if (!card) return;
+    const n = state.counts[s.id] || 0, on = n > 0;
+    card.classList.toggle('picked', on);
+    const pick = card.querySelector('.pick');
+    pick.classList.toggle('on', on);
+    pick.querySelector('.lbl').textContent = on ? 'تم الاختيار — اضغطي للإلغاء' : 'احجزي هذه الخدمة';
+    card.querySelector(`[data-val="${CSS.escape(s.id)}"]`).textContent = n || 1;
+    card.querySelector('.q-minus').disabled = n <= 1;
+    card.querySelector('.q-plus').disabled = n >= UI.maxQty;
+  });
+  renderCart(); sync();
+}
+function togglePick(id) { state.counts[id] = state.counts[id] > 0 ? 0 : 1; onCartChange(); }
+function bump(id, d) {
+  const next = Math.max(0, Math.min(UI.maxQty, (state.counts[id] || 0) + d));
+  if (next === 0) return;
+  state.counts[id] = next; onCartChange();
+}
+/* تغيير السلة يُبطل الموعد المختار: المدة تغيّرت فتغيّرت الأوقات المتاحة،
+   فيُعاد فتح التقويم ويُمسح كل ما بُني على المدة القديمة. */
+function onCartChange() {
+  const had = state.date;
+  state.date = null; state.time = null; state.slots = [];
+  if (had) {
+    times.innerHTML = '';
+    el('dateChipLabel').textContent = '—';
+    el('dateHint').textContent = '—';
+    showCal(true);
+  }
+  paintCards();
+  // إتاحة الشهر محسوبة على مدة معيّنة؛ إن تغيّرت المدة فالشبكة كلها لم تعد صحيحة.
+  if (monthMins !== totalMins()) loadMonth(curY, curM);
+}
+
+function goSvc(n) {
+  n = Math.max(0, Math.min(cards.length - 1, n));
+  if (n === sIdx || !cards.length) return;
+  sIdx = n;
+  svcRail.style.transform = `translate3d(${-n * 100}%,0,0)`;
+  cards.forEach((c, i) => c.classList.toggle('active', i === n));
+  [...svcProgress.children].forEach((b, i) => b.classList.toggle('on', i === n));
+  cards.forEach((c, i) => { const b = c.querySelector('.bgwrap'); if (b) b.style.transform = `translateX(${(n - i) * 4.5}%)`; });
+  nextBtn.disabled = n === cards.length - 1; prevBtn.disabled = n === 0;
+  playVideos();
+}
+window.__svc = goSvc;
+nextBtn.addEventListener('click', () => goSvc(sIdx + 1));
+prevBtn.addEventListener('click', () => goSvc(sIdx - 1));
+
+function playVideos() {
+  cards.forEach((c, i) => {
+    const v = c.querySelector('video'); if (!v) return;
+    if (idx === 1 && i === sIdx) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+    else { try { v.pause(); } catch { /* ignore */ } }
+  });
+}
+
+function renderCart() {
+  const n = picked().length, ppl = people(), bar = el('svcCart');
+  document.querySelector('.svc-screen').classList.toggle('has-cart', n > 0);
+  bar.classList.toggle('on', n > 0);
+  if (n) {
+    el('cartMeta').textContent = `${arN(n, 'خدمة واحدة', 'خدمتان', 'خدمات')} · ${arN(ppl, 'شخص واحد', 'شخصان', 'أشخاص')}`;
+    el('cartTotal').textContent = money(totalPrice());
+  }
+}
+el('cartGo').addEventListener('click', () => go(2));
+
+/* ════════════════════════════════════════════════════════════════════════
+   شاشة التاريخ والوقت — الأيام والأوقات من قاعدة البيانات
+   ════════════════════════════════════════════════════════════════════════ */
+const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+const DOW = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const week = el('week'), times = el('times'), mpick = el('mpick'), mpGrid = el('mpGrid');
+const todayDate = parseDate(today());
+let curY = todayDate.getFullYear(), curM = todayDate.getMonth(), pickY = curY, monthBusy = false;
+let monthPending = null, monthMins = null;   // آخر مدة بُنيت عليها إتاحة الشهر
+
+function showCal(open) {
+  el('cal').hidden = !open;
+  el('monthBtn').hidden = !open;
+  el('dateChip').hidden = open || !state.date;
+  el('timeBlock').hidden = open || !state.date;
+  el('toConfirm').disabled = !(state.date && state.time);
+  // الأوقات ظاهرة ⇒ ثلاث كتل توزَّع على الارتفاع؛ التقويم ظاهر ⇒ التصاق بالأعلى.
+  document.querySelector('.screen[data-name="الموعد"] .stack')
+    .classList.toggle('spread', !el('timeBlock').hidden);
+}
+
+async function loadMonth(y, m) {
+  if (monthBusy) { monthPending = [y, m]; return; }
+  monthBusy = true;
+  monthMins = totalMins();
+  el('monthLabel').textContent = `${MONTHS[m]} ${y}`;
+  week.innerHTML = `<div class="sk" style="grid-column:1/-1;height:120px"></div>`;
+  const first = isoDate(new Date(y, m, 1));
+  const last = new Date(y, m + 1, 0);
+  const from = first < today() ? today() : first;
+  const days = Math.max(1, Math.round((parseDate(isoDate(last)) - parseDate(from)) / 86400000) + 1);
+  try {
+    const rows = await getDaysWithAvailability(from, days, totalMins());
+    state.monthDays = {};
+    rows.forEach((r) => { state.monthDays[r.the_date] = Number(r.slot_count) || 0; });
+  } catch (err) {
+    state.monthDays = {};
+    showError(err);
+  }
+  monthBusy = false;
+  renderMonth();
+  if (monthPending) { const [py, pm] = monthPending; monthPending = null; loadMonth(py, pm); }
+}
+
+function renderMonth() {
+  week.innerHTML = '';
+  const lead = new Date(curY, curM, 1).getDay();
+  const total = new Date(curY, curM + 1, 0).getDate();
+  for (let i = 0; i < lead; i += 1) {
+    const e = document.createElement('span'); e.className = 'day blank'; week.appendChild(e);
+  }
+  for (let d = 1; d <= total; d += 1) {
+    const iso = isoDate(new Date(curY, curM, d));
+    const free = (state.monthDays[iso] || 0) > 0;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'day'; b.innerHTML = `<b>${d}</b>`;
+    if (!free) b.disabled = true;
+    if (state.date === iso) b.classList.add('sel');
+    b.addEventListener('click', () => pickDay(iso));
+    week.appendChild(b);
+  }
+  const anyFree = Object.values(state.monthDays).some((n) => n > 0);
+  if (!anyFree) {
+    week.innerHTML = `<div class="state-msg" style="grid-column:1/-1">
+      <h3>لا توجد أوقات متاحة في هذا الشهر</h3>
+      <p>جرّبي شهرًا آخر، أو تواصلي معنا مباشرة.</p></div>`;
+  }
+}
+
+async function pickDay(iso) {
+  state.date = iso; state.time = null;
+  const dt = parseDate(iso);
+  const label = `${DOW[dt.getDay()]} ${dt.getDate()} ${MONTHS[dt.getMonth()]}`;
+  el('dateChipLabel').textContent = label;
+  el('dateHint').textContent = label;
+  renderMonth(); showCal(false); sync();
+  times.innerHTML = '<div class="sk" style="grid-column:1/-1"></div>';
+  try {
+    state.slots = await getAvailableSlots(iso, totalMins());
+    renderSlots();
+  } catch (err) { showError(err); }
+}
+
+function renderSlots() {
+  if (!state.slots.length) {
+    times.innerHTML = `<div class="state-msg" style="grid-column:1/-1">
+      <h3>لا توجد أوقات متاحة في هذا اليوم</h3>
+      <p>اختاري يومًا آخر من التقويم.</p></div>`;
+    return;
+  }
+  times.innerHTML = state.slots.map((t) => {
+    const [h, m] = String(t).split(':');
+    const H = Number(h);
+    return `<button type="button" class="time" data-slot="${t}">
+      <span class="t">${H % 12 === 0 ? 12 : H % 12}:${String(m).padStart(2, '0')}</span><span class="mer">${H < 12 ? 'AM' : 'PM'}</span>
+    </button>`;
+  }).join('');
+  times.querySelectorAll('[data-slot]').forEach((b) => b.onclick = () => {
+    state.time = b.dataset.slot;
+    times.querySelectorAll('.time').forEach((x) => x.classList.toggle('sel', x === b));
+    el('toConfirm').disabled = false;
+    sync();
+  });
+}
+
+/* منتقي الشهور */
+function renderPicker() {
+  el('yLabel').textContent = pickY;
+  el('yPrev').disabled = pickY <= todayDate.getFullYear();
+  el('yNext').disabled = pickY >= todayDate.getFullYear() + UI.monthsAhead;
+  mpGrid.innerHTML = '';
+  MONTHS.forEach((name, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = name;
+    if (pickY === todayDate.getFullYear() && i < todayDate.getMonth()) b.disabled = true;
+    if (pickY === curY && i === curM) b.classList.add('on');
+    b.addEventListener('click', () => {
+      curY = pickY; curM = i; mpick.hidden = true; showCal(true); loadMonth(curY, curM);
+    });
+    mpGrid.appendChild(b);
+  });
+}
+el('monthBtn').addEventListener('click', (e) => { e.stopPropagation(); pickY = curY; renderPicker(); mpick.hidden = !mpick.hidden; });
+el('yPrev').addEventListener('click', (e) => { e.stopPropagation(); pickY -= 1; renderPicker(); });
+el('yNext').addEventListener('click', (e) => { e.stopPropagation(); pickY += 1; renderPicker(); });
+document.addEventListener('click', (e) => { if (!mpick.hidden && !mpick.contains(e.target)) mpick.hidden = true; });
+el('dateChip').addEventListener('click', () => showCal(true));
+el('changeSvc').addEventListener('click', () => go(1));
+el('toConfirm').addEventListener('click', () => go(3));
+el('editBack').addEventListener('click', () => go(2));
+
+/* ════════════════════════════════════════════════════════════════════════
+   الملخصات
+   ════════════════════════════════════════════════════════════════════════ */
+function sync() {
+  const c = picked();
+  const label = c.length
+    ? c.map((s) => esc(s.name) + (state.counts[s.id] > 1 ? ` <span dir="ltr">×${state.counts[s.id]}</span>` : '')).join(' + ')
+    : 'لم تختاري خدمة بعد';
+  el('chipName').innerHTML = label;
+  el('changeSvc').textContent = c.length ? 'تغيير' : 'اختيار';
+
+  const chipT = el('chipThumb');
+  chipT.className = `thumbs${c.length > 1 ? ' pair' : ''}`;
+  chipT.innerHTML = c.length
+    ? c.map((s) => `<i class="th" style="background-image:url('${mediaFor(s, state.services.indexOf(s)).thumb}')"></i>`).join('')
+    : '<i class="th empty"></i>';
+
+  const arts = el('sumThumb');
+  arts.className = `arts${c.length > 1 ? ' pair' : ''}`;
+  arts.innerHTML = c.map((s) => `<figure class="art" style="background-image:url('${mediaFor(s, state.services.indexOf(s)).thumb}')">${
+    state.counts[s.id] > 1 ? `<b dir="ltr">×${state.counts[s.id]}</b>` : ''}</figure>`).join('');
+
+  el('sumLines').innerHTML = c.length
+    ? c.map((s) => `<div class="ln"><span>${esc(s.name)}${state.counts[s.id] > 1 ? ` <em dir="ltr">×${state.counts[s.id]}</em>` : ''}</span><b>${money(Number(s.price) * state.counts[s.id])}<i class="rs"></i></b></div>`).join('')
+    : '<div class="ln"><span>لم تختاري خدمة بعد</span></div>';
+
+  el('total1').innerHTML = `${money(totalPrice())}<i class="rs"></i>`;
+  el('sumDate').textContent = state.date ? fmtDate(state.date, { short: true }) : '—';
+  el('sumTime').textContent = time12(state.time);
+  el('sumDur').textContent = totalMins() ? fmtDuration(totalMins()) : '—';
+  el('sumTotal').innerHTML = `${money(totalPrice())}<i class="rs"></i>`;
+  el('dateLead').textContent = totalMins()
+    ? `مدة موعدك ${fmtDuration(totalMins())} — تظهر لك الأيام والأوقات التي تتّسع لها فقط.`
+    : 'اختاري خدمة أولًا لعرض الأوقات التي تتّسع لها.';
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   لوحة البيانات والإرسال
+   ════════════════════════════════════════════════════════════════════════ */
+const sheet = el('sheet');
+function openSheetPanel() {
+  const c = picked();
+  el('rcSvc').innerHTML = c.length ? c.map((s) => esc(s.name) + (state.counts[s.id] > 1 ? ` ⁦×${state.counts[s.id]}⁩` : '')).join(' + ') : '—';
+  el('rcWhen').textContent = `${state.date ? fmtDate(state.date, { short: true }) : '—'} · ${time12(state.time)}`;
+  el('rcDep').innerHTML = `${money(totalPrice())}<i class="rs"></i>`;
+
+  const flat = flatPicked();
+  el('peopleFields').innerHTML = flat.length > 1
+    ? `<div class="field"><label>أسماء المجموعة <span class="opt">اختياري</span></label>
+        ${flat.map((s, i) => `<input class="person-in" type="text" placeholder="${esc(s.name)} — الاسم" aria-label="اسم الشخص ${i + 1}">`).join('')}
+       </div>`
+    : '';
+  showPane('form');
+  sheet.classList.add('open'); sheetOpen = true; gate();
+}
+function closeSheet() { sheet.classList.remove('open'); sheetOpen = false; }
+el('sheetClose').addEventListener('click', closeSheet);
+el('confirmBtn').addEventListener('click', () => {
+  if (!state.date || !state.time) { toast('اختاري الموعد أولًا'); go(2); return; }
+  openSheetPanel();
+});
+
+const MAPS_RE = /^https:\/\/((maps\.app\.goo\.gl)|(goo\.gl\/maps)|((www\.)?google\.[a-z]{2,3}(\.[a-z]{2})?\/maps)|(maps\.google\.[a-z]{2,3}(\.[a-z]{2})?))(\/|\?)\S*$/i;
+const loc = el('loc'), locField = el('locField'), locErr = el('locErr');
+const sendBtn = el('sendBooking'), toPayBtn = el('toPay');
+const phone = el('ph'), nameIn = el('nm');
+function gate() {
+  const v = loc.value.trim();
+  const mapOk = !v || MAPS_RE.test(v);
+  locField.classList.toggle('bad', !!v && !mapOk);
+  locField.classList.toggle('ok', !!v && mapOk);
+  locErr.classList.toggle('on', !!v && !mapOk);
+  const phoneOk = !!normalisePhone(phone.value);
+  toPayBtn.disabled = !(mapOk && phoneOk && nameIn.value.trim().length > 1) || state.busy;
+  // الحجز مرفوض من الخادم بلا إيصال، فلا معنى لزرّ إرسال قبل اختيار ملف.
+  sendBtn.disabled = !state.receiptFile || state.busy;
+}
+[loc, phone, nameIn].forEach((e) => { e.addEventListener('input', gate); e.addEventListener('blur', gate); });
+
+/* ── لوحة العربون ─────────────────────────────────────────────────────
+   الرفع يسبق إنشاء الحجز لأن الخادم يرفض حجزًا بلا إيصال. لو نجح الرفع
+   ثم سقط إنشاء الحجز (وقت سُبقت إليه مثلًا) نحتفظ بمسار الملف المرفوع
+   فلا تُطالَب العميلة برفعه مرة أخرى.                                  */
+
+const rcptInput = el('rcptFile'), rcptPrev = el('rcptPrev'), dropBtn = el('drop');
+rcptInput.setAttribute('accept', RECEIPT_ACCEPT);
+
+function showPane(name) {
+  document.querySelectorAll('.sheet-body .pane').forEach((p) => p.classList.toggle('on', p.dataset.pane === name));
+  document.querySelector('.sheet-head .step-of').textContent = name === 'pay' ? '2 / 2' : '1 / 2';
+  el('sheetBody').scrollTop = 0;
+}
+
+function paintPay() {
+  const cfg = state.settings || {};
+  const total = totalPrice();
+  const due = depositDue(total, cfg.deposit_rate);
+  el('payAmt').innerHTML = `${money(due)}<i class="rs"></i>`;
+  el('payTotal').innerHTML = `${money(total)}<i class="rs"></i>`;
+
+  const hasBank = !!cfg.iban;
+  el('bankBox').hidden = !hasBank;
+  el('bankMissing').hidden = hasBank;
+  if (hasBank) {
+    el('bkName').textContent = cfg.bank_name || '—';
+    el('bkBenef').textContent = cfg.beneficiary_name || cfg.business_name || '—';
+    // الآيبان مخزّن بلا مسافات؛ يُعرض مجزّأً رباعيًا ليسهل نقله بالعين.
+    el('bkIban').textContent = String(cfg.iban).replace(/(.{4})/g, '$1 ').trim();
+  } else if (cfg.whatsapp_phone) {
+    el('bankWa').href = waHref(cfg.whatsapp_phone, 'السلام عليكم، أبغى بيانات التحويل لتثبيت الحجز');
+  }
+
+  const c = picked();
+  el('pySvc').innerHTML = c.length
+    ? c.map((s) => esc(s.name) + (state.counts[s.id] > 1 ? ` <span dir="ltr">×${state.counts[s.id]}</span>` : '')).join(' + ')
+    : '—';
+  el('pyWhen').textContent = `${state.date ? fmtDate(state.date, { short: true }) : '—'} · ${time12(state.time)}`;
+}
+
+function clearReceipt() {
+  state.receiptFile = null; state.receiptPath = null;
+  if (state.receiptPreview) { URL.revokeObjectURL(state.receiptPreview); state.receiptPreview = null; }
+  rcptInput.value = '';
+  rcptPrev.hidden = true; dropBtn.hidden = false;
+  gate();
+}
+
+const kb = (n) => (n < 1024 * 1024 ? `\u2066${Math.round(n / 1024)} KB\u2069` : `\u2066${(n / 1048576).toFixed(1)} MB\u2069`);
+
+dropBtn.addEventListener('click', () => rcptInput.click());
+el('rcptClear').addEventListener('click', clearReceipt);
+rcptInput.addEventListener('change', () => {
+  const f = rcptInput.files && rcptInput.files[0];
+  if (!f) return;
+  const err = el('payErr');
+  if (f.size > RECEIPT_MAX_BYTES) {
+    err.textContent = 'حجم الملف كبير — الحد 5 ميجابايت.'; err.hidden = false; clearReceipt(); return;
+  }
+  if (!RECEIPT_ACCEPT.split(',').includes(f.type)) {
+    err.textContent = 'صيغة غير مدعومة — أرسلي صورة أو ملف PDF.'; err.hidden = false; clearReceipt(); return;
+  }
+  err.hidden = true;
+  // ملف جديد ⇒ المسار المرفوع سابقًا لم يعد يمثّله.
+  if (state.receiptPreview) URL.revokeObjectURL(state.receiptPreview);
+  state.receiptFile = f; state.receiptPath = null;
+  const isPdf = f.type === 'application/pdf';
+  state.receiptPreview = isPdf ? null : URL.createObjectURL(f);
+  el('rcptImg').hidden = isPdf; el('rcptPdf').hidden = !isPdf;
+  if (!isPdf) el('rcptImg').src = state.receiptPreview;
+  el('rcptName').textContent = f.name;
+  el('rcptSize').textContent = kb(f.size);
+  rcptPrev.hidden = false; dropBtn.hidden = true;
+  gate();
+});
+
+el('copyIban').addEventListener('click', async function copyIban() {
+  const raw = (state.settings?.iban || '').replace(/\s+/g, '');
+  try { await navigator.clipboard.writeText(raw); this.classList.add('done'); this.textContent = 'تم'; toast('نُسخ الآيبان', 'ok');
+        setTimeout(() => { this.classList.remove('done'); this.textContent = 'نسخ'; }, 1800); }
+  catch { toast('انسخي الآيبان يدويًا'); }
+});
+
+toPayBtn.addEventListener('click', () => {
+  if (toPayBtn.disabled) return;
+  paintPay(); showPane('pay'); gate();
+});
+el('payBack').addEventListener('click', () => { showPane('form'); gate(); });
+
+sendBtn.addEventListener('click', submit);
+
+async function submit() {
+  if (state.busy || sendBtn.disabled) return;
+  state.busy = true; sendBtn.disabled = true;
+  const label = sendBtn.querySelector('span'); const was = label.textContent;
+  el('payErr').hidden = true;
+  try {
+    if (!state.receiptPath) {
+      label.textContent = 'جارٍ رفع الإيصال…';
+      state.receiptPath = await uploadReceipt(state.receiptFile);
+    }
+    label.textContent = 'جارٍ الإرسال…';
+    const result = await createBooking({
+      name: nameIn.value.trim(),
+      phone: phone.value.trim(),
+      date: state.date,
+      time: state.time,
+      serviceIds: flatPicked().map((s) => s.id),
+      personNames: [...document.querySelectorAll('.person-in')].map((i) => i.value.trim()),
+      locText: el('locTxt').value.trim(),
+      locMap: loc.value.trim(),
+      notes: el('prf').value.trim(),
+      receiptPath: state.receiptPath,
+    });
+    remember(result);
+    state.booking = result;
+    showBooked(result);
+    closeSheet(); go(4); clearReceipt(); showPane('form');
+  } catch (err) {
+    const msg = err?.message || 'تعذّر إرسال الطلب.';
+    el('payErr').textContent = msg;
+    el('payErr').hidden = false;
+    // مسار رُفض من الخادم لا يُعاد إرساله؛ الرفع يتكرّر في المحاولة التالية.
+    if (/الإيصال/.test(msg)) state.receiptPath = null;
+    if (/لم يعد متاح/.test(msg)) {
+      toast('تم حجز هذا الوقت للتو، اختاري وقتًا آخر', 'danger');
+      state.time = null; closeSheet(); go(2);
+      if (state.date) pickDay(state.date);
+    }
+  } finally {
+    state.busy = false; label.textContent = was; gate();
+  }
+}
+
+function remember(result) {
+  try {
+    const list = JSON.parse(localStorage.getItem('eman_bookings') || '[]');
+    list.unshift({ ref: result.ref, token: result.public_token, date: result.the_date });
+    localStorage.setItem('eman_bookings', JSON.stringify(list.slice(0, 20)));
+    localStorage.setItem('lastBooking', JSON.stringify({ token: result.public_token, ref: result.ref }));
+  } catch { /* تصفّح خاص */ }
+}
+const trackUrl = (token) => `${location.origin}${location.pathname}?t=${token}`;
+
+function showBooked(r) {
+  const c = picked();
+  el('refNo').textContent = r.ref;
+  el('dnSvc').textContent = c.map((s) => s.name + (state.counts[s.id] > 1 ? ` ⁦×${state.counts[s.id]}⁩` : '')).join(' + ');
+  el('dnWhen').textContent = `${fmtDate(r.the_date, { short: true })} · ${time12(r.start_time)}`;
+  el('dnDep').innerHTML = `${money(Number(r.price) || totalPrice())}<i class="rs"></i>`;
+  el('trackLink').value = trackUrl(r.public_token);
+  el('trackOpen').href = `?t=${encodeURIComponent(r.public_token)}`;
+  el('booked').hidden = false;
+  document.querySelector('.contact').classList.add('has-booking');
+  try { history.replaceState(null, '', trackUrl(r.public_token)); } catch { /* ignore */ }
+}
+el('copyTrack').addEventListener('click', async function copyTrack() {
+  try { await navigator.clipboard.writeText(el('trackLink').value); toast('تم نسخ الرابط', 'ok'); }
+  catch { el('trackLink').select(); toast('انسخي الرابط يدويًا'); }
+});
+
+/* ── بطاقة الحجز وملف التقويم ─────────────────────────────────────────── */
+function bookingData() {
+  const r = state.booking, c = picked();
+  return {
+    ref: r?.ref || '—',
+    svc: c.map((s) => s.name + (state.counts[s.id] > 1 ? ` ×${state.counts[s.id]}` : '')).join(' + ') || '—',
+    when: `${state.date ? fmtDate(state.date, { short: true }) : '—'} · ${time12(state.time)}`,
+    total: money(totalPrice()),
+    durMin: totalMins(),
+  };
+}
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+async function saveCardImage() {
+  try { if (document.fonts?.ready) await document.fonts.ready; } catch { /* ignore */ }
+  const d = bookingData(), S = 3, W = 430 * S, H = 510 * S;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const x = cv.getContext('2d');
+  x.fillStyle = '#faf5f0'; x.fillRect(0, 0, W, H);
+  const g = x.createRadialGradient(W / 2, H * 0.18, 0, W / 2, H * 0.18, W * 0.9);
+  g.addColorStop(0, 'rgba(176,112,92,.16)'); g.addColorStop(1, 'rgba(176,112,92,0)');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.strokeStyle = 'rgba(176,112,92,.45)'; x.lineWidth = S; x.strokeRect(14 * S, 14 * S, W - 28 * S, H - 28 * S);
+  x.textAlign = 'center'; x.direction = 'ltr';
+  x.fillStyle = '#3b241c'; x.font = `500 ${23 * S}px 'Amiri', Georgia, serif`;
+  x.fillText('EMAN AAL MOUSA', W / 2, 62 * S);
+  x.font = `500 ${10 * S}px 'Amiri', Georgia, serif`; x.fillStyle = '#8a6252';
+  x.fillText('M A K E U P   A R T I S T', W / 2, 82 * S);
+  x.direction = 'rtl';
+  x.fillStyle = '#2b1c16'; x.font = `500 ${22 * S}px 'Tajawal', Tahoma, sans-serif`;
+  x.fillText('وصلنا طلبك', W / 2, 140 * S);
+  x.strokeStyle = 'rgba(176,112,92,.55)'; x.setLineDash([5 * S, 4 * S]);
+  x.strokeRect(60 * S, 165 * S, W - 120 * S, 52 * S); x.setLineDash([]);
+  x.fillStyle = '#8a7568'; x.font = `400 ${10 * S}px 'Tajawal', Tahoma, sans-serif`;
+  x.fillText('رقم الطلب', W / 2, 184 * S);
+  x.fillStyle = '#2b1c16'; x.direction = 'ltr'; x.font = `500 ${19 * S}px 'Amiri', Georgia, serif`;
+  x.fillText(d.ref, W / 2, 208 * S); x.direction = 'rtl';
+  const rows = [['الخدمة', d.svc], ['الموعد', d.when], ['الإجمالي', `${d.total} SAR`], ['المدة', fmtDuration(d.durMin)]];
+  let y = 260 * S;
+  rows.forEach((r) => {
+    x.textAlign = 'right'; x.fillStyle = '#8a7568'; x.font = `400 ${11 * S}px 'Tajawal', Tahoma, sans-serif`;
+    x.fillText(r[0], W - 46 * S, y);
+    x.textAlign = 'left'; x.fillStyle = '#2b1c16'; x.font = `500 ${13 * S}px 'Tajawal', Tahoma, sans-serif`;
+    x.fillText(r[1], 46 * S, y);
+    x.strokeStyle = 'rgba(43,28,22,.12)'; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(46 * S, y + 14); x.lineTo(W - 46 * S, y + 14); x.stroke();
+    y += 46 * S;
+  });
+  x.textAlign = 'center'; x.fillStyle = '#8a7568'; x.font = `400 ${10.5 * S}px 'Tajawal', Tahoma, sans-serif`;
+  x.fillText('يُعرض هذا الإيصال عند الحضور', W / 2, H - 70 * S);
+  x.fillStyle = 'rgba(111,88,76,.7)'; x.direction = 'ltr'; x.font = `400 ${9 * S}px 'Amiri', Georgia, serif`;
+  x.fillText('EMAN AAL MOUSA · RIYADH', W / 2, H - 44 * S);
+  const blob = await new Promise((res) => cv.toBlob(res, 'image/png'));
+  if (blob) saveBlob(blob, `${d.ref}.png`);
+}
+const pad2 = (n) => String(n).padStart(2, '0');
+const icsStamp = (dt) => `${dt.getFullYear()}${pad2(dt.getMonth() + 1)}${pad2(dt.getDate())}T${pad2(dt.getHours())}${pad2(dt.getMinutes())}00`;
+function saveIcs() {
+  const d = bookingData();
+  const base = state.date ? parseDate(state.date) : new Date();
+  if (state.time) { const [h, m] = state.time.split(':'); base.setHours(Number(h), Number(m), 0, 0); }
+  const end = new Date(base.getTime() + (d.durMin || 60) * 60000);
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EAM//booking//AR', 'BEGIN:VEVENT',
+    `UID:${d.ref}@emanaalmousa`, `DTSTAMP:${icsStamp(new Date())}`,
+    `DTSTART:${icsStamp(base)}`, `DTEND:${icsStamp(end)}`,
+    `SUMMARY:موعد مكياج — ${d.svc}`, `DESCRIPTION:رقم الطلب ${d.ref}`,
+    `LOCATION:${state.settings?.business_name || 'EMAN AAL MOUSA'}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  saveBlob(new Blob([ics], { type: 'text/calendar;charset=utf-8' }), `${d.ref}.ics`);
+}
+function flash(btn, txt) {
+  const sp = btn.querySelector('span'), old = sp.textContent;
+  sp.textContent = txt; btn.classList.add('done');
+  setTimeout(() => { sp.textContent = old; btn.classList.remove('done'); }, 1800);
+}
+el('saveCard').addEventListener('click', function save() { saveCardImage(); flash(this, 'تم الحفظ ✓'); });
+el('addCal').addEventListener('click', function cal() { saveIcs(); flash(this, 'تمت الإضافة ✓'); });
+el('toTop').addEventListener('click', () => go(0));
+
+/* ════════════════════════════════════════════════════════════════════════
+   حالات الخطأ والإغلاق
+   ════════════════════════════════════════════════════════════════════════ */
+function showError(err) {
+  console.error(err);
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+  const isNetwork = offline || err instanceof TypeError;
+  svcRail.innerHTML = `<article class="svc active"><div class="bgwrap"><img class="bg" src="${UI.fallback.poster}" alt=""></div>
+    <div class="svc-inner"><div class="svc-body">
+      <h2>${isNetwork ? 'تعذّر الاتصال' : 'تعذّر تحميل البيانات'}</h2>
+      <p>${isNetwork ? 'تأكدي من الاتصال بالإنترنت ثم أعيدي المحاولة.' : esc([err?.code, err?.message].filter(Boolean).join(' — '))}</p>
+      <button class="pick" type="button" onclick="location.reload()"><span class="lbl">إعادة المحاولة</span></button>
+    </div></div></article>`;
+  svcProgress.innerHTML = ''; cards = [];
+}
+
+function showClosed() {
+  const wa = state.settings?.whatsapp_phone;
+  svcRail.innerHTML = `<article class="svc active"><div class="bgwrap"><img class="bg" src="${UI.fallback.poster}" alt=""></div>
+    <div class="svc-inner"><div class="svc-body">
+      <h2>الحجز مغلق مؤقتًا</h2>
+      <p>${esc(state.settings?.closed_message || '')}</p>
+      ${wa ? `<a class="pick" href="${waHref(wa)}" target="_blank" rel="noopener"><span class="lbl">تواصلي معنا</span></a>` : ''}
+    </div></div></article>`;
+  svcProgress.innerHTML = ''; cards = [];
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   صفحة المتابعة ?t=
+   ════════════════════════════════════════════════════════════════════════ */
+async function renderTracking(token) {
+  const host = el('trackView');
+  host.innerHTML = '<div class="track-wrap"><div class="sk" style="height:120px"></div><div class="sk" style="height:200px"></div></div>';
+  let b;
+  try { b = await getBookingByToken(token); }
+  catch (err) {
+    host.innerHTML = `<div class="track-wrap"><div class="state-msg"><h3>تعذّر تحميل الحجز</h3>
+      <p>${esc(err?.message || '')}</p><div class="btn-line"><a class="mini-btn solid" href="./">حجز جديد</a></div></div></div>`;
+    return;
+  }
+  if (!b) {
+    host.innerHTML = `<div class="track-wrap"><div class="state-msg"><h3>لم نجد هذا الحجز</h3>
+      <p>تأكدي من الرابط، أو احجزي موعدًا جديدًا.</p><div class="btn-line"><a class="mini-btn solid" href="./">حجز موعد جديد</a></div></div></div>`;
+    return;
+  }
+  const items = b.items || [];
+  const due = Number(b.price) - Number(b.deposit || 0);
+  const tone = { pending: 'warn', confirmed: 'ok', done: 'ok' }[b.status] || 'bad';
+  const headline = {
+    pending: 'طلبك قيد المراجعة', confirmed: 'موعدك مؤكّد', done: 'تم إنجاز الموعد',
+    cancelled: 'تم إلغاء الحجز', rejected: 'نعتذر، الموعد غير متاح', no_show: 'لم يتم الحضور',
+  }[b.status] || statusLabel(b.status);
+
+  host.innerHTML = `
+    <div class="track-wrap">
+      <div class="track-hero">
+        <span class="seal"><svg width="22" height="16" viewBox="0 0 17 13" fill="none"><path d="M1 6.5 6 12 16 1" stroke="currentColor" stroke-width="1.5"/></svg></span>
+        <h2>${esc(headline)}</h2>
+        <p>رقم الطلب <span class="ref">${esc(b.ref)}</span></p>
+      </div>
+      <div class="t-rows">
+        <div class="row"><span>الحالة</span><b class="t-pill ${tone}">${esc(statusLabel(b.status))}</b></div>
+        <div class="row"><span>التاريخ</span><b>${fmtDate(b.the_date)}</b></div>
+        <div class="row"><span>الوقت</span><b dir="ltr">${time12(b.start_time)}</b></div>
+        <div class="row"><span>المدة</span><b>${fmtDuration(b.duration_min)}</b></div>
+        ${b.loc_text ? `<div class="row"><span>الموقع</span><b>${esc(b.loc_text)}</b></div>` : ''}
+      </div>
+      <div class="t-rows">
+        ${items.map((i) => `<div class="row"><span>${esc(i.service_name)}${i.person_name ? ` — ${esc(i.person_name)}` : ''}</span><b>${money(i.price)}<i class="rs"></i></b></div>`).join('')}
+        <div class="row"><span>الإجمالي</span><b>${money(b.price)}<i class="rs"></i></b></div>
+        ${Number(b.deposit) > 0 ? `
+          <div class="row"><span>العربون المستلم</span><b>${money(b.deposit)}<i class="rs"></i></b></div>
+          <div class="row"><span>المتبقي</span><b>${due > 0 ? `${money(due)}<i class="rs"></i>` : 'مسدّد بالكامل'}</b></div>`
+        : b.receipt_received ? `
+          <div class="row"><span>إيصال العربون</span><b class="t-pill warn">وصلنا الإيصال — قيد المراجعة</b></div>` : ''}
+      </div>
+      ${b.cancel_requested && ['pending', 'confirmed'].includes(b.status)
+        ? '<div class="state-msg"><p>وصلنا طلب الإلغاء وسيتم التواصل معك.</p></div>' : ''}
+      <div class="bk-actions">
+        ${['pending', 'confirmed'].includes(b.status) && !b.cancel_requested
+          ? '<button class="bk-cal" type="button" id="askCancel"><span>طلب إلغاء الحجز</span></button>' : ''}
+        ${state.settings?.whatsapp_phone
+          ? `<a class="bk-cal" href="${waHref(state.settings.whatsapp_phone, `استفسار عن الحجز رقم ${b.ref}`)}" target="_blank" rel="noopener"><span>تواصلي معنا</span></a>` : ''}
+      </div>
+      <p style="text-align:center"><a class="c-top" href="./">حجز موعد جديد</a></p>
+    </div>`;
+
+  const cancelBtn = el('askCancel');
+  if (cancelBtn) cancelBtn.onclick = async () => {
+    cancelBtn.disabled = true;
+    try { await requestCancel(token); toast('تم إرسال طلب الإلغاء', 'ok'); renderTracking(token); }
+    catch { cancelBtn.disabled = false; toast('تعذّر إرسال الطلب', 'danger'); }
+  };
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   الإقلاع
+   ════════════════════════════════════════════════════════════════════════ */
 (async function boot() {
-  hydrateIcons(document);
   const token = new URLSearchParams(location.search).get('t');
   try {
     state.settings = await getPublicSettings();
     if (state.settings) {
-      document.getElementById('bizName').textContent = state.settings.business_name;
-      document.getElementById('bizTagline').textContent = state.settings.tagline || '';
       document.title = `حجز موعد — ${state.settings.business_name}`;
+      const wa = state.settings.whatsapp_phone;
+      if (wa) el('waCard').href = waHref(wa);
+      if (state.settings.tagline) el('bizLine').textContent = state.settings.tagline;
     }
+    // الروابط تأتي من الإعدادات لتتغيّر من لوحة التحكم لا بإعادة نشر الموقع.
+    // البطاقة التي لا رابط لها تُخفى بدل أن تبقى زرًّا لا يفعل شيئًا.
+    for (const [key, url] of [['instagram', state.settings?.instagram_url],
+                              ['tiktok',    state.settings?.tiktok_url]]) {
+      const a = document.querySelector(`[data-link="${key}"]`);
+      if (!a) continue;
+      if (url) { a.href = url; a.target = '_blank'; a.rel = 'noopener'; }
+      else a.hidden = true;
+    }
+
     if (token) { renderTracking(token); return; }
 
-    let recent = null;
-    try { recent = JSON.parse(localStorage.getItem('lastBooking') || 'null'); } catch { /* ignore */ }
-    if (recent && recent.token) {
-      const bar = document.getElementById('recentBar');
-      if (bar) {
-        bar.innerHTML = `<a class="recent" href="?t=${encodeURIComponent(recent.token)}">
-            <span data-icon="clock" data-icon-size="16"></span>
-            <span>متابعة طلبك ${esc(recent.ref || '')}</span>
-            <span data-icon="chevron" data-icon-size="16" class="chev"></span>
-          </a>`;
-        bar.hidden = false;
-        hydrateIcons(bar);
-      }
-    }
-    if (state.settings && !state.settings.accepting_bookings) { renderClosed(); return; }
+    if (state.settings && !state.settings.accepting_bookings) { showClosed(); paint(); return; }
     state.services = await getServices();
-    renderStep1();
+    renderServices();
+    paint();
+    loadMonth(curY, curM);
   } catch (err) {
-    renderError(err);
+    showError(err);
+    paint();
   }
 })();
 
-/* ── screens ──────────────────────────────────────────────────────────── */
-
-function renderError(err) {
-  console.error(err);
-
-  // Only claim a connection problem when the browser actually failed to
-  // reach anything. A permissions or schema error is not the client's
-  // internet, and telling her to check it sends her chasing the wrong thing.
-  const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
-  const isNetwork = offline || err instanceof TypeError;
-
-  const detail = [err && err.code, err && (err.message || err.hint)]
-    .filter(Boolean).join(' — ');
-
-  view.innerHTML = `
-    <div class="card center">
-      <div class="badge lg" data-icon="close" style="margin:0 auto 12px"></div>
-      <h2>${isNetwork ? 'تعذّر الاتصال' : 'تعذّر تحميل الصفحة'}</h2>
-      <p class="hint">${isNetwork
-        ? 'تأكدي من الاتصال بالإنترنت ثم أعيدي المحاولة.'
-        : 'حدثت مشكلة في تحميل البيانات. أعيدي المحاولة، وإن تكررت أرسلي النص التالي:'}</p>
-      ${detail && !isNetwork
-        ? `<p class="hint" style="margin-top:10px;font-family:ui-monospace,monospace;
-                                 font-size:12px;opacity:.85;word-break:break-word;
-                                 direction:ltr;text-align:left">${esc(detail)}</p>` : ''}
-      <button class="btn btn-soft mt" onclick="location.reload()">إعادة المحاولة</button>
-    </div>`;
-  hydrateIcons(view);
-}
-
-function renderClosed() {
-  const wa = state.settings?.whatsapp_phone;
-  view.innerHTML = `
-    <div class="arch mt">
-      <div class="badge lg on-surface" data-icon="clock" style="margin:0 auto 12px"></div>
-      <h2>الحجز مغلق مؤقتًا</h2>
-      <p class="hint" style="margin-top:6px">${esc(state.settings?.closed_message || '')}</p>
-      ${wa ? `<a class="btn btn-primary mt" href="${waHref(wa)}" target="_blank" rel="noopener">
-                <span data-icon="whatsapp" data-icon-size="18"></span> تواصلي معنا</a>` : ''}
-    </div>`;
-  hydrateIcons(view);
-}
-
-function steps(n) {
-  return `<div class="steps" role="progressbar" aria-valuemin="1" aria-valuemax="3" aria-valuenow="${n}">
-    ${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}
-  </div>`;
-}
-
-/* Step 1 — what she wants done */
-function renderStep1() {
-  state.step = 1;
-  view.innerHTML = `
-    ${steps(1)}
-    <p class="eyebrow">الخطوة ١ من ٣</p>
-    <div class="sec-head"><h2>اختاري الخدمة</h2><span class="rule"></span></div>
-    <p class="hint" style="margin-bottom:12px">للحجز الجماعي زيدي العدد أمام كل خدمة.</p>
-    <div class="svc-list">
-      ${state.services.map((s) => `
-        <div class="svc ${state.counts[s.id] > 0 ? 'picked' : ''}" data-svc="${s.id}">
-          <span class="badge" data-icon="${esc(s.icon)}"></span>
-          <span class="meta">
-            <span class="nm">${esc(s.name)}</span>
-            <span class="dt">${fmtDuration(s.duration_min)}${s.description ? ` · ${esc(s.description)}` : ''}</span>
-          </span>
-          <span class="pr">${money(s.price)}</span>
-          <span class="stepper">
-            <button type="button" aria-label="إنقاص ${esc(s.name)}" data-dec="${s.id}">−</button>
-            <span class="val num" data-val="${s.id}">${state.counts[s.id] || 0}</span>
-            <button type="button" aria-label="زيادة ${esc(s.name)}" data-inc="${s.id}">+</button>
-          </span>
-        </div>`).join('')}
-    </div>
-    ${state.services.length ? '' : '<div class="empty"><p>لا توجد خدمات متاحة حاليًا.</p></div>'}
-    <div class="summary" id="bar"></div>`;
-  hydrateIcons(view);
-  bindSteppers();
-  renderBar();
-}
-
-function bindSteppers() {
-  view.querySelectorAll('[data-inc]').forEach((b) => b.onclick = () => bump(b.dataset.inc, +1));
-  view.querySelectorAll('[data-dec]').forEach((b) => b.onclick = () => bump(b.dataset.dec, -1));
-}
-
-function bump(id, delta) {
-  const next = Math.max(0, Math.min(12, (state.counts[id] || 0) + delta));
-  state.counts[id] = next;
-  view.querySelector(`[data-val="${id}"]`).textContent = next;
-  view.querySelector(`[data-svc="${id}"]`).classList.toggle('picked', next > 0);
-  renderBar();
-}
-
-function renderBar() {
-  const n = people();
-  document.getElementById('bar').innerHTML = `
-    <div class="row">
-      <span>${n ? `${n} ${n === 1 ? 'خدمة' : 'خدمات'} · ${fmtDuration(totalMins())}` : 'لم تختاري خدمة بعد'}</span>
-      <span class="tot num">${n ? riyal(totalPrice()) : ''}</span>
-    </div>
-    <button class="btn btn-primary" id="toStep2" ${n ? '' : 'disabled'}>
-      متابعة لاختيار الموعد ${icon('back', 18)}
-    </button>`;
-  const btn = document.getElementById('toStep2');
-  if (btn) btn.onclick = () => renderStep2();
-}
-
-/* Step 2 — when */
-async function renderStep2() {
-  state.step = 2;
-  view.innerHTML = `
-    ${steps(2)}
-    <p class="eyebrow">الخطوة ٢ من ٣</p>
-    <div class="sec-head"><h2>اختاري اليوم والوقت</h2><span class="rule"></span></div>
-    <div class="note" style="margin-bottom:14px">
-      <span data-icon="clock" data-icon-size="18"></span>
-      <span>مدة موعدك ${fmtDuration(totalMins())}. تظهر لك الأوقات التي تتّسع لها فقط.</span>
-    </div>
-    <div id="days" class="daystrip"><div class="skeleton" style="width:100%"></div></div>
-    <div id="slotArea" class="mt"></div>
-    <div class="summary">
-      <button class="btn btn-ghost" id="backTo1">${icon('chevron', 18)} رجوع للخدمات</button>
-    </div>`;
-  hydrateIcons(view);
-  document.getElementById('backTo1').onclick = () => renderStep1();
-
-  try {
-    state.days = await getDaysWithAvailability(today(), HORIZON, totalMins());
-    renderDays();
-  } catch (err) { renderError(err); }
-}
-
-function renderDays() {
-  const host = document.getElementById('days');
-  const open = state.days.filter((d) => d.slot_count > 0);
-  if (!open.length) {
-    host.outerHTML = `
-      <div class="empty">
-        <div class="badge lg" data-icon="calendar"></div>
-        <p>لا توجد أوقات متاحة خلال الأيام القادمة.</p>
-        ${state.settings?.whatsapp_phone
-          ? `<a class="btn btn-soft mt" href="${waHref(state.settings.whatsapp_phone)}" target="_blank" rel="noopener">تواصلي معنا مباشرة</a>`
-          : ''}
-      </div>`;
-    hydrateIcons(view);
-    return;
-  }
-  host.innerHTML = state.days.map((d) => {
-    const dt = parseDate(d.the_date);
-    const free = d.slot_count > 0;
-    return `<button type="button" class="day" data-day="${d.the_date}" ${free ? '' : 'disabled'}
-              aria-pressed="${state.date === d.the_date}">
-      <span class="dow">${DOW_SHORT[dt.getDay()]}</span>
-      <span class="dnum num">${dt.getDate()}</span>
-      <span class="free">${free ? (d.slot_count === 1 ? 'موعد واحد' : d.slot_count === 2 ? 'موعدان' : `${d.slot_count} مواعيد`) : 'مغلق'}</span>
-    </button>`;
-  }).join('');
-  host.querySelectorAll('[data-day]').forEach((b) => b.onclick = () => pickDay(b.dataset.day));
-  if (!state.date) pickDay(open[0].the_date);
-}
-
-async function pickDay(date) {
-  state.date = date; state.time = null;
-  document.querySelectorAll('[data-day]').forEach((b) =>
-    b.setAttribute('aria-pressed', String(b.dataset.day === date)));
-  const area = document.getElementById('slotArea');
-  area.innerHTML = '<div class="skeleton"></div>';
-  try {
-    state.slots = await getAvailableSlots(date, totalMins());
-    renderSlots();
-  } catch (err) { renderError(err); }
-}
-
-function renderSlots() {
-  const area = document.getElementById('slotArea');
-  if (!state.slots.length) {
-    area.innerHTML = '<div class="empty"><p>لا توجد أوقات متاحة في هذا اليوم.</p></div>';
-    return;
-  }
-  area.innerHTML = `
-    <div class="sec-head"><h3>${fmtDate(state.date)}</h3><span class="rule"></span>
-      <span class="count">${state.slots.length === 1 ? 'وقت واحد' : state.slots.length === 2 ? 'وقتان' : `${state.slots.length} أوقات`}</span></div>
-    <div class="slots">
-      ${state.slots.map((t) => `<button type="button" class="slot" data-slot="${t}"
-          aria-pressed="${state.time === t}">${fmtTime(t)}</button>`).join('')}
-    </div>`;
-  area.querySelectorAll('[data-slot]').forEach((b) => b.onclick = () => {
-    state.time = b.dataset.slot;
-    area.querySelectorAll('[data-slot]').forEach((x) =>
-      x.setAttribute('aria-pressed', String(x.dataset.slot === state.time)));
-    renderStep3();
-  });
-}
-
-/* Step 3 — who */
-function renderStep3() {
-  state.step = 3;
-  const names = picked();
-  view.innerHTML = `
-    ${steps(3)}
-    <p class="eyebrow">الخطوة ٣ من ٣</p>
-    <div class="sec-head"><h2>بياناتك</h2><span class="rule"></span></div>
-
-    <div class="card" style="margin-bottom:16px">
-      <div class="leader"><span class="k">الموعد</span><span class="d"></span>
-        <span class="v">${fmtDate(state.date, { short: true })} · ${fmtTime(state.time)}</span></div>
-      <div class="leader"><span class="k">المدة</span><span class="d"></span>
-        <span class="v">${fmtDuration(totalMins())}</span></div>
-      <div class="leader"><span class="k">الإجمالي</span><span class="d"></span>
-        <span class="v">${riyal(totalPrice())}</span></div>
-    </div>
-
-    <form id="form" novalidate>
-      <div class="field">
-        <label class="label" for="f-name">الاسم</label>
-        <input class="input" id="f-name" name="name" autocomplete="name" required
-               placeholder="الاسم الكامل">
-      </div>
-      <div class="field">
-        <label class="label" for="f-phone">رقم الجوال</label>
-        <input class="input ltr" id="f-phone" name="phone" type="tel" inputmode="numeric"
-               autocomplete="tel" required placeholder="05xxxxxxxx">
-        <p class="hint">سيصلك التأكيد على هذا الرقم.</p>
-      </div>
-      ${names.length > 1 ? `
-      <div class="field">
-        <label class="label">أسماء المجموعة <span class="opt">(اختياري)</span></label>
-        <div class="stack">
-          ${names.map((s, i) => `
-            <div style="display:flex;gap:8px;align-items:center">
-              <span class="badge" data-icon="${esc(s.icon)}" data-icon-size="17"
-                    style="width:36px;height:36px"></span>
-              <input class="input" name="person" placeholder="${esc(s.name)} — الاسم"
-                     aria-label="اسم الشخص ${i + 1}">
-            </div>`).join('')}
-        </div>
-      </div>` : ''}
-      <div class="field">
-        <label class="label" for="f-loc">الموقع <span class="opt">(اختياري)</span></label>
-        <input class="input" id="f-loc" name="loc" placeholder="مثال: حي النخيل، الرياض">
-      </div>
-      <div class="field">
-        <label class="label" for="f-map">رابط الموقع على الخريطة <span class="opt">(اختياري)</span></label>
-        <input class="input ltr" id="f-map" name="map" type="url" placeholder="maps.app.goo.gl/...">
-      </div>
-      <div class="field">
-        <label class="label" for="f-notes">ملاحظات <span class="opt">(اختياري)</span></label>
-        <textarea class="input" id="f-notes" name="notes"
-                  placeholder="نوع البشرة، الستايل المفضّل، أي تفاصيل تهمّنا..."></textarea>
-      </div>
-      <div id="formErr" role="alert"></div>
-    </form>
-
-    <div class="summary">
-      <div class="row">
-        <span>${fmtDate(state.date, { short: true })} · ${fmtTime(state.time)}</span>
-        <span class="tot num">${riyal(totalPrice())}</span>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-ghost" id="backTo2">${icon('chevron', 18)} رجوع</button>
-        <button class="btn btn-primary" id="submit">تأكيد الطلب</button>
-      </div>
-    </div>`;
-  hydrateIcons(view);
-
-  // Paste of a rich Google Maps share sometimes carries a whole paragraph.
-  document.getElementById('f-map').addEventListener('paste', (e) => {
-    const text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
-    const url = text.match(/https?:\/\/\S+/);
-    if (url) { e.preventDefault(); e.target.value = url[0]; }
-  });
-
-  document.getElementById('backTo2').onclick = () => renderStep2();
-  document.getElementById('submit').onclick = submit;
-  document.getElementById('form').onsubmit = (e) => { e.preventDefault(); submit(); };
-}
-
-async function submit() {
-  if (state.busy) return;
-  const errBox = document.getElementById('formErr');
-  const name  = document.getElementById('f-name').value.trim();
-  const phone = document.getElementById('f-phone').value.trim();
-
-  const fail = (msg, focus) => {
-    errBox.innerHTML = `<div class="note danger">${icon('close', 18)}<span>${esc(msg)}</span></div>`;
-    document.getElementById(focus)?.focus();
-  };
-
-  if (name.length < 2) return fail('يرجى كتابة الاسم.', 'f-name');
-  if (!normalisePhone(phone)) return fail('رقم الجوال غير صحيح. مثال: 0501234567', 'f-phone');
-  errBox.innerHTML = '';
-
-  const btn = document.getElementById('submit');
-  state.busy = true;
-  btn.disabled = true;
-  btn.textContent = 'جارٍ الإرسال...';
-
-  try {
-    const result = await createBooking({
-      name, phone,
-      date: state.date,
-      time: state.time,
-      serviceIds:  picked().map((s) => s.id),
-      personNames: Array.from(document.querySelectorAll('input[name="person"]')).map((i) => i.value.trim()),
-      locText: document.getElementById('f-loc').value.trim(),
-      locMap:  document.getElementById('f-map').value.trim(),
-      notes:   document.getElementById('f-notes').value.trim(),
-    });
-    remember(result);
-    renderSuccess(result);
-  } catch (err) {
-    state.busy = false;
-    btn.disabled = false;
-    btn.textContent = 'تأكيد الطلب';
-    // A slot taken while she was filling the form is the common case; send
-    // her back to a fresh list rather than leaving a dead button.
-    const msg = err?.message || 'تعذّر إرسال الطلب.';
-    fail(msg, 'f-name');
-    if (/لم يعد متاح/.test(msg)) {
-      toast('تم حجز هذا الوقت للتو، اختاري وقتًا آخر', 'danger');
-      state.time = null;
-      setTimeout(() => renderStep2(), 900);
-    }
-  }
-}
-
-/** Keep her booking links on this device so she can find them again. */
-function remember(result) {
-  try {
-    const key = 'eman_bookings';
-    const list = JSON.parse(localStorage.getItem(key) || '[]');
-    list.unshift({ ref: result.ref, token: result.public_token, date: result.the_date });
-    localStorage.setItem(key, JSON.stringify(list.slice(0, 20)));
-  } catch { /* private browsing — the link in the message is the real record */ }
-}
-
-function trackUrl(token) {
-  return `${location.origin}${location.pathname}?t=${token}`;
-}
-
-function renderSuccess(r) {
-  const url = trackUrl(r.public_token);
-
-  // Without this the address bar still points at the empty booking form, so
-  // refreshing loses the only route back to the request she just made.
-  try {
-    history.replaceState(null, '', url);
-    localStorage.setItem('lastBooking', JSON.stringify({ token: r.public_token, ref: r.ref }));
-  } catch { /* private mode: the on-screen link below still works */ }
-
-  view.innerHTML = `
-    <div class="arch mt">
-      <div class="badge lg on-surface" data-icon="check" data-icon-size="26" style="margin:0 auto 12px"></div>
-      <h2>وصلنا طلبك</h2>
-      <p class="hint" style="margin-top:6px">سيتم التواصل معك لتأكيد الموعد قريبًا.</p>
-    </div>
-
-    <div class="card ok-card mt">
-      <p class="eyebrow">رقم الطلب</p>
-      <p class="ref">${esc(r.ref)}</p>
-      <div class="leader" style="margin-top:12px">
-        <span class="k">الموعد المطلوب</span><span class="d"></span>
-        <span class="v">${fmtDate(r.the_date, { short: true })} · ${fmtTime(r.start_time)}</span>
-      </div>
-      <div class="leader"><span class="k">الإجمالي</span><span class="d"></span>
-        <span class="v">${riyal(r.price)}</span></div>
-    </div>
-
-    <div class="card mt">
-      <p class="label">رابط متابعة حجزك</p>
-      <div class="linkbox">
-        <input id="trackLink" value="${esc(url)}" readonly aria-label="رابط متابعة الحجز">
-        <button class="iconbtn" id="copyLink" aria-label="نسخ الرابط" data-icon="export"></button>
-      </div>
-      <p class="hint">احفظي الرابط لمتابعة حالة طلبك في أي وقت.</p>
-      <a class="btn btn-soft mt" href="?t=${encodeURIComponent(r.public_token)}">فتح صفحة المتابعة</a>
-    </div>`;
-  hydrateIcons(view);
-  document.getElementById('copyLink').onclick = async () => {
-    const input = document.getElementById('trackLink');
-    try {
-      await navigator.clipboard.writeText(input.value);
-      toast('تم نسخ الرابط', 'ok');
-    } catch {
-      input.select();
-      toast('انسخي الرابط يدويًا');
-    }
-  };
-}
-
-/* Tracking view — one booking, by its own token */
-async function renderTracking(token) {
-  view.innerHTML = '<div class="stack mt"><div class="skeleton"></div><div class="skeleton"></div></div>';
-  let b;
-  try { b = await getBookingByToken(token); }
-  catch (err) { return renderError(err); }
-
-  if (!b) {
-    view.innerHTML = `
-      <div class="card center mt">
-        <div class="badge lg" data-icon="search" style="margin:0 auto 12px"></div>
-        <h2>لم نجد هذا الحجز</h2>
-        <p class="hint">تأكدي من الرابط، أو احجزي موعدًا جديدًا.</p>
-        <a class="btn btn-soft mt" href="${location.pathname}">حجز موعد جديد</a>
-      </div>`;
-    hydrateIcons(view);
-    return;
-  }
-
-  const items = b.items || [];
-  const due = Number(b.price) - Number(b.deposit);
-  const tone = { pending: 'warn', confirmed: 'ok', done: 'ok' }[b.status] || 'danger';
-  const headline = {
-    pending:   'طلبك قيد المراجعة',
-    confirmed: 'موعدك مؤكّد',
-    done:      'تم إنجاز الموعد',
-    cancelled: 'تم إلغاء الحجز',
-    rejected:  'نعتذر، الموعد غير متاح',
-    no_show:   'لم يتم الحضور',
-  }[b.status] || statusLabel(b.status);
-
-  view.innerHTML = `
-    <div class="arch mt">
-      <div class="badge lg on-surface" data-icon="${b.status === 'pending' ? 'clock' : b.status === 'confirmed' || b.status === 'done' ? 'check' : 'close'}"
-           data-icon-size="26" style="margin:0 auto 12px"></div>
-      <h2>${esc(headline)}</h2>
-      <p class="hint" style="margin-top:6px">رقم الطلب <strong dir="ltr">${esc(b.ref)}</strong></p>
-    </div>
-
-    <div class="card mt">
-      <div class="track-row"><span class="k">الحالة</span>
-        <span class="pill ${esc(b.status)}">${esc(statusLabel(b.status))}</span></div>
-      <div class="track-row"><span class="k">التاريخ</span><span class="v">${fmtDate(b.the_date)}</span></div>
-      <div class="track-row"><span class="k">الوقت</span><span class="v">${fmtTime(b.start_time)}</span></div>
-      <div class="track-row"><span class="k">المدة</span><span class="v">${fmtDuration(b.duration_min)}</span></div>
-      ${b.loc_text ? `<div class="track-row"><span class="k">الموقع</span><span class="v">${esc(b.loc_text)}</span></div>` : ''}
-    </div>
-
-    <div class="card mt">
-      <p class="label">الخدمات</p>
-      ${items.map((i) => `
-        <div class="leader">
-          <span class="k">${esc(i.person_name || i.service_name)}</span>
-          <span class="d"></span>
-          <span class="v">${riyal(i.price)}</span>
-        </div>`).join('')}
-      <div class="leader" style="border-top:1px solid var(--line);margin-top:6px;padding-top:9px">
-        <span class="k">الإجمالي</span><span class="d"></span>
-        <span class="v">${riyal(b.price)}</span>
-      </div>
-      ${Number(b.deposit) > 0 ? `
-        <div class="leader"><span class="k">العربون المستلم</span><span class="d"></span>
-          <span class="v paid">${riyal(b.deposit)}</span></div>
-        <div class="leader"><span class="k">المتبقي</span><span class="d"></span>
-          <span class="v ${due > 0 ? 'due' : 'paid'}">${due > 0 ? riyal(due) : 'مسدّد بالكامل'}</span></div>` : ''}
-    </div>
-
-    ${b.cancel_requested && ['pending', 'confirmed'].includes(b.status) ? `
-      <div class="note warn mt">${icon('clock', 18)}
-        <span>وصلنا طلب الإلغاء وسيتم التواصل معك.</span></div>` : ''}
-
-    ${['pending', 'confirmed'].includes(b.status) && !b.cancel_requested ? `
-      <button class="btn btn-danger mt" id="askCancel">طلب إلغاء الحجز</button>` : ''}
-
-    ${state.settings?.whatsapp_phone ? `
-      <a class="btn btn-soft mt" href="${waHref(state.settings.whatsapp_phone,
-          `استفسار عن الحجز رقم ${b.ref}`)}" target="_blank" rel="noopener">
-        ${icon('whatsapp', 18)} تواصلي معنا</a>` : ''}
-
-    <p class="center mt"><a href="${location.pathname}" class="hint">حجز موعد جديد</a></p>`;
-  hydrateIcons(view);
-
-  const cancelBtn = document.getElementById('askCancel');
-  if (cancelBtn) cancelBtn.onclick = async () => {
-    cancelBtn.disabled = true;
-    try {
-      await requestCancel(token);
-      toast('تم إرسال طلب الإلغاء', 'ok');
-      renderTracking(token);
-    } catch {
-      cancelBtn.disabled = false;
-      toast('تعذّر إرسال الطلب', 'danger');
-    }
-  };
-}
+/* أدوات اختبار */
+window.__pick = (i, q) => { const s = state.services[i]; if (s) { state.counts[s.id] = q; onCartChange(); } };
+window.__sheet = () => openSheetPanel();
 </script>
 </body>
 </html>

@@ -7,7 +7,8 @@ const http = require('http');
 
 // ES modules will not load over file:// — the pages need a real origin.
 const MIME = { '.html':'text/html', '.js':'application/javascript', '.css':'text/css',
-               '.svg':'image/svg+xml', '.json':'application/json', '.webmanifest':'application/manifest+json' };
+               '.svg':'image/svg+xml', '.jpg':'image/jpeg', '.mp4':'video/mp4',
+               '.json':'application/json', '.webmanifest':'application/manifest+json' };
 function serve(root) {
   return new Promise(resolve => {
     const srv = http.createServer((req, res) => {
@@ -23,7 +24,11 @@ function serve(root) {
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.resolve(process.argv[2] || '/var/tmp/shots');
-const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CHROME = process.env.CHROME || [
+  '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  '/Applications/Chromium.app/Contents/MacOS/Chromium',
+].find(fs.existsSync);
 
 const SHOTS = [
   { name: 'client-1-services', url: 'index.html' },
@@ -37,13 +42,24 @@ const SHOTS = [
   { name: 'admin-5-detail',  url: 'admin.html', signedIn: true, act: async p => {
       await p.click('[data-open]'); await p.waitForTimeout(600); } },
   { name: 'admin-6-login',   url: 'admin.html' },
+  // الواجهة الجديدة: خمس شاشات بالسحب، لا خطوات 1-2-3.
   { name: 'client-2-when',     url: 'index.html', act: async p => {
-      await p.click('[data-inc="s1"]'); await p.click('#toStep2');
-      await p.waitForSelector('.slot'); } },
+      await p.evaluate(() => window.__pick(0, 1));
+      await p.waitForTimeout(500);
+      await p.click('#cartGo');
+      await p.waitForSelector('#week .day:not(.blank):not([disabled])');
+      await p.$eval('#week .day:not(.blank):not([disabled])', e => e.click());
+      await p.waitForSelector('#times button'); } },
   { name: 'client-3-details',  url: 'index.html', act: async p => {
-      await p.click('[data-inc="s1"]'); await p.click('[data-inc="s2"]');
-      await p.click('#toStep2'); await p.waitForSelector('.slot');
-      await p.click('.slot'); await p.waitForSelector('#f-name'); } },
+      await p.evaluate(() => { window.__pick(0, 2); window.__pick(1, 1); });
+      await p.waitForTimeout(600);
+      await p.click('#cartGo');
+      await p.waitForSelector('#week .day:not(.blank):not([disabled])');
+      await p.$eval('#week .day:not(.blank):not([disabled])', e => e.click());
+      await p.waitForSelector('#times button');
+      await p.$eval('#times button:not([disabled])', e => e.click());
+      await p.click('#toConfirm'); await p.waitForTimeout(900);
+      await p.click('#confirmBtn'); await p.waitForSelector('#nm'); } },
   { name: 'client-4-tracking', url: 'index.html?t=tok-3' },
 ];
 
@@ -53,7 +69,8 @@ const SHOTS = [
   const base = `http://127.0.0.1:${srv.address().port}/`;
   const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({
-    viewport: { width: 420, height: 900 }, deviceScaleFactor: 2, locale: 'ar-SA',
+    viewport: { width: 430, height: 700 }, deviceScaleFactor: 2, locale: 'ar-SA',
+    hasTouch: true, isMobile: true,
   });
 
   // Serve the mock in place of the real client bundle.
@@ -71,7 +88,8 @@ const SHOTS = [
     await page.waitForTimeout(1400);
     if (shot.act) { try { await shot.act(page); } catch (e) { errors.push(`[${shot.name}] ACT ${e.message}`); } }
     await page.waitForTimeout(700);
-    await page.screenshot({ path: path.join(OUT, shot.name + '.png'), fullPage: true });
+    await page.screenshot({ path: path.join(OUT, shot.name + '.png'),
+                            fullPage: !shot.name.startsWith('client-') });
     await page.close();
   }
   await browser.close();

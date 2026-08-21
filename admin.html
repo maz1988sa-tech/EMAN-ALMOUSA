@@ -150,6 +150,7 @@ import {
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
   today, addDays, parseDate, weekday, addMinutes, prettyPhone, telHref, waHref,
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
+  receiptUrl, depositDue, purgeOrphanReceipts,
 } from './assets/db.js';
 
 const view = document.getElementById('view');
@@ -256,6 +257,13 @@ async function reload(announce = false) {
     renderTabs();
     render();
     if (announce) toast('تم التحديث', 'ok');
+
+    // الرفع يسبق الحجز، فمن تركت الصفحة بعد الرفع تخلّف ملفًا بلا حجز.
+    // يُنظَّف مرة واحدة عند فتح اللوحة، بصمت: التنظيف ليس مهمة صاحبته.
+    if (!reload._purged) {
+      reload._purged = true;
+      purgeOrphanReceipts().catch(() => { /* ليس سببًا لتعطيل اللوحة */ });
+    }
   } catch (err) {
     console.error(err);
     view.innerHTML = `<div class="note danger mt">${icon('close', 18)}
@@ -773,6 +781,36 @@ function renderSettings() {
                value="${s.driver_phone ? esc(prettyPhone(s.driver_phone)) : ''}"></div>
     </div>
 
+    <div class="card mb">
+      <p class="label">العربون والتحويل</p>
+      <p class="hint" style="margin-top:0">صفحة الحجز تعرض هذه البيانات للعميلة، ولا يُسجَّل حجز
+        قبل رفع صورة التحويل.</p>
+      <div class="field"><label class="label" for="set-dep">نسبة العربون من الإجمالي (%)</label>
+        <input class="input ltr" id="set-dep" type="number" min="0" max="100" step="1" inputmode="numeric"
+               value="${Math.round(Number(s.deposit_rate ?? 0.25) * 100)}">
+        <p class="hint">مثال: 25 يعني حجزًا بـ 1,000 ريال عربونه 250.</p></div>
+      <div class="field"><label class="label" for="set-bank">اسم البنك</label>
+        <input class="input" id="set-bank" placeholder="مثال: مصرف الراجحي"
+               value="${esc(s.bank_name || '')}"></div>
+      <div class="field"><label class="label" for="set-iban">الآيبان</label>
+        <input class="input ltr" id="set-iban" dir="ltr" placeholder="SA00 0000 0000 0000 0000 0000"
+               value="${esc(s.iban || '')}"></div>
+      <div class="field" style="margin:0"><label class="label" for="set-benef">اسم المستفيد</label>
+        <input class="input" id="set-benef" placeholder="الاسم كما يظهر في الحساب"
+               value="${esc(s.beneficiary_name || '')}"></div>
+    </div>
+
+    <div class="card mb">
+      <p class="label">روابط التواصل الاجتماعي</p>
+      <p class="hint" style="margin-top:0">تظهر في أسفل صفحة العميلة. اتركيها فارغة لإخفاء الأيقونة.</p>
+      <div class="field"><label class="label" for="set-ig">إنستقرام</label>
+        <input class="input ltr" id="set-ig" dir="ltr" type="url" placeholder="https://instagram.com/..."
+               value="${esc(s.instagram_url || '')}"></div>
+      <div class="field" style="margin:0"><label class="label" for="set-tt">تيك توك</label>
+        <input class="input ltr" id="set-tt" dir="ltr" type="url" placeholder="https://tiktok.com/@..."
+               value="${esc(s.tiktok_url || '')}"></div>
+    </div>
+
     <div id="set-err"></div>
     <button class="btn btn-primary mb" id="saveSettings">حفظ الإعدادات</button>
 
@@ -794,6 +832,24 @@ function renderSettings() {
     const drv = document.getElementById('set-drv').value.trim();
     if (wa && !normalisePhone(wa))  { err.innerHTML = note('رقم واتساب غير صحيح.'); return; }
     if (drv && !normalisePhone(drv)) { err.innerHTML = note('رقم السائق غير صحيح.'); return; }
+
+    const depPct = Number(document.getElementById('set-dep').value);
+    if (!(depPct >= 0 && depPct <= 100)) {
+      err.innerHTML = note('نسبة العربون يجب أن تكون بين 0 و 100.'); return;
+    }
+    // الآيبان يُخزَّن بلا مسافات: SA ثم 22 رقمًا. القاعدة ترفض غير ذلك،
+    // فالأفضل أن تعرف صاحبته السبب هنا لا في رسالة خطأ من الخادم.
+    const ibanRaw = document.getElementById('set-iban').value.replace(/\s+/g, '').toUpperCase();
+    if (ibanRaw && !/^SA[0-9]{22}$/.test(ibanRaw)) {
+      err.innerHTML = note('الآيبان غير صحيح — يبدأ بـ SA ويليه 22 رقمًا.'); return;
+    }
+    const ig = document.getElementById('set-ig').value.trim();
+    const tt = document.getElementById('set-tt').value.trim();
+    for (const [v, name] of [[ig, 'إنستقرام'], [tt, 'تيك توك']]) {
+      if (v && !/^https:\/\/\S+$/i.test(v)) {
+        err.innerHTML = note(`رابط ${name} يجب أن يبدأ بـ https://`); return;
+      }
+    }
     err.innerHTML = '';
     try {
       await admin.saveSettings({
@@ -806,6 +862,12 @@ function renderSettings() {
         max_advance_days: Number(document.getElementById('set-adv').value),
         whatsapp_phone: wa ? normalisePhone(wa) : null,
         driver_phone: drv ? normalisePhone(drv) : null,
+        deposit_rate: depPct / 100,
+        bank_name: document.getElementById('set-bank').value.trim() || null,
+        iban: ibanRaw || null,
+        beneficiary_name: document.getElementById('set-benef').value.trim() || null,
+        instagram_url: ig || null,
+        tiktok_url: tt || null,
       });
       toast('حُفظت الإعدادات', 'ok'); reload();
     } catch (e) { err.innerHTML = note(e.message); }
@@ -901,6 +963,23 @@ async function openBooking(id) {
         <span class="v ${due > 0 ? 'due' : 'paid'}">${due > 0 ? riyal(due) : 'مسدّد'}</span></div>
     </div>
 
+    ${b.receipt_path ? `
+    <div class="card mb">
+      <p class="label">إيصال العربون</p>
+      <p class="hint" style="margin-top:0">أرسلته العميلة قبل تثبيت الحجز. المطلوب حسب الإعدادات:
+        <b>${riyal(depositDue(b.price, S.settings?.deposit_rate))}</b></p>
+      <div id="d-receipt" style="margin-top:8px">
+        <button class="btn btn-ghost" id="d-showrec">عرض صورة الإيصال</button>
+      </div>
+      ${Number(b.deposit) <= 0 ? `
+        <button class="btn btn-primary" id="d-gotdep" style="margin-top:10px">
+          تأكيد استلام ${riyal(depositDue(b.price, S.settings?.deposit_rate))}</button>` : ''}
+    </div>` : `
+    <div class="card mb">
+      <p class="label">إيصال العربون</p>
+      <p class="hint" style="margin:0">لا يوجد إيصال مرفق — حجز مُدخَل من اللوحة أو من نسخة قديمة من الصفحة.</p>
+    </div>`}
+
     <div class="card mb">
       <p class="label">تحديث المبالغ</p>
       <div class="split">
@@ -926,7 +1005,7 @@ async function openBooking(id) {
           <span class="s">التفاصيل ورابط المتابعة</span></span></a>
         <a class="choice" href="${waHref(b.client_phone, templates.reminder(b))}" target="_blank" rel="noopener">
           ${icon('bell', 18)}<span class="grow"><span class="t">تذكير قبل الموعد</span></span></a>
-        ${due > 0 ? `<a class="choice" href="${waHref(b.client_phone, templates.deposit(b))}" target="_blank" rel="noopener">
+        ${due > 0 ? `<a class="choice" href="${waHref(b.client_phone, templates.deposit(b, S.settings?.deposit_rate))}" target="_blank" rel="noopener">
           ${icon('riyal', 18)}<span class="grow"><span class="t">طلب العربون</span></span></a>` : ''}
         <a class="choice" href="${waHref(b.client_phone, templates.thanks(b))}" target="_blank" rel="noopener">
           ${icon('heart', 18)}<span class="grow"><span class="t">شكر بعد المناسبة</span></span></a>
@@ -934,6 +1013,32 @@ async function openBooking(id) {
     </div>
 
     <div id="d-actions"></div>`);
+
+  // الرابط موقّع ويُطلب عند الضغط، فلا يُسرَّب مسار الملف في صفحة مفتوحة.
+  const showRec = document.getElementById('d-showrec');
+  if (showRec) showRec.onclick = async () => {
+    showRec.disabled = true; showRec.textContent = 'جارٍ الفتح…';
+    try {
+      const url = await receiptUrl(b.receipt_path);
+      const host = document.getElementById('d-receipt');
+      host.innerHTML = b.receipt_path.endsWith('.pdf')
+        ? `<a class="btn btn-soft" href="${url}" target="_blank" rel="noopener">فتح ملف الإيصال</a>`
+        : `<a href="${url}" target="_blank" rel="noopener">
+             <img src="${url}" alt="إيصال التحويل" style="width:100%;border-radius:var(--r);
+                  border:1px solid var(--line);display:block"></a>`;
+    } catch {
+      showRec.disabled = false; showRec.textContent = 'تعذّر فتح الإيصال — إعادة المحاولة';
+    }
+  };
+
+  const gotDep = document.getElementById('d-gotdep');
+  if (gotDep) gotDep.onclick = async () => {
+    gotDep.disabled = true;
+    try {
+      await admin.update(b.id, { deposit: depositDue(b.price, S.settings?.deposit_rate) });
+      closeSheet(sheet); toast('سُجّل استلام العربون', 'ok'); reload();
+    } catch (e) { gotDep.disabled = false; toast(e.message, 'danger'); }
+  };
 
   // Quick deposit buttons work off whatever total is currently in the field.
   sheet.querySelectorAll('[data-dep]').forEach((btn) => btn.onclick = () => {
