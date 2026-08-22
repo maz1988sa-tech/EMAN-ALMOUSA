@@ -278,3 +278,10 @@ $function$;
 
 revoke execute on function public.create_booking(text, text, date, time, uuid[], text[], text, text, text, text) from public;
 grant  execute on function public.create_booking(text, text, date, time, uuid[], text[], text, text, text, text) to anon, authenticated;
+
+-- ملحق: أعمدة التشخيص ومطابقة الآيبان، والحذف الجماعي من اللوحة.
+-- (طُبِّقت على القاعدة الحيّة بهجرات منفصلة؛ مجموعة هنا لمن يبني من الصفر.)
+alter table public.receipt_scans
+  add column if not exists error    text,
+  add column if not exists iban_hit boolean not null default false,
+  add column if not exists raw_text text;

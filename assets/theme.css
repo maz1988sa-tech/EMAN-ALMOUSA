@@ -38,6 +38,9 @@
   --tap: 44px;           /* minimum comfortable touch target */
   --page: 560px;
 }
+/* السمة hidden تُهزَم أمام أي display صريح — تُثبَّت هنا لكل الصفحة. */
+[hidden]{display:none!important}
+
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -401,3 +404,10 @@ select.input {
 }
 .recent:hover,.recent:focus-visible{border-color:var(--blush-deep)}
 .recent .chev{margin-inline-start:auto;opacity:.5;transform:scaleX(-1)}
+
+/* منطقة الحذف: تُميَّز بصريًا لئلا تُضغط بالخطأ وهي بين أزرار عادية. */
+.danger-zone{border-color:var(--danger-line);background:var(--danger-bg)}
+.danger-zone .label{color:var(--danger)}
+.danger-zone .hint b{color:var(--danger)}
+
+.pg-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px}

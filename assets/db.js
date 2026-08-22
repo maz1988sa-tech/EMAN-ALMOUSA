@@ -384,6 +384,26 @@ export const admin = {
     if (error) throw error;
     return data;
   },
+  /* الحذف الجماعي: معاينة تعدّ ولا تمسّ شيئًا، ثم تنفيذ يحذف ويرجع
+     مسارات الإيصالات لتُمحى من التخزين — القاعدة تمنع حذفها مباشرة. */
+  async purgePreview(from = null, to = null) {
+    const { data, error } = await sb.rpc('admin_purge_bookings',
+      { p_from: from, p_to: to, p_dry: true });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    return { count: Number(row?.affected || 0), receipts: row?.receipts || [] };
+  },
+  async purgeBookings(from = null, to = null) {
+    const { data, error } = await sb.rpc('admin_purge_bookings',
+      { p_from: from, p_to: to, p_dry: false });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    const files = (row?.receipts || []).filter(Boolean);
+    // فشل محو الملفات لا يُبطل الحذف — الحجوزات ذهبت، والملفات تصير يتيمة
+    // ويلتقطها تنظيف اليتامى في الفتح التالي.
+    if (files.length) { try { await sb.storage.from('receipts').remove(files); } catch { /* لاحقًا */ } }
+    return { count: Number(row?.affected || 0), files: files.length };
+  },
   async deleteService(id) {
     // Soft delete: existing bookings snapshot their own service details, but
     // keeping the row means historical reports still resolve the reference.

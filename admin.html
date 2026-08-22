@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#A9675C">
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/fonts.css?v=18">
-<link rel="stylesheet" href="assets/theme.css?v=18">
+<link rel="stylesheet" href="assets/fonts.css?v=19">
+<link rel="stylesheet" href="assets/theme.css?v=19">
 <style>
   .appbar { position: sticky; top: 0; z-index: 40; background: var(--surface);
             border-bottom: 1px solid var(--line); }
@@ -155,14 +155,14 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=18';
+import { icon, hydrateIcons } from './assets/icons.js?v=19';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
   today, addDays, parseDate, weekday, addMinutes, prettyPhone, telHref, waHref,
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
   receiptUrl, purgeOrphanReceipts,
-} from './assets/db.js?v=18';
+} from './assets/db.js?v=19';
 
 const view = document.getElementById('view');
 const sheet = document.getElementById('sheet');
@@ -884,6 +884,38 @@ function renderSettings() {
     <div class="btn-row">
       <button class="btn btn-soft" id="btnBackup">${icon('wallet', 18)} نسخة JSON</button>
       <button class="btn btn-ghost" id="btnCsv">${icon('export', 18)} تصدير CSV</button>
+    </div>
+
+    <div class="sec-head" style="margin-top:26px"><h2>حذف الحجوزات</h2><span class="rule"></span></div>
+    <div class="card danger-zone">
+      <p class="hint" style="margin-top:0">الحذف نهائي ولا يمكن التراجع عنه. يمسح الحجز
+        وعناصره وسجلّه وصورة إيصاله. <b>خذي نسخة احتياطية أولًا.</b></p>
+
+      <div class="field"><label class="label" for="pg-scope">النطاق</label>
+        <select class="input" id="pg-scope">
+          <option value="week">أسبوع قادم — من اليوم إلى بعد 7 أيام</option>
+          <option value="month">شهر قادم — من اليوم إلى بعد 30 يومًا</option>
+          <option value="future">كل القادم — من اليوم فصاعدًا</option>
+          <option value="past">كل الماضي — قبل اليوم</option>
+          <option value="range">نطاق تاريخي محدّد…</option>
+          <option value="all">كل الحجوزات</option>
+        </select></div>
+
+      <div id="pg-dates" class="pg-dates" hidden>
+        <div class="field" style="margin:0"><label class="label" for="pg-from">من</label>
+          <input class="input ltr" id="pg-from" type="date"></div>
+        <div class="field" style="margin:0"><label class="label" for="pg-to">إلى</label>
+          <input class="input ltr" id="pg-to" type="date"></div>
+      </div>
+
+      <p class="hint" id="pg-count" style="margin:10px 0 0">…</p>
+      <div id="pg-confirm" hidden style="margin-top:10px">
+        <label class="label" for="pg-word">لتأكيد حذف كل الحجوزات اكتبي كلمة <b>حذف</b></label>
+        <input class="input" id="pg-word" placeholder="حذف" autocomplete="off">
+      </div>
+      <div id="pg-err"></div>
+      <button class="btn btn-danger" id="pg-go" style="margin-top:12px" disabled>
+        ${icon('trash', 18)} حذف الحجوزات في النطاق</button>
     </div>`;
 
   document.getElementById('copyPub').onclick = async () => {
@@ -936,6 +968,81 @@ function renderSettings() {
       toast('حُفظت الإعدادات', 'ok'); reload();
     } catch (e) { err.innerHTML = note(e.message); }
   };
+
+  /* ── حذف الحجوزات ────────────────────────────────────────────────
+     خطوتان دائمًا: تُعرض العدّة قبل الحذف، ثم يُطلب تأكيد. و«كل الحجوزات»
+     يلزمها كتابة كلمة — لأن ضغطة واحدة لا يصحّ أن تمسح عمل موسم. */
+  {
+    const g = (id) => document.getElementById(id);
+    const scope = g('pg-scope'), dates = g('pg-dates'), cnt = g('pg-count');
+    const conf = g('pg-confirm'), word = g('pg-word'), go = g('pg-go'), perr = g('pg-err');
+    let last = { from: null, to: null, count: 0 };
+
+    const shift = (n) => addDays(today(), n);
+    function bounds() {
+      switch (scope.value) {
+        case 'week':   return [today(), shift(7)];
+        case 'month':  return [today(), shift(30)];
+        case 'future': return [today(), null];
+        case 'past':   return [null, shift(-1)];
+        case 'range':  return [g('pg-from').value || null, g('pg-to').value || null];
+        default:       return [null, null];
+      }
+    }
+
+    let seq = 0;
+    async function preview() {
+      const mine = ++seq;
+      const [from, to] = bounds();
+      dates.hidden = scope.value !== 'range';
+      conf.hidden = scope.value !== 'all';
+      perr.innerHTML = '';
+      if (scope.value === 'range' && (!from || !to)) {
+        cnt.textContent = 'اختاري تاريخي البداية والنهاية.';
+        go.disabled = true; return;
+      }
+      cnt.textContent = 'جارٍ العدّ…'; go.disabled = true;
+      try {
+        const r = await admin.purgePreview(from, to);
+        if (mine !== seq) return;                      // ردّ قديم وصل متأخّرًا
+        last = { from, to, count: r.count };
+        cnt.textContent = r.count === 0
+          ? 'لا حجوزات في هذا النطاق.'
+          : `سيُحذف ${r.count === 1 ? 'حجز واحد' : r.count === 2 ? 'حجزان'
+                : r.count <= 10 ? `${r.count} حجوزات` : `${r.count} حجزًا`}` +
+            (r.receipts.length ? ` ومعها ${r.receipts.length} صورة إيصال.` : '.');
+        gate();
+      } catch (e) {
+        if (mine !== seq) return;
+        cnt.textContent = '—'; perr.innerHTML = note(e.message); go.disabled = true;
+      }
+    }
+    function gate() {
+      go.disabled = last.count === 0
+        || (scope.value === 'all' && word.value.trim() !== 'حذف');
+    }
+
+    scope.onchange = preview;
+    g('pg-from').onchange = preview;
+    g('pg-to').onchange = preview;
+    word.oninput = gate;
+    preview();
+
+    go.onclick = async () => {
+      if (go.disabled) return;
+      const label = scope.options[scope.selectedIndex].text.split('—')[0].trim();
+      if (!confirm(`سيُحذف ${last.count} حجزًا (${label}) نهائيًا بلا تراجع.\nمتأكدة؟`)) return;
+      go.disabled = true; perr.innerHTML = '';
+      const was = go.innerHTML; go.textContent = 'جارٍ الحذف…';
+      try {
+        const r = await admin.purgeBookings(last.from, last.to);
+        toast(`حُذف ${r.count} حجزًا`, 'ok');
+        word.value = ''; reload();
+      } catch (e) {
+        perr.innerHTML = note(e.message); go.innerHTML = was; gate();
+      }
+    };
+  }
 
   document.getElementById('btnBackup').onclick = async () => {
     const data = await admin.exportAll();
