@@ -102,7 +102,9 @@ button{border:0;background:none;cursor:pointer}
 .svc-body h2{margin:14px 0 0;font-size:34px;font-weight:200;letter-spacing:-.02em;line-height:1.28}
 .svc-body .sub{direction:ltr;margin:6px 0 0;font:500 9.5px/1 var(--serif);letter-spacing:.4em;color:var(--blush)}
 .svc-hr{height:1px;background:var(--line-d);margin:15px 0 13px}
-.meta{display:flex;align-items:center;gap:13px;font-size:11px;color:rgba(255,255,255,.74)}
+.meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 13px;font-size:11px;color:rgba(255,255,255,.74)}
+/* وعد الخصم بلون الهوية لا بلون المواصفات: هو ميزة لا رقم. */
+.meta .meta-off{font-size:12px;font-weight:500;color:var(--blush)}
 .meta b{font:500 17px/1 var(--serif);direction:ltr;color:#fff}
 .meta .dot{width:3px;height:3px;border-radius:3px;background:rgba(255,255,255,.4)}
 .svc-body p{margin:12px 0 0;font-size:11.5px;font-weight:200;line-height:2;color:rgba(255,255,255,.68);max-width:305px}

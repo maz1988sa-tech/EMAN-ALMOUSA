@@ -10,10 +10,10 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <!-- ?v= يطابق VERSION في sw.js: بدونه يخدم متصفح العميلة نسخة CSS
      القديمة من ذاكرته بعد كل نشر، فتظهر الواجهة كما كانت. -->
-<link rel="stylesheet" href="assets/fonts.css?v=15">
+<link rel="stylesheet" href="assets/fonts.css?v=16">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=15">
+<link rel="stylesheet" href="assets/client-theme.css?v=16">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -389,7 +389,7 @@ import {
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositDue, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
-} from './assets/db.js?v=15';
+} from './assets/db.js?v=16';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -565,7 +565,11 @@ function renderServices() {
             <h2>${esc(s.name)}</h2>
             <p class="sub">${esc((s.name.match(/عروس|عرائس/) ? 'BRIDAL LOOK' : s.name.match(/سهر/) ? 'EVENING LOOK' : 'SIGNATURE LOOK'))}</p>
             <div class="svc-hr"></div>
-            <div class="meta"><span>المدة <b>${esc(fmtDuration(Number(s.duration_min)))}</b></span><i class="dot"></i><span>القيمة <b>${money(s.price)}</b><i class="rs"></i></span></div>
+            <div class="meta"><span>المدة <b>${esc(fmtDuration(Number(s.duration_min)))}</b></span><i class="dot"></i><span>القيمة <b>${money(s.price)}</b><i class="rs"></i></span>${
+              /* الوسم يظهر فقط على خدمة عليها خصم مجموعات وبمبلغ مضبوط في الإعدادات،
+                 فلو صفّرته زوجتك اختفى الوعد بدل أن يبقى وعدًا لا يتحقّق. */
+              s.group_discount && Number(state.settings?.group_discount_amount || 0) > 0
+                ? '<span class="meta-off">— يُطبَّق خصم المجموعات</span>' : ''}</div>
             <p>${esc(s.description || 'إطلالة متوازنة بتفاصيل مصمّمة لمناسبتك.')}</p>
             <div class="pick pick-wrap">
               <button class="pick-main" type="button" data-pick="${esc(s.id)}">
@@ -1321,6 +1325,7 @@ window.__pick = (i, q) => { const s = state.services[i]; if (s) { state.counts[s
 window.__sheet = () => openSheetPanel();
 window.__money = () => ({ sub: subtotal(), disc: groupDiscount(),
                           total: totalPrice(), people: discountPeople() });
+window.__setDisc = (v) => { state.settings.group_discount_amount = v; renderServices(); renderCart(); };
 </script>
 </body>
 </html>
