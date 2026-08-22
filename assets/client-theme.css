@@ -124,7 +124,7 @@ button{border:0;background:none;cursor:pointer}
   height:100%;padding:0;border:0;background:none;color:inherit;font:inherit}
 .pick-main:active{opacity:.7}
 .pick-main[disabled]{opacity:1}
-.pick-qty{flex:0 0 auto;direction:ltr;display:grid;grid-template-columns:32px 34px 32px;align-items:center;
+.pick-qty{flex:0 0 auto;display:grid;grid-template-columns:32px 34px 32px;align-items:center;
   height:44px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.12);
   border:0 solid rgba(255,255,255,.34);
   width:0;opacity:0;transform:scale(.72);pointer-events:none;
@@ -144,7 +144,7 @@ button{border:0;background:none;cursor:pointer}
    يُقرأ من نظرة — هو سبب نزول الرقم فوقه. */
 /* الوسم <small> داخل الشريط مضبوط على 10px بانتقائية أعلى، فيُطابَق هنا
    بنفس العمق وإلا بقي السطر صغيرًا. */
-.svc-cart .cart-off{display:block;margin-top:5px;font-size:12.5px;font-weight:500;
+.svc-cart .cart-off{display:block;margin-top:5px;font-size:14px;font-weight:500;
   color:var(--blush);transform-origin:right center}
 .svc-cart .cart-off[hidden]{display:none}
 /* يظهر بقفزة تلفت العين ثم يستقرّ — يُشغَّل عند أول ظهور وعند تغيّر المبلغ. */
