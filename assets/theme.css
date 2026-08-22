@@ -431,3 +431,46 @@ select.input {
 .danger-zone .hint b{color:var(--danger)}
 
 .pg-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* شرائح التصفية: صفّ أفقي ينزلق، والمختارة تُملأ بلون الهوية. */
+.chiprow{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chiprow::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
+  border:1px solid var(--line-2);background:rgba(255,255,255,.5);color:var(--ink-2);
+  font-family:var(--ft);font-size:13px;font-weight:500;padding:7px 13px;min-height:36px;
+  border-radius:var(--r-pill);cursor:pointer;transition:background .18s,border-color .18s,color .18s}
+.chip:hover{border-color:var(--rose)}
+.chip i{font-style:normal;font-size:11px;font-variant-numeric:tabular-nums;
+  color:var(--ink-3);background:var(--surface-2);border-radius:var(--r-pill);padding:1px 6px}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.chip[aria-pressed="true"] i{background:rgba(255,255,255,.16);color:var(--cream)}
+
+/* التقويم الشهري: شبكة سبعة أعمدة، ونقطة تحت كل يوم فيه حجز. */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .dow{text-align:center;font-size:10.5px;color:var(--ink-3);padding-bottom:4px}
+.cal .cd{position:relative;min-height:46px;border:1px solid var(--line);
+  background:rgba(255,255,255,.5);border-radius:var(--r-sm);cursor:pointer;
+  font-family:var(--fd);font-size:14.5px;font-variant-numeric:tabular-nums;color:var(--ink);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  transition:border-color .18s,background .18s}
+.cal .cd.blank{border:0;background:none;cursor:default}
+.cal .cd:hover:not(.blank){border-color:var(--rose)}
+.cal .cd[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.cal .cd.today{border-color:var(--rose)}
+.cal .dots{display:flex;gap:2px;height:5px}
+.cal .dots i{width:5px;height:5px;border-radius:50%;display:block}
+.cal .d-pending{background:var(--warn)}
+.cal .d-confirmed{background:var(--rose)}
+.cal .d-done{background:var(--ok)}
+.calhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.calhead b{font-family:var(--fd);font-size:16px;font-weight:500}
+
+/* تقرير الدخل: شريط لكل خدمة بطول نسبته من الأعلى. */
+.bars{display:grid;gap:9px}
+.bar .t{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px}
+.bar .t b{font-family:var(--fd);font-weight:500;font-variant-numeric:tabular-nums}
+.bar .track{height:7px;background:var(--surface-2);border-radius:var(--r-pill);overflow:hidden}
+.bar .fill{height:100%;background:var(--rose);border-radius:var(--r-pill)}
+.bar.muted .fill{background:var(--line-2)}
+.bar.ok .fill{background:var(--ok)}
+.bar.bad .fill{background:var(--danger)}

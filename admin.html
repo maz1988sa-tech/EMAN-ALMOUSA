@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#2b1c16">
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/fonts.css?v=20">
-<link rel="stylesheet" href="assets/theme.css?v=20">
+<link rel="stylesheet" href="assets/fonts.css?v=21">
+<link rel="stylesheet" href="assets/theme.css?v=21">
 <style>
   .appbar { position: sticky; top: 0; z-index: 40; background: var(--surface);
             border-bottom: 1px solid var(--line); }
@@ -158,14 +158,14 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=20';
+import { icon, hydrateIcons } from './assets/icons.js?v=21';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
   today, addDays, parseDate, weekday, addMinutes, prettyPhone, telHref, waHref,
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
   receiptUrl, purgeOrphanReceipts,
-} from './assets/db.js?v=20';
+} from './assets/db.js?v=21';
 
 const view = document.getElementById('view');
 const sheet = document.getElementById('sheet');
@@ -173,8 +173,26 @@ const sheet = document.getElementById('sheet');
 const TABS = [
   { id: 'home',     label: 'الرئيسية',  icon: 'home' },
   { id: 'agenda',   label: 'الأجندة',   icon: 'calendar' },
+  { id: 'browse',   label: 'الحجوزات',  icon: 'search' },
   { id: 'dues',     label: 'المستحقات', icon: 'riyal' },
   { id: 'settings', label: 'الإعدادات', icon: 'gear' },
+];
+
+/* شرائح تبويب الحجوزات. «القادمة» أوّلها لأنها ما تُفتح اللوحة لأجله،
+   و«الكل» آخرها لأنها بحث لا تصفّح. */
+const STATUS_FILTERS = [
+  { id: 'upcoming',  label: 'القادمة',  test: (b) => b.the_date >= today() && ['pending','confirmed'].includes(b.status) },
+  { id: 'pending',   label: 'معلّقة',   test: (b) => b.status === 'pending' },
+  { id: 'confirmed', label: 'مؤكّدة',   test: (b) => b.status === 'confirmed' },
+  { id: 'done',      label: 'مكتملة',   test: (b) => b.status === 'done' },
+  { id: 'off',       label: 'ملغاة',    test: (b) => ['cancelled','rejected','no_show'].includes(b.status) },
+  { id: 'all',       label: 'الكل',     test: () => true },
+];
+const PERIOD_FILTERS = [
+  { id: 'all',   label: 'كل الفترات' },
+  { id: 'week',  label: 'هذا الأسبوع' },
+  { id: 'month', label: 'هذا الشهر' },
+  { id: 'range', label: 'نطاق تاريخ' },
 ];
 
 // أوقات العمل والخدمات والإعدادات صارت أقسامًا تحت تبويب واحد: كلها
@@ -194,8 +212,47 @@ const S = {
   rules: [],
   overrides: [],
   agendaDate: today(),
+  calMonth: today().slice(0, 7),
+  q: '',
+  fStatus: 'upcoming',
+  fPeriod: 'all',
+  fFrom: '',
+  fTo: '',
   unsubscribe: null,
 };
+
+/* ── تصفية الحجوزات ─────────────────────────────────────────────────────
+   التصفية تجري على ما هو محمَّل في الذاكرة لا بطلب جديد: النافذة المحمَّلة
+   ١٢٠ يومًا للخلف وما بعدها، والنتيجة فورية بلا انتظار شبكة. */
+function periodBounds() {
+  const t = today();
+  if (S.fPeriod === 'week')  return [t, addDays(t, 7)];
+  if (S.fPeriod === 'month') return [t.slice(0, 8) + '01', addDays(t.slice(0, 8) + '01', 31)];
+  if (S.fPeriod === 'range') return [S.fFrom || null, S.fTo || null];
+  return [null, null];
+}
+function matchesQuery(b, q) {
+  if (!q) return true;
+  const digits = q.replace(/[^0-9٠-٩۰-۹]/g, '');
+  if (digits.length >= 3) {
+    const norm = normalisePhone(digits) || digits;
+    return String(b.client_phone || '').includes(norm.replace(/^966/, ''))
+        || String(b.client_phone || '').includes(norm)
+        || String(b.ref || '').includes(digits);
+  }
+  const needle = q.trim().toLowerCase();
+  return String(b.client_name || '').toLowerCase().includes(needle)
+      || String(b.ref || '').toLowerCase().includes(needle);
+}
+function filtered() {
+  const f = STATUS_FILTERS.find((x) => x.id === S.fStatus) || STATUS_FILTERS[0];
+  const [from, to] = periodBounds();
+  return S.bookings
+    .filter((b) => f.test(b))
+    .filter((b) => (!from || b.the_date >= from) && (!to || b.the_date <= to))
+    .filter((b) => matchesQuery(b, S.q))
+    .sort((a, b) => (b.the_date + b.start_time).localeCompare(a.the_date + a.start_time));
+}
 
 const pendingCount = () => S.bookings.filter((b) => b.status === 'pending').length;
 
@@ -274,7 +331,7 @@ async function reload(announce = false) {
       admin.rules(), admin.overrides(addDays(today(), -30), addDays(today(), 180)),
     ]);
     Object.assign(S, { settings, services, bookings, rules, overrides });
-    if (settings?.business_name) document.getElementById('bizName').textContent = settings.business_name;
+    if (settings?.business_name) document.getElementById('bizName').alt = settings.business_name;
     renderTabs();
     render();
     if (announce) toast('تم التحديث', 'ok');
@@ -308,7 +365,7 @@ function renderTabs() {
 }
 
 function render() {
-  ({ home: renderHome, agenda: renderAgenda, dues: renderDues,
+  ({ home: renderHome, agenda: renderAgenda, browse: renderBrowse, dues: renderDues,
      settings: renderSettingsTab }[S.tab] || renderHome)();
   hydrateIcons(view);
 }
@@ -423,12 +480,68 @@ function renderHome() {
       <div class="sec-head"><h2>القادمة</h2><span class="rule"></span></div>
       <div class="list">${upcoming.map((b) => bookingCard(b)).join('')}</div>` : ''}
 
+    ${incomeReport(month)}
+
     <button class="btn btn-ghost mt" id="btnNew">${icon('plus', 18)} إضافة حجز يدويًا</button>`;
 
   bindCards();
   const share = document.getElementById('shareDay');
   if (share) share.onclick = () => shareDayPlan(t);
   document.getElementById('btnNew').onclick = () => openNewBooking();
+}
+
+/* تقرير الدخل: المتوقّع هو ما حُجز، والفعلي ما اكتمل، والضائع ما أُلغي.
+   الثلاثة معًا لأن رقمًا واحدًا لا يقول إن كان الشهر جيّدًا أم مزدحمًا بالإلغاء. */
+function incomeReport(month) {
+  const inMonth = S.bookings.filter((b) => b.the_date.startsWith(month));
+  const live = inMonth.filter((b) => !['cancelled', 'rejected', 'no_show'].includes(b.status));
+  const doneL = inMonth.filter((b) => b.status === 'done');
+  const lost = inMonth.filter((b) => ['cancelled', 'rejected', 'no_show'].includes(b.status));
+
+  const sum = (a) => a.reduce((n, b) => n + Number(b.price), 0);
+  const expected = sum(live), actual = sum(doneL), missed = sum(lost);
+  const top = Math.max(expected, missed, 1);
+
+  // إيراد كل خدمة يُجمع من العناصر لا من الحجز، فالحجز الجماعي يوزَّع صحيحًا.
+  const per = new Map();
+  live.forEach((b) => (b.booking_items || []).forEach((i) => {
+    const k = i.service_name || 'أخرى';
+    const cur = per.get(k) || { n: 0, v: 0 };
+    per.set(k, { n: cur.n + 1, v: cur.v + Number(i.price || 0) });
+  }));
+  const svcRows = [...per.entries()].sort((a, b) => b[1].v - a[1].v);
+  const svcTop = Math.max(...svcRows.map(([, v]) => v.v), 1);
+
+  const bar = (cls, label, val, note) => `
+    <div class="bar ${cls}">
+      <div class="t"><span>${esc(label)}${note ? ` <span class="muted">${esc(note)}</span>` : ''}</span>
+        <b>${money(val)}</b></div>
+      <div class="track"><div class="fill" style="width:${Math.round((val / top) * 100)}%"></div></div>
+    </div>`;
+
+  return `
+    <div class="sec-head"><h2>دخل هذا الشهر</h2><span class="rule"></span>
+      <span class="count">${int(inMonth.length)} حجز</span></div>
+    <div class="card mb">
+      <div class="bars">
+        ${bar('', 'المتوقّع', expected, `${live.length} حجز قائم`)}
+        ${bar('ok', 'الفعلي المكتمل', actual, `${doneL.length} حجز`)}
+        ${missed > 0 ? bar('bad', 'ضاع بالإلغاء', missed, `${lost.length} حجز`) : ''}
+      </div>
+    </div>
+
+    ${svcRows.length ? `
+      <div class="card">
+        <p class="label">الدخل حسب الخدمة</p>
+        <div class="bars">
+          ${svcRows.map(([name, v]) => `
+            <div class="bar muted">
+              <div class="t"><span>${esc(name)} <span class="muted">×${int(v.n)}</span></span>
+                <b>${money(v.v)}</b></div>
+              <div class="track"><div class="fill" style="width:${Math.round((v.v / svcTop) * 100)}%"></div></div>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}`;
 }
 
 function shareDayPlan(date) {
@@ -471,7 +584,8 @@ function renderAgenda() {
 
   view.innerHTML = `
     <div class="sec-head" style="margin-top:18px"><h2>الأجندة</h2><span class="rule"></span></div>
-    <div class="split mb">
+    ${monthGrid()}
+    <div class="split mb" style="margin-top:14px">
       <div class="field" style="margin:0">
         <label class="label" for="agDate">اليوم</label>
         <input class="input" type="date" id="agDate" value="${d}">
@@ -485,10 +599,163 @@ function renderAgenda() {
       : '<div class="empty"><div class="badge lg" data-icon="calendar"></div><p>لا مواعيد في هذا اليوم.</p></div>'}`;
 
   bindCards();
-  document.getElementById('agDate').onchange = (e) => { S.agendaDate = e.target.value; render(); };
-  document.getElementById('agToday').onclick = () => { S.agendaDate = today(); render(); };
+  bindMonthGrid();
+  document.getElementById('agDate').onchange = (e) => {
+    S.agendaDate = e.target.value; S.calMonth = e.target.value.slice(0, 7); render();
+  };
+  document.getElementById('agToday').onclick = () => {
+    S.agendaDate = today(); S.calMonth = today().slice(0, 7); render();
+  };
   const sh = document.getElementById('agShare');
   if (sh) sh.onclick = () => shareDayPlan(d);
+}
+
+/* ── الحجوزات: بحث وتصفية وتصدير ─────────────────────────────────────── */
+
+function renderBrowse() {
+  const rows = filtered();
+  const counts = Object.fromEntries(STATUS_FILTERS.map((f) => {
+    const [from, to] = periodBounds();
+    return [f.id, S.bookings.filter((b) => f.test(b))
+      .filter((b) => (!from || b.the_date >= from) && (!to || b.the_date <= to))
+      .filter((b) => matchesQuery(b, S.q)).length];
+  }));
+  const sum = rows.reduce((n, b) => n + Number(b.price), 0);
+
+  view.innerHTML = `
+    <div class="sec-head" style="margin-top:18px"><h2>الحجوزات</h2><span class="rule"></span>
+      <span class="count">${int(rows.length)}</span></div>
+
+    <div class="field"><label class="label sr-only" for="q">بحث</label>
+      <input class="input" id="q" type="search" value="${esc(S.q)}"
+             placeholder="ابحثي بالاسم أو رقم الجوال أو رقم الطلب"></div>
+
+    <div class="chiprow mb">
+      ${STATUS_FILTERS.map((f) => `
+        <button class="chip" data-st="${f.id}" ${f.id === S.fStatus ? 'aria-pressed="true"' : ''}>
+          ${esc(f.label)}<i>${int(counts[f.id])}</i></button>`).join('')}
+    </div>
+    <div class="chiprow mb">
+      ${PERIOD_FILTERS.map((f) => `
+        <button class="chip" data-pr="${f.id}" ${f.id === S.fPeriod ? 'aria-pressed="true"' : ''}>
+          ${esc(f.label)}</button>`).join('')}
+    </div>
+    ${S.fPeriod === 'range' ? `
+      <div class="split mb">
+        <div class="field" style="margin:0"><label class="label" for="f-from">من</label>
+          <input class="input ltr" id="f-from" type="date" value="${esc(S.fFrom)}"></div>
+        <div class="field" style="margin:0"><label class="label" for="f-to">إلى</label>
+          <input class="input ltr" id="f-to" type="date" value="${esc(S.fTo)}"></div>
+      </div>` : ''}
+
+    ${rows.length ? `
+      <div class="card mb">
+        <div class="leader"><span class="k">إجمالي المعروض</span><span class="d"></span>
+          <span class="v">${riyal(sum)}</span></div>
+      </div>
+      <div class="list">${rows.map((b) => bookingCard(b)).join('')}</div>
+      <button class="btn btn-ghost mt" id="bxCsv">${icon('export', 18)} تصدير المعروض (${int(rows.length)})</button>`
+    : `<div class="empty"><div class="badge lg" data-icon="search"></div>
+        <p>${S.q ? 'لا نتائج لهذا البحث.' : 'لا حجوزات في هذه الشريحة.'}</p></div>`}`;
+
+  bindCards();
+  const q = document.getElementById('q');
+  q.oninput = () => {
+    S.q = q.value;
+    // إعادة الرسم تُفقد التركيز، فيُعاد ومعه موضع المؤشّر — الكتابة لا تنقطع.
+    const pos = q.selectionStart;
+    render(); hydrateIcons(view);
+    const nq = document.getElementById('q');
+    nq.focus(); try { nq.setSelectionRange(pos, pos); } catch { /* search input */ }
+  };
+  view.querySelectorAll('[data-st]').forEach((b) => b.onclick = () => {
+    S.fStatus = b.dataset.st; render(); hydrateIcons(view);
+  });
+  view.querySelectorAll('[data-pr]').forEach((b) => b.onclick = () => {
+    S.fPeriod = b.dataset.pr; render(); hydrateIcons(view);
+  });
+  const ff = document.getElementById('f-from'), ft = document.getElementById('f-to');
+  if (ff) ff.onchange = () => { S.fFrom = ff.value; render(); hydrateIcons(view); };
+  if (ft) ft.onchange = () => { S.fTo = ft.value; render(); hydrateIcons(view); };
+  const csv = document.getElementById('bxCsv');
+  if (csv) csv.onclick = () => exportRows(rows);
+}
+
+/* التصدير يأخذ ما هو معروض لا كل ما هو محمَّل: ما تراه الفنانة هو ما ينزل. */
+function exportRows(rows) {
+  if (!rows.length) return toast('لا شيء لتصديره');
+  download(`حجوزات-${today()}.csv`, toCSV(rows, [
+    { label: 'رقم الطلب', get: (b) => b.ref },
+    { label: 'الاسم',     get: (b) => b.client_name },
+    { label: 'الجوال',    get: (b) => prettyPhone(b.client_phone) },
+    { label: 'التاريخ',   get: (b) => b.the_date },
+    { label: 'الوقت',     get: (b) => fmtTime(b.start_time) },
+    { label: 'المدة',     get: (b) => b.duration_min },
+    { label: 'الحالة',    get: (b) => statusLabel(b.status) },
+    { label: 'الإجمالي',  get: (b) => b.price },
+    { label: 'المدفوع',   get: (b) => b.deposit },
+    { label: 'المتبقي',   get: (b) => Number(b.price) - Number(b.deposit) },
+    { label: 'الخدمات',   get: (b) => (b.booking_items || []).map((i) => i.service_name).join(' + ') },
+    { label: 'الموقع',    get: (b) => b.loc_text || '' },
+  ]));
+  toast('نُزّل الملف', 'ok');
+}
+
+/* التقويم الشهري: نقطة لكل حالة تحت رقم اليوم، فتُقرأ حالة الشهر كلّه
+   من نظرة واحدة قبل فتح أي يوم. */
+function monthGrid() {
+  const [y, m] = S.calMonth.split('-').map(Number);
+  const first = new Date(y, m - 1, 1);
+  const lead = first.getDay();                       // الأحد أوّل الأسبوع
+  const days = new Date(y, m, 0).getDate();
+  const t = today();
+
+  const byDay = {};
+  S.bookings.filter((b) => b.the_date.startsWith(S.calMonth)).forEach((b) => {
+    const k = b.the_date;
+    (byDay[k] ||= new Set()).add(
+      ['cancelled', 'rejected', 'no_show'].includes(b.status) ? 'off' : b.status);
+  });
+
+  const cells = [];
+  for (let i = 0; i < lead; i += 1) cells.push('<span class="cd blank"></span>');
+  for (let dn = 1; dn <= days; dn += 1) {
+    const iso = `${S.calMonth}-${String(dn).padStart(2, '0')}`;
+    const kinds = [...(byDay[iso] || [])].filter((k) => k !== 'off').slice(0, 3);
+    cells.push(`<button class="cd${iso === t ? ' today' : ''}" data-cd="${iso}"
+      ${iso === S.agendaDate ? 'aria-pressed="true"' : ''}>
+      <span>${int(dn)}</span>
+      <span class="dots">${kinds.map((k) => `<i class="d-${esc(k)}"></i>`).join('')}</span>
+    </button>`);
+  }
+
+  const shift = (n) => {
+    const d = new Date(y, m - 1 + n, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو',
+                  'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const label = `${MONTHS[m - 1]} ${y}`;
+
+  return `
+    <div class="calhead">
+      <!-- في RTL يقع «السابق» يمينًا، فيشير سهمُه يمينًا نحو الخارج لا يسارًا. -->
+      <button class="iconbtn" data-mv="${shift(-1)}" aria-label="الشهر السابق" data-icon="chevron"></button>
+      <b>${esc(label)}</b>
+      <button class="iconbtn" data-mv="${shift(1)}" aria-label="الشهر التالي" data-icon="back"></button>
+    </div>
+    <div class="cal">
+      ${WEEKDAYS.map((w) => `<span class="dow">${esc(w.short)}</span>`).join('')}
+      ${cells.join('')}
+    </div>`;
+}
+function bindMonthGrid() {
+  view.querySelectorAll('[data-mv]').forEach((b) => b.onclick = () => {
+    S.calMonth = b.dataset.mv; render(); hydrateIcons(view);
+  });
+  view.querySelectorAll('[data-cd]').forEach((b) => b.onclick = () => {
+    S.agendaDate = b.dataset.cd; render(); hydrateIcons(view);
+  });
 }
 
 /* ── Outstanding balances ─────────────────────────────────────────────── */
@@ -1179,6 +1446,8 @@ async function openBooking(id) {
       <button class="btn btn-soft" id="d-money" style="margin-top:10px">حفظ المبالغ</button>
     </div>
 
+    <button class="btn btn-ghost mb" id="d-edit">${icon('edit', 18)} تعديل بيانات الحجز</button>
+
     <div class="card mb">
       <p class="label">رسائل واتساب</p>
       <div class="list">
@@ -1230,6 +1499,8 @@ async function openBooking(id) {
     document.getElementById('d-dep').value = v;
   });
 
+  document.getElementById('d-edit').onclick = () => openEdit(b);
+
   document.getElementById('d-money').onclick = async () => {
     const price = Number(document.getElementById('d-price').value);
     const dep   = Number(document.getElementById('d-dep').value);
@@ -1270,8 +1541,18 @@ function renderActions(b) {
       act('اعتذار', 'btn-danger', () => confirmThen('الاعتذار عن هذا الطلب؟', () => set('rejected', 'تم الاعتذار'))),
     );
   } else if (b.status === 'confirmed') {
+    const finish = async () => {
+      const rest = Number(b.price) - Number(b.deposit);
+      if (rest > 0) {
+        // الحجز يُقفل بمتبقٍّ معلّق لو لم يُسأل، فيبقى في المستحقات بلا سبب.
+        const paid = confirm(`تبقّى ${money(rest)} ر.س على ${b.client_name}.\n`
+          + 'هل استلمتِ المبلغ كاملًا؟\n\nنعم = يُقفل مسدّدًا · إلغاء = يبقى في المستحقات');
+        if (paid) await admin.update(b.id, { deposit: Number(b.price) });
+      }
+      await set('done', rest > 0 ? 'تم وضعه مكتملًا' : 'تم وضعه مكتملًا');
+    };
     row.append(
-      act('تم الإنجاز', 'btn-primary', () => set('done', 'تم وضعه مكتملًا'), 'check'),
+      act('تم الإنجاز', 'btn-primary', finish, 'check'),
       act('لم تحضر', 'btn-ghost', () => confirmThen('تسجيل عدم الحضور؟', () => set('no_show', 'سُجّل عدم الحضور'))),
     );
   } else {
@@ -1285,6 +1566,127 @@ function renderActions(b) {
     host.append(cancel);
   }
   hydrateIcons(host);
+}
+
+/* تعديل الحجز: كل ما يمكن أن يتغيّر بعد الاتفاق — الموعد أولها. إعادة
+   الجدولة كانت مستحيلة من اللوحة، فكان لا بدّ من فتح قاعدة البيانات لتغيير
+   ساعة. الخدمات تُستبدل دفعة واحدة فيُعاد حساب السعر والمدة من القاعدة. */
+function openEdit(b) {
+  const svcs = S.services.filter((s) => s.active);
+  const items = b.booking_items || [];
+  const counts = {};
+  items.forEach((i) => { if (i.service_id) counts[i.service_id] = (counts[i.service_id] || 0) + 1; });
+  /* عناصر تشير إلى خدمة حُذفت أو أُخفيت لا تظهر في العدّادات. لو استُبدلت
+     القائمة عندئذٍ ضاعت خدمات الحجز، فتُترك كما هي ما لم تُلمس العدّادات. */
+  const mapped = Object.values(counts).reduce((n, v) => n + v, 0);
+  const orphan = items.length - mapped;
+  const origKey = Object.entries(counts).sort().map(([k, v]) => `${k}:${v}`).join(',');
+
+  showSheet(`تعديل — ${b.client_name}`, `
+    <div class="field"><label class="label" for="e-name">اسم العميلة</label>
+      <input class="input" id="e-name" value="${esc(b.client_name)}"></div>
+    <div class="field"><label class="label" for="e-phone">رقم الجوال</label>
+      <input class="input ltr" id="e-phone" type="tel" inputmode="numeric"
+             value="${esc(prettyPhone(b.client_phone).replace(/\s/g, ''))}"></div>
+
+    <div class="split mb">
+      <div class="field" style="margin:0"><label class="label" for="e-date">التاريخ</label>
+        <input class="input ltr" type="date" id="e-date" value="${esc(b.the_date)}"></div>
+      <div class="field" style="margin:0"><label class="label" for="e-time">الوقت</label>
+        <input class="input ltr" type="time" id="e-time" value="${esc(String(b.start_time).slice(0, 5))}"></div>
+    </div>
+
+    <div class="card mb">
+      <p class="label">الخدمات والأشخاص</p>
+      <div class="list">
+        ${svcs.map((sv) => `
+          <div class="rowline">
+            <span class="grow"><span class="t">${esc(sv.name)}</span>
+              <span class="s">${money(sv.price)} ر.س · ${int(sv.duration_min)}د</span></span>
+            <span class="stepper">
+              <button type="button" data-ed="-" data-sid="${esc(sv.id)}" aria-label="إنقاص">−</button>
+              <span class="val" data-ev="${esc(sv.id)}">${int(counts[sv.id] || 0)}</span>
+              <button type="button" data-ed="+" data-sid="${esc(sv.id)}" aria-label="زيادة">+</button>
+            </span>
+          </div>`).join('')}
+      </div>
+      <div class="leader" style="margin-top:8px"><span class="k">الإجمالي بعد التعديل</span>
+        <span class="d"></span><span class="v" id="e-sum">—</span></div>
+      <p class="hint" id="e-dur">—</p>
+      ${orphan > 0 ? `<div class="note warn" style="margin-top:10px">${icon('clock', 18)}
+        <span>${int(orphan)} من خدمات هذا الحجز لم تعد في قائمة الخدمات النشطة، فلا تظهر أعلاه.
+        لن تُمسّ ما لم تغيّري العدّادات.</span></div>` : ''}
+    </div>
+
+    <div class="field"><label class="label" for="e-loc">الحي والمدينة</label>
+      <input class="input" id="e-loc" value="${esc(b.loc_text || '')}"></div>
+    <div class="field"><label class="label" for="e-map">رابط خرائط قوقل <span class="opt">(اختياري)</span></label>
+      <input class="input ltr" id="e-map" dir="ltr" placeholder="https://maps.app.goo.gl/..."
+             value="${esc(b.loc_map || '')}"></div>
+    <div class="field"><label class="label" for="e-notes">ملاحظات العميلة</label>
+      <textarea class="input" id="e-notes" rows="2">${esc(b.client_notes || '')}</textarea></div>
+
+    <div id="e-err"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="e-back">رجوع</button>
+      <button class="btn btn-primary" id="e-save">حفظ التعديل</button>
+    </div>`);
+
+  const g = (id) => document.getElementById(id);
+  const readCounts = () => Object.fromEntries(svcs.map((sv) =>
+    [sv.id, Number(document.querySelector(`[data-ev="${CSS.escape(sv.id)}"]`).textContent) || 0]));
+  function recompute() {
+    const c = readCounts();
+    let total = 0, dur = 0, n = 0;
+    svcs.forEach((sv) => { total += sv.price * c[sv.id]; dur += sv.duration_min * c[sv.id]; n += c[sv.id]; });
+    g('e-sum').textContent = n ? `${money(total)} ر.س` : '—';
+    g('e-dur').textContent = n ? `${int(n)} خدمة · ${fmtDuration(Math.max(dur, 15))}` : 'اختاري خدمة واحدة على الأقل.';
+  }
+  document.querySelectorAll('[data-ed]').forEach((btn) => btn.onclick = () => {
+    const cell = document.querySelector(`[data-ev="${CSS.escape(btn.dataset.sid)}"]`);
+    const next = Math.max(0, Math.min(12, Number(cell.textContent) + (btn.dataset.ed === '+' ? 1 : -1)));
+    cell.textContent = String(next); recompute();
+  });
+  recompute();
+  g('e-back').onclick = () => openBooking(b.id);
+
+  g('e-save').onclick = async () => {
+    const err = g('e-err');
+    const name = g('e-name').value.trim();
+    const phone = normalisePhone(g('e-phone').value);
+    const date = g('e-date').value, time = g('e-time').value;
+    const c = readCounts();
+    const chosen = svcs.flatMap((sv) => Array.from({ length: c[sv.id] }, () => sv));
+    const map = g('e-map').value.trim();
+    if (name.length < 2) { err.innerHTML = note('اكتبي اسم العميلة.'); return; }
+    if (!phone) { err.innerHTML = note('رقم الجوال غير صحيح.'); return; }
+    if (!date || !time) { err.innerHTML = note('اختاري التاريخ والوقت.'); return; }
+    if (!chosen.length && !orphan) { err.innerHTML = note('اختاري خدمة واحدة على الأقل.'); return; }
+    if (map && !/^https:\/\/\S+$/i.test(map)) { err.innerHTML = note('رابط الخريطة يجب أن يبدأ بـ https://'); return; }
+    err.innerHTML = '';
+    const btn = g('e-save'); btn.disabled = true; btn.textContent = 'جارٍ الحفظ…';
+    const nowKey = Object.entries(c).filter(([, v]) => v > 0).sort().map(([k, v]) => `${k}:${v}`).join(',');
+    try {
+      // لا تُستبدل العناصر إلا إذا تغيّرت فعلًا: تصحيح رقم جوال لا يصحّ أن
+      // يعيد بناء خدمات الحجز.
+      if (nowKey !== origKey) await admin.replaceItems(b.id, chosen.map((sv) => ({
+        service_id: sv.id, service_name: sv.name, service_icon: sv.icon,
+        price: sv.price, duration_min: sv.duration_min,
+        group_discount: sv.group_discount, deposit_amount: sv.deposit_amount || 0,
+      })));
+      await admin.update(b.id, {
+        client_name: name, client_phone: phone, the_date: date,
+        start_time: time.length === 5 ? `${time}:00` : time,
+        loc_text: g('e-loc').value.trim() || null,
+        loc_map: map || null,
+        client_notes: g('e-notes').value.trim() || null,
+      });
+      await admin.log(b.id, 'edited');
+      closeSheet(sheet); toast('حُفظ التعديل', 'ok'); reload();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'حفظ التعديل'; err.innerHTML = note(e.message);
+    }
+  };
 }
 
 function confirmThen(question, fn) {
@@ -1316,46 +1718,95 @@ function openNewBooking() {
       <input class="input" id="n-name" placeholder="الاسم الكامل"></div>
     <div class="field"><label class="label" for="n-phone">رقم الجوال</label>
       <input class="input ltr" id="n-phone" type="tel" inputmode="numeric" placeholder="05xxxxxxxx"></div>
-    <div class="field"><label class="label" for="n-svc">الخدمة</label>
-      <select class="input" id="n-svc">
-        ${svcs.map((s) => `<option value="${s.id}">${esc(s.name)} — ${money(s.price)} ر.س · ${s.duration_min}د</option>`).join('')}
-      </select></div>
+    <div class="card mb">
+      <p class="label">الخدمات والأشخاص</p>
+      <div class="list">
+        ${svcs.map((sv) => `
+          <div class="rowline">
+            <span class="grow"><span class="t">${esc(sv.name)}</span>
+              <span class="s">${money(sv.price)} ر.س · ${int(sv.duration_min)}د</span></span>
+            <span class="stepper">
+              <button type="button" data-nd="-" data-sid="${esc(sv.id)}" aria-label="إنقاص">−</button>
+              <span class="val" data-nv="${esc(sv.id)}">0</span>
+              <button type="button" data-nd="+" data-sid="${esc(sv.id)}" aria-label="زيادة">+</button>
+            </span>
+          </div>`).join('')}
+      </div>
+      <div class="leader" style="margin-top:8px"><span class="k">الإجمالي</span>
+        <span class="d"></span><span class="v" id="n-sum">—</span></div>
+      <p class="hint" id="n-dur">اختاري خدمة واحدة على الأقل.</p>
+    </div>
     <div class="split mb">
       <div class="field" style="margin:0"><label class="label" for="n-date">التاريخ</label>
         <input class="input" type="date" id="n-date" value="${today()}"></div>
       <div class="field" style="margin:0"><label class="label" for="n-time">الوقت</label>
         <input class="input" type="time" id="n-time" value="16:00"></div>
     </div>
-    <div class="field"><label class="label" for="n-loc">الموقع <span class="opt">(اختياري)</span></label>
+    <div class="field"><label class="label" for="n-loc">الحي والمدينة <span class="opt">(اختياري)</span></label>
       <input class="input" id="n-loc"></div>
+    <div class="field"><label class="label" for="n-map">رابط خرائط قوقل <span class="opt">(اختياري)</span></label>
+      <input class="input ltr" id="n-map" dir="ltr" placeholder="https://maps.app.goo.gl/...">
+      <p class="hint">بدونه لا يمكن إرسال الموقع للسائق.</p></div>
     <div class="note mb">${icon('clock', 18)}
       <span>الحجز اليدوي يُحفظ مؤكّدًا مباشرة ولا يمرّ بفحص الأوقات المتاحة — راجعي الأجندة بعده.</span></div>
     <div id="n-err"></div>
     <button class="btn btn-primary" id="n-save">حفظ الحجز</button>`);
 
-  document.getElementById('n-save').onclick = async () => {
-    const err = document.getElementById('n-err');
-    const name = document.getElementById('n-name').value.trim();
-    const phone = normalisePhone(document.getElementById('n-phone').value);
-    const svc = svcs.find((s) => s.id === document.getElementById('n-svc').value);
-    const date = document.getElementById('n-date').value;
-    const time = document.getElementById('n-time').value;
+  const gn = (id) => document.getElementById(id);
+  const nCounts = () => Object.fromEntries(svcs.map((sv) =>
+    [sv.id, Number(document.querySelector(`[data-nv="${CSS.escape(sv.id)}"]`).textContent) || 0]));
+  function nRecompute() {
+    const c = nCounts();
+    let total = 0, dur = 0, n = 0;
+    svcs.forEach((sv) => { total += sv.price * c[sv.id]; dur += sv.duration_min * c[sv.id]; n += c[sv.id]; });
+    gn('n-sum').textContent = n ? `${money(total)} ر.س` : '—';
+    const t = gn('n-time').value;
+    const ends = (n && t) ? ` · ينتهي ${fmtTime(addMinutes(t, dur).time)}` : '';
+    gn('n-dur').textContent = n
+      ? `${int(n)} شخص · ${fmtDuration(Math.max(dur, 15))}${ends}`
+      : 'اختاري خدمة واحدة على الأقل.';
+  }
+  document.querySelectorAll('[data-nd]').forEach((btn) => btn.onclick = () => {
+    const cell = document.querySelector(`[data-nv="${CSS.escape(btn.dataset.sid)}"]`);
+    const next = Math.max(0, Math.min(12, Number(cell.textContent) + (btn.dataset.nd === '+' ? 1 : -1)));
+    cell.textContent = String(next); nRecompute();
+  });
+  gn('n-time').onchange = nRecompute;
+  nRecompute();
+
+  gn('n-save').onclick = async () => {
+    const err = gn('n-err');
+    const name = gn('n-name').value.trim();
+    const phone = normalisePhone(gn('n-phone').value);
+    const date = gn('n-date').value;
+    const time = gn('n-time').value;
+    const c = nCounts();
+    const chosen = svcs.flatMap((sv) => Array.from({ length: c[sv.id] }, () => sv));
+    const map = gn('n-map').value.trim();
     if (name.length < 2) { err.innerHTML = note('اكتبي اسم العميلة.'); return; }
     if (!phone) { err.innerHTML = note('رقم الجوال غير صحيح.'); return; }
     if (!date || !time) { err.innerHTML = note('اختاري التاريخ والوقت.'); return; }
+    if (!chosen.length) { err.innerHTML = note('اختاري خدمة واحدة على الأقل.'); return; }
+    if (map && !/^https:\/\/\S+$/i.test(map)) { err.innerHTML = note('رابط الخريطة يجب أن يبدأ بـ https://'); return; }
     err.innerHTML = '';
+    const btn = gn('n-save'); btn.disabled = true; btn.textContent = 'جارٍ الحفظ…';
     try {
+      const dur = chosen.reduce((n2, sv) => n2 + sv.duration_min, 0);
       await admin.createBooking({
         client_name: name, client_phone: phone, the_date: date, start_time: time,
-        duration_min: svc.duration_min, status: 'confirmed',
-        loc_text: document.getElementById('n-loc').value.trim() || null,
+        duration_min: Math.max(dur, 15), status: 'confirmed',
+        loc_text: gn('n-loc').value.trim() || null,
+        loc_map: map || null,
         confirmed_at: new Date().toISOString(),
-      }, [{
-        service_id: svc.id, service_name: svc.name, service_icon: svc.icon,
-        price: svc.price, duration_min: svc.duration_min,
-      }]);
+      }, chosen.map((sv) => ({
+        service_id: sv.id, service_name: sv.name, service_icon: sv.icon,
+        price: sv.price, duration_min: sv.duration_min,
+        group_discount: sv.group_discount, deposit_amount: sv.deposit_amount || 0,
+      })));
       closeSheet(sheet); toast('حُفظ الحجز', 'ok'); reload();
-    } catch (e) { err.innerHTML = note(e.message); }
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'حفظ الحجز'; err.innerHTML = note(e.message);
+    }
   };
 }
 </script>
