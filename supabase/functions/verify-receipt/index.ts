@@ -1,25 +1,30 @@
 // فحص إيصال العربون: يقرأ الصورة المرفوعة ويسجّل ما رآه فيها.
 //
-// الدالة لا تحكم بقبول الحجز ولا ترفضه — تسجّل الأرقام والكلمات التي
-// عثرت عليها في جدول receipt_scans، وقرار القبول يبقى في create_booking
-// حيث يُحسب العربون الحقيقي من قاعدة البيانات. المتصفّح لا يُصدَّق في
-// مبلغ ولا في نتيجة، فلا يستطيع أن يمرّر صورة بادّعاء أنها فُحصت.
+// الحكم ليس هنا بل في create_booking، حيث يُحسب العربون من قاعدة البيانات.
+// المتصفّح لا يُصدَّق في مبلغ ولا في نتيجة فحص.
+//
+// ملاحظة على اللغة: المفتاح المجاني لدى مزوّد القراءة لا يقبل العربية
+// (يردّ E201 على language=ara مهما كان المحرّك). فالقراءة تجري بالمحرّك ٣
+// الذي يكتشف النصّ تلقائيًا ويقرأ الأرقام اللاتينية بدقّة — وهي ما يهمّنا.
+// وعوّضنا غياب العربية بدليل لا لغة له: الآيبان. إيصال تحويل حقيقي إلى
+// حساب صاحبة العمل يحمل آيبانها، وهو أقوى دلالة من كلمة «تحويل».
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const PATH_RE = /^pending\/[0-9a-f-]{36}\.(jpg|jpeg|png|webp|heic|pdf)$/;
-const MAX_BYTES = 1024 * 1024;             // حدّ مزوّد القراءة المجاني
+const MAX_BYTES = 1024 * 1024;
+const IBAN_TAIL = 8;          // آخر ثماني خانات تكفي للتمييز ولا تتأثّر بخطأ قراءة في الصدر
 
-/* كلمات تدلّ على أن الصورة إيصال تحويل لا لقطة عشوائية. */
+/* كلمات تدلّ على إيصال. العربية تُبقى لأن المحرّك ٣ يلتقط بعضها،
+   واللاتينية هي الأوثق ما دامت العربية غير مدعومة. */
 const KEYWORDS = [
-  'تحويل', 'حواله', 'حوالة', 'حولت', 'حوّلت', 'محول', 'تحويلات',
-  'مبلغ', 'المبلغ', 'ريال', 'سعودي', 'عمليه', 'عملية', 'ناجحه', 'ناجحة',
-  'مدفوع', 'سداد', 'دفع', 'ايصال', 'إيصال', 'اشعار', 'إشعار',
-  'المستفيد', 'مستفيد', 'حساب', 'ايبان', 'آيبان', 'مرجع', 'رقم العملية',
-  'بنك', 'الراجحي', 'الاهلي', 'الأهلي', 'الانماء', 'الإنماء', 'البلاد',
-  'الجزيره', 'الجزيرة', 'ساب', 'العربي', 'stc', 'urpay', 'alrajhi', 'snb',
-  'transfer', 'transaction', 'amount', 'paid', 'payment', 'receipt',
-  'successful', 'success', 'sar', 'iban', 'beneficiary',
+  'تحويل', 'حواله', 'حوالة', 'حولت', 'مبلغ', 'ريال', 'سعودي', 'عملية',
+  'مدفوع', 'سداد', 'ايصال', 'إيصال', 'المستفيد', 'حساب', 'مرجع', 'بنك',
+  'الراجحي', 'الاهلي', 'الانماء', 'البلاد',
+  'transfer', 'transaction', 'trx', 'amount', 'paid', 'payment', 'receipt',
+  'successful', 'success', 'completed', 'sar', 'sr', 'iban', 'beneficiary',
+  'reference', 'ref', 'balance', 'rajhi', 'alrajhi', 'snb', 'ncb', 'inma',
+  'alinma', 'albilad', 'riyad', 'anb', 'sab', 'stc', 'urpay', 'bank',
 ];
 
 const AR = '٠١٢٣٤٥٦٧٨٩', FA = '۰۱۲۳۴۵۶۷۸۹';
@@ -29,9 +34,8 @@ const toLatin = (s: string) =>
     return String(i >= 0 ? i : FA.indexOf(d));
   });
 
-/** يستخرج المبالغ المحتملة. يستبعد ما لا يصلح مبلغًا: الآيبان، أرقام
- *  الجوال، أرقام العمليات — كل سلسلة تتجاوز ستّ خانات صحيحة. ويميّز
- *  ما جاور رمز عملة أو حمل كسرين عشريين، فهو الأقرب إلى مبلغ حقيقي. */
+/** المبالغ المحتملة. تُستبعد السلاسل التي تتجاوز ستّ خانات صحيحة —
+ *  الآيبان ورقم العملية ورقم الجوال — ويُميَّز ما جاور عملة أو حمل كسورًا. */
 function extractAmounts(raw: string) {
   const t = toLatin(raw).replace(/[٬⁦-⁩‎‏]/g, '');
   const numbers: number[] = [], strong: number[] = [];
@@ -39,12 +43,12 @@ function extractAmounts(raw: string) {
   let m: RegExpExecArray | null;
   while ((m = re.exec(t)) !== null) {
     const intPart = m[1].replace(/,/g, '');
-    if (intPart.length > 6) continue;                    // آيبان أو رقم عملية
+    if (intPart.length > 6) continue;
     const val = Number(intPart) + (m[2] ? Number(`0.${m[2]}`) : 0);
     if (!isFinite(val) || val <= 0 || val > 1_000_000) continue;
     numbers.push(val);
-    const around = t.slice(Math.max(0, m.index - 14), m.index + m[0].length + 14).toLowerCase();
-    if (m[2] || /ر\.?\s?س|ريال|sar|﷼|sr\b/.test(around)) strong.push(val);
+    const around = t.slice(Math.max(0, m.index - 16), m.index + m[0].length + 16).toLowerCase();
+    if (m[2] || /ر\.?\s?س|ريال|sar|﷼|\bsr\b/.test(around)) strong.push(val);
   }
   return {
     numbers: [...new Set(numbers)].sort((a, b) => b - a).slice(0, 40),
@@ -54,28 +58,44 @@ function extractAmounts(raw: string) {
 
 const found = (t: string) => {
   const low = toLatin(t).toLowerCase();
-  return [...new Set(KEYWORDS.filter((k) => low.includes(k)))].slice(0, 20);
+  return [...new Set(KEYWORDS.filter((k) => low.includes(k)))].slice(0, 24);
 };
+
+/** هل يحمل النصّ آيبان صاحبة العمل؟ تُجرَّد كل الفواصل والمسافات من
+ *  الجانبين، ثم يُبحث عن ذيل الآيبان — فلا يضرّ خطأ قراءة في أوّله. */
+function ibanSeen(text: string, iban: string | null) {
+  if (!iban) return false;
+  const want = toLatin(iban).replace(/\D/g, '');
+  if (want.length < IBAN_TAIL) return false;
+  const hay = toLatin(text).replace(/\D/g, '');
+  return hay.includes(want.slice(-IBAN_TAIL));
+}
 
 async function ocr(key: string, bytes: Uint8Array, ext: string) {
   const type = ext === 'pdf' ? 'application/pdf'
-             : ext === 'png' ? 'image/png'
-             : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    : ext === 'png' ? 'image/png'
+    : ext === 'webp' ? 'image/webp' : 'image/jpeg';
   const form = new FormData();
-  form.append('file', new Blob([bytes], { type }), `receipt.${ext}`);
-  form.append('language', 'ara');
-  form.append('OCREngine', '1');
+  form.append('apikey', key);
+  // المحرّك قبل اللغة: الخدمة تتحقّق من اللغة مقابل المحرّك السائد لحظة قراءتها.
+  form.append('OCREngine', '3');
   form.append('scale', 'true');
+  form.append('detectOrientation', 'true');
   form.append('isOverlayRequired', 'false');
+  form.append('file', new Blob([bytes], { type }), `receipt.${ext}`);
   const res = await fetch('https://api.ocr.space/parse/image', {
     method: 'POST', headers: { apikey: key }, body: form,
   });
-  if (!res.ok) throw new Error(`ocr_http_${res.status}`);
-  const j = await res.json();
+  const raw = await res.text();
+  if (!res.ok) throw new Error(`http_${res.status}: ${raw.slice(0, 300)}`);
+  let j: Record<string, unknown>;
+  try { j = JSON.parse(raw); } catch { throw new Error(`bad_json: ${raw.slice(0, 300)}`); }
   if (j.IsErroredOnProcessing) {
-    throw new Error(String(j.ErrorMessage?.[0] ?? j.ErrorMessage ?? 'ocr_error'));
+    const em = j.ErrorMessage;
+    throw new Error(`ocr: ${Array.isArray(em) ? em.join(' | ') : String(em ?? j.ErrorDetails ?? 'unknown')}`);
   }
-  return (j.ParsedResults ?? []).map((r: { ParsedText?: string }) => r.ParsedText ?? '').join('\n');
+  const results = (j.ParsedResults ?? []) as Array<{ ParsedText?: string }>;
+  return results.map((r) => r.ParsedText ?? '').join('\n');
 }
 
 Deno.serve(async (req) => {
@@ -90,7 +110,8 @@ Deno.serve(async (req) => {
     new Response(JSON.stringify(body), { status, headers: cors });
 
   try {
-    const { path } = await req.json().catch(() => ({ path: null }));
+    const payload = await req.json().catch(() => ({}));
+    const path = payload?.path;
     if (typeof path !== 'string' || !PATH_RE.test(path)) {
       return reply({ ok: false, reason: 'bad_path' }, 400);
     }
@@ -101,11 +122,9 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    // بلا مفتاح قراءة يبقى الفحص معطّلًا ويمرّ الحجز كما كان — التفعيل
-    // بإضافة المفتاح وقلب المفتاح في الإعدادات، لا بتعديل الشيفرة.
     const key = Deno.env.get('OCR_API_KEY');
     if (!key) {
-      await db.from('receipt_scans').upsert({ path, engine: 'none' });
+      await db.from('receipt_scans').upsert({ path, engine: 'none', error: 'OCR_API_KEY not set' });
       return reply({ ok: true, skipped: true, reason: 'no_key' });
     }
 
@@ -113,7 +132,7 @@ Deno.serve(async (req) => {
     if (dl.error || !dl.data) return reply({ ok: false, reason: 'not_found' }, 404);
     const bytes = new Uint8Array(await dl.data.arrayBuffer());
     if (bytes.byteLength > MAX_BYTES) {
-      await db.from('receipt_scans').upsert({ path, engine: 'too_large' });
+      await db.from('receipt_scans').upsert({ path, engine: 'too_large', error: `${bytes.byteLength} bytes` });
       return reply({ ok: false, reason: 'too_large' });
     }
 
@@ -122,23 +141,33 @@ Deno.serve(async (req) => {
     try {
       text = await ocr(key, bytes, ext);
     } catch (e) {
-      await db.from('receipt_scans').upsert({ path, engine: 'failed' });
-      return reply({ ok: false, reason: 'ocr_failed', detail: String(e) });
+      const detail = String(e instanceof Error ? e.message : e).slice(0, 500);
+      console.error('ocr_failed', detail);
+      await db.from('receipt_scans').upsert({ path, engine: 'failed', error: detail });
+      return reply({ ok: false, reason: 'ocr_failed', detail });
     }
 
+    const { data: cfg } = await db.from('settings').select('iban').eq('id', 1).maybeSingle();
+    const iban_hit = ibanSeen(text, cfg?.iban ?? null);
     const { numbers, strong } = extractAmounts(text);
     const keywords = found(text);
+
     await db.from('receipt_scans').upsert({
       path,
       numbers: strong.length ? strong : numbers,
       all_numbers: numbers,
       keywords,
+      iban_hit,
       text_len: text.trim().length,
       engine: 'ocrspace',
+      error: null,
+      // النصّ الخام يُحفظ مقصوصًا: يُغني عن تخمين سبب الرفض حين تشتكي عميلة.
+      raw_text: text.trim().slice(0, 4000) || null,
     });
 
     return reply({
-      ok: true, keywords, numbers: strong.length ? strong : numbers,
+      ok: true, keywords, iban_hit,
+      numbers: strong.length ? strong : numbers,
       textLen: text.trim().length,
     });
   } catch (e) {

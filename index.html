@@ -10,10 +10,10 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <!-- ?v= يطابق VERSION في sw.js: بدونه يخدم متصفح العميلة نسخة CSS
      القديمة من ذاكرته بعد كل نشر، فتظهر الواجهة كما كانت. -->
-<link rel="stylesheet" href="assets/fonts.css?v=17">
+<link rel="stylesheet" href="assets/fonts.css?v=18">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=17">
+<link rel="stylesheet" href="assets/client-theme.css?v=18">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -390,7 +390,7 @@ import {
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositFor, verifyReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
-} from './assets/db.js?v=17';
+} from './assets/db.js?v=18';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -939,11 +939,14 @@ function gate() {
   // الحجز مرفوض من الخادم بلا إيصال، فلا معنى لزرّ إرسال قبل اختيار ملف.
   // ومتى كان الفحص مفعّلًا في الإعدادات لم يُفتح الإرسال على صورة رفضها الفحص:
   // الخادم سيرفضها على كل حال، فمنعها هنا يوفّر على العميلة محاولة خاسرة.
+  /* نفس شرطَي الخادم: مبلغ يكفي العربون، ومعه آيبان الحساب أو كلمة تدلّ
+     على تحويل. الآيبان بديل عن اللغة: القراءة المجانية لا تدعم العربية،
+     وأرقام الآيبان تُقرأ بلا لغة. */
   const c = state.receiptCheck;
-  const scanBad = !!state.settings?.receipt_ocr_required && !!c && c.ok !== false
-    && (!c.skipped) && (!c.keywords?.length
-      || (Number(state.depositDue || 0) > 0
-          && !(c.numbers || []).some((n) => Number(n) >= Number(state.depositDue))));
+  const need = Number(state.depositDue || 0);
+  const scanBad = !!state.settings?.receipt_ocr_required && !!c && c.ok !== false && !c.skipped
+    && ((need > 0 && !(c.numbers || []).some((n) => Number(n) >= need))
+        || (!c.iban_hit && !c.keywords?.length));
   sendBtn.disabled = !state.receiptPath || state.busy || scanBad;
 }
 [loc, phone, nameIn, district].forEach((e) => { e.addEventListener('input', gate); e.addEventListener('blur', gate); });
@@ -1054,10 +1057,10 @@ async function uploadAndCheck() {
     chk('ok', 'تم رفع الإيصال');
   } else if (r.reason === 'too_large') {
     chk('bad', 'حجم الصورة كبير على الفحص — أرفقي لقطة شاشة أصغر');
-  } else if (!r.keywords?.length) {
-    chk('bad', 'الصورة لا تبدو إيصال تحويل — أرفقي إشعار التحويل من تطبيق البنك');
   } else if (need > 0 && !(r.numbers || []).some((n) => Number(n) >= need)) {
     chk('bad', `لم نجد مبلغ العربون (${money(need)} ﷼) في الصورة — تأكدي من وضوحها`);
+  } else if (!r.iban_hit && !r.keywords?.length) {
+    chk('bad', 'الصورة لا تبدو إيصال تحويل — أرفقي إشعار التحويل من تطبيق البنك كاملًا');
   } else {
     chk('ok', 'تم التحقق من الإيصال');
   }
