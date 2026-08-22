@@ -299,6 +299,43 @@ export async function requestCancel(token) {
 
 /* ── Admin (requires a session) ────────────────────────────────────────── */
 
+/* ── الشبكة المتقطّعة ───────────────────────────────────────────────────
+   على شبكة الجوّال يسقط الطلب أحيانًا قبل أن يصل، فيرمي المتصفّح خطأً بلا
+   معنى للمستخدمة: سفاري يقول "Load failed" وكروم يقول "Failed to fetch".
+   ما يلي يميّز هذا السقوط عن رفضٍ حقيقي من الخادم، فيُعيد المحاولة مرّتين
+   بصمت ثمّ يشرح بالعربية إن أصرّ الانقطاع. الكتابة التي تُعاد ذرّيّةٌ
+   ومحميّة بمفتاح تكرار، فالإعادة لا تُنتج حجزًا ثانيًا. */
+export function isOffline(err) {
+  const m = String(err?.message || err || '').toLowerCase();
+  return m.includes('load failed') || m.includes('failed to fetch')
+      || m.includes('networkerror') || m.includes('network request failed')
+      || m.includes('the internet connection appears to be offline')
+      || m.includes('timeout') || m.includes('aborted');
+}
+
+export const NET_MSG =
+  'تعذّر الوصول للإنترنت. تأكّدي من الاتصال ثم أعيدي المحاولة — لن يتكرّر الحجز.';
+
+/** يعيد المحاولة على الانقطاع وحده. أخطاء الخادم تمرّ كما هي فورًا. */
+export async function retrying(fn, tries = 3) {
+  for (let i = 1; ; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!isOffline(e)) throw e;
+      if (i >= tries) { const err = new Error(NET_MSG); err.offline = true; throw err; }
+      await new Promise((r) => setTimeout(r, 700 * i));
+    }
+  }
+}
+
+export const uuid = () => (crypto?.randomUUID
+  ? crypto.randomUUID()
+  : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    }));
+
 export const admin = {
   async signIn(email, password) {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
@@ -355,23 +392,28 @@ export const admin = {
     await sb.from('activity_log').insert({ booking_id: bookingId, actor: 'admin', action, detail });
   },
 
-  async createBooking(row, items) {
-    const { data, error } = await sb.from('bookings')
-      .insert({ ...row, source: 'admin' }).select().maybeSingle();
-    if (error) throw error;
-    const payload = items.map((it, i) => ({ ...it, booking_id: data.id, sort: i + 1 }));
-    const { error: e2 } = await sb.from('booking_items').insert(payload);
-    if (e2) throw e2;
-    return data;
+  /* الحجز وبنوده صفقةٌ واحدة في القاعدة. كانا طلبين، فكان انقطاعٌ بينهما
+     يترك في الأجندة حجزًا بلا خدمات ولا سعر. والمفتاح يجعل الإعادة آمنة:
+     إن كان الطلب قد وصل ونُفّذ وضاع جوابه، رُدّ الحجز نفسه لا حجزٌ ثانٍ. */
+  async createBooking(row, items, idem = uuid()) {
+    return retrying(async () => {
+      const { data, error } = await sb.rpc('admin_create_booking', {
+        p_booking: row, p_items: items, p_idem: idem,
+      });
+      if (error) throw error;
+      return Array.isArray(data) ? data[0] : data;
+    });
   },
 
-  async replaceItems(bookingId, items) {
-    const { error: delErr } = await sb.from('booking_items').delete().eq('booking_id', bookingId);
-    if (delErr) throw delErr;
-    if (!items.length) return;
-    const { error } = await sb.from('booking_items')
-      .insert(items.map((it, i) => ({ ...it, booking_id: bookingId, sort: i + 1 })));
-    if (error) throw error;
+  async replaceItems(bookingId, items, discountPerPerson = null) {
+    return retrying(async () => {
+      const { data, error } = await sb.rpc('admin_replace_items', {
+        p_booking_id: bookingId, p_items: items,
+        p_discount_per_person: discountPerPerson,
+      });
+      if (error) throw error;
+      return Array.isArray(data) ? data[0] : data;
+    });
   },
 
   async services() {

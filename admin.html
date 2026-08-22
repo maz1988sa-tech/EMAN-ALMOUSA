@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#2b1c16">
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/fonts.css?v=25">
-<link rel="stylesheet" href="assets/theme.css?v=25">
+<link rel="stylesheet" href="assets/fonts.css?v=26">
+<link rel="stylesheet" href="assets/theme.css?v=26">
 <style>
   .appbar { position: sticky; top: 0; z-index: 40; background: var(--surface);
             border-bottom: 1px solid var(--line); }
@@ -158,14 +158,14 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=25';
+import { icon, hydrateIcons } from './assets/icons.js?v=26';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
   today, addDays, parseDate, weekday, addMinutes, prettyPhone, telHref, waHref,
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
-  receiptUrl, purgeOrphanReceipts,
-} from './assets/db.js?v=25';
+  receiptUrl, purgeOrphanReceipts, uuid, isOffline, NET_MSG,
+} from './assets/db.js?v=26';
 
 const view = document.getElementById('view');
 const sheet = document.getElementById('sheet');
@@ -1702,10 +1702,8 @@ function openEdit(b) {
         service_id: sv.id, service_name: sv.name, service_icon: sv.icon,
         price: ePrice(sv), duration_min: sv.duration_min,
         group_discount: sv.group_discount, deposit_amount: sv.deposit_amount || 0,
-      })));
+      })), Number(S.settings?.group_discount_amount || 0));
       await admin.update(b.id, {
-        ...(nowKey !== origKey
-          ? { discount_per_person: Number(S.settings?.group_discount_amount || 0) } : {}),
         client_name: name, client_phone: phone, the_date: date,
         start_time: time.length === 5 ? `${time}:00` : time,
         loc_text: g('e-loc').value.trim() || null,
@@ -1715,7 +1713,8 @@ function openEdit(b) {
       await admin.log(b.id, 'edited');
       closeSheet(sheet); toast('حُفظ التعديل', 'ok'); reload();
     } catch (e) {
-      btn.disabled = false; btn.textContent = 'حفظ التعديل'; err.innerHTML = note(e.message);
+      btn.disabled = false; btn.textContent = 'حفظ التعديل';
+      err.innerHTML = note(isOffline(e) ? NET_MSG : e.message);
     }
   };
 }
@@ -1830,6 +1829,8 @@ function openNewBooking() {
   gn('n-time').onchange = nRecompute;
   nRecompute();
 
+  // يُولَّد مرّة لهذه الورقة: ضغطةٌ ثانية بعد انقطاع تحمل المفتاح نفسه.
+  const idem = uuid();
   gn('n-save').onclick = async () => {
     const err = gn('n-err');
     const name = gn('n-name').value.trim();
@@ -1860,10 +1861,11 @@ function openNewBooking() {
         service_id: sv.id, service_name: sv.name, service_icon: sv.icon,
         price: nPrice(sv), duration_min: sv.duration_min,
         group_discount: sv.group_discount, deposit_amount: sv.deposit_amount || 0,
-      })));
+      })), idem);
       closeSheet(sheet); toast('حُفظ الحجز', 'ok'); reload();
     } catch (e) {
-      btn.disabled = false; btn.textContent = 'حفظ الحجز'; err.innerHTML = note(e.message);
+      btn.disabled = false; btn.textContent = 'حفظ الحجز';
+      err.innerHTML = note(isOffline(e) ? NET_MSG : e.message);
     }
   };
 }
