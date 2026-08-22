@@ -6,18 +6,21 @@
    ========================================================================== */
 
 :root {
-  --cream:     #FBF4EE;
-  --surface:   #FFFAF7;
-  --surface-2: #F7EBE4;
-  --blush:     #F3DAD2;
-  --blush-2:   #EBC5BA;
-  --rose:      #C98A7E;
-  --rose-deep: #A9675C;
-  --ink:       #2E2A27;
-  --ink-2:     #6B594D;
-  --ink-3:     #9C8779;
-  --line:      #EFE0D8;
-  --line-2:    #E4CFC5;
+  /* القيم مأخوذة حرفيًا من واجهة العميلة (client-theme.css) لا مقاربة لها،
+     فلا يفترق اللونان حين تُفتح الصفحتان جنبًا إلى جنب. */
+  --cream:     #faf5f0;   /* = --paper */
+  --surface:   #fffcfa;
+  --surface-2: #f2e7de;   /* = --paper-2 */
+  --blush:     #f1ded2;
+  --blush-2:   #e6c2b1;   /* = --blush */
+  --rose:      #b0705c;   /* = --clay */
+  --rose-deep: #96594a;
+  --ink:       #2b1c16;   /* = --ink */
+  --ink-2:     #6d584c;
+  --ink-3:     #8a7568;   /* = --muted */
+  --line:      rgba(43,28,22,.10);
+  --line-2:    rgba(43,28,22,.18);
+  --espresso:  #150c09;
 
   /* Semantic colours sit inside the same warm family so a status pill never
      looks pasted in from another design. */
@@ -26,14 +29,18 @@
   --danger:    #B3564F;  --danger-bg: #FBEAE8;  --danger-line:#EFCFCB;
   --info:      #6E7F94;  --info-bg:   #EEF1F4;
 
+  /* Aref Ruqaa لم يكن محمَّلًا أصلًا فكان يسقط إلى Amiri صامتًا؛ يُسمّى الآن
+     ما يُستعمل فعلًا. الخطّان هما خطّا واجهة العميلة نفسها. */
   --fd: 'Amiri', Georgia, 'Times New Roman', serif;
-  --fs: 'Aref Ruqaa', 'Amiri', Georgia, serif;
+  --fs: 'Amiri', Georgia, 'Times New Roman', serif;
   --ft: 'Tajawal', 'Segoe UI', system-ui, -apple-system, sans-serif;
 
-  --r-xl: 26px; --r-lg: 20px; --r: 16px; --r-sm: 12px; --r-pill: 999px;
-  --sh:   0 2px 12px rgba(169, 103, 92, .07);
-  --sh-2: 0 10px 34px rgba(169, 103, 92, .13);
-  --sh-3: 0 -6px 30px rgba(169, 103, 92, .16);
+  /* الهندسة: الأوعية مربّعة والأدوات مستديرة — قاعدة واجهة العميلة نفسها.
+     البطاقة والحقل يُحدّان بخطّ شعرة، والزرّ وحده يستدير قليلًا. */
+  --r-xl: 16px; --r-lg: 2px; --r: 2px; --r-sm: 2px; --r-btn: 4px; --r-pill: 999px;
+  --sh:   none;
+  --sh-2: 0 18px 44px rgba(20, 10, 7, .16);
+  --sh-3: 0 -10px 40px rgba(20, 10, 7, .18);
 
   --tap: 44px;           /* minimum comfortable touch target */
   --page: 560px;
@@ -44,54 +51,63 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --cream:     #211A17;
-    --surface:   #2A211D;
-    --surface-2: #332822;
-    --blush:     #4A362F;
-    --blush-2:   #5C443A;
-    --rose:      #DFA294;
-    --rose-deep: #F0BFB1;
-    --ink:       #F5E9E2;
-    --ink-2:     #CDB6A8;
-    --ink-3:     #A08877;
-    --line:      #3B2E28;
-    --line-2:    #4A3A32;
+    --cream:     #1a100c;
+  --surface:   #241610;
+  --surface-2: #2e1d16;
+  --blush:     #402a21;
+  --blush-2:   #5a3d31;
+  --rose:      #c98a72;
+  --rose-deep: #e6c2b1;
+  --ink:       #f6ece5;
+  --ink-2:     #d3bcae;
+  --ink-3:     #a68d7d;
+  --line:      rgba(255,255,255,.10);
+  --line-2:    rgba(255,255,255,.18);
+  --espresso:  #0d0705;
     --ok:        #A8C4A2;  --ok-bg:     #26302A;  --ok-line:  #3A4A38;
     --warn:      #E0AE7E;  --warn-bg:   #3A2A1C;  --warn-line:#523C28;
     --danger:    #E89A92;  --danger-bg: #3D2320;  --danger-line:#5A332F;
     --info:      #A9B8C8;  --info-bg:   #262E36;
-    --sh:   0 2px 12px rgba(0, 0, 0, .32);
-    --sh-2: 0 10px 34px rgba(0, 0, 0, .45);
-    --sh-3: 0 -6px 30px rgba(0, 0, 0, .5);
+    --sh:   none;
+  --sh-2: 0 18px 44px rgba(0, 0, 0, .5);
+  --sh-3: 0 -10px 40px rgba(0, 0, 0, .55);
   }
 }
 
 :root[data-theme="dark"] {
-  --cream:     #211A17;
-  --surface:   #2A211D;
-  --surface-2: #332822;
-  --blush:     #4A362F;
-  --blush-2:   #5C443A;
-  --rose:      #DFA294;
-  --rose-deep: #F0BFB1;
-  --ink:       #F5E9E2;
-  --ink-2:     #CDB6A8;
-  --ink-3:     #A08877;
-  --line:      #3B2E28;
-  --line-2:    #4A3A32;
+  --cream:     #1a100c;
+  --surface:   #241610;
+  --surface-2: #2e1d16;
+  --blush:     #402a21;
+  --blush-2:   #5a3d31;
+  --rose:      #c98a72;
+  --rose-deep: #e6c2b1;
+  --ink:       #f6ece5;
+  --ink-2:     #d3bcae;
+  --ink-3:     #a68d7d;
+  --line:      rgba(255,255,255,.10);
+  --line-2:    rgba(255,255,255,.18);
+  --espresso:  #0d0705;
   --ok:        #A8C4A2;  --ok-bg:     #26302A;  --ok-line:  #3A4A38;
   --warn:      #E0AE7E;  --warn-bg:   #3A2A1C;  --warn-line:#523C28;
   --danger:    #E89A92;  --danger-bg: #3D2320;  --danger-line:#5A332F;
   --info:      #A9B8C8;  --info-bg:   #262E36;
-  --sh:   0 2px 12px rgba(0, 0, 0, .32);
-  --sh-2: 0 10px 34px rgba(0, 0, 0, .45);
-  --sh-3: 0 -6px 30px rgba(0, 0, 0, .5);
+  --sh:   none;
+  --sh-2: 0 18px 44px rgba(0, 0, 0, .5);
+  --sh-3: 0 -10px 40px rgba(0, 0, 0, .55);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 
 html { direction: rtl; -webkit-text-size-adjust: 100%; }
 
+/* نسيج الغبار كما في شاشات العميلة الفاتحة: طبقة ساكنة خلف كل شيء
+   بشفافية خفيفة. جعله خلفية للجسم يبتلع النصّ، فيُفصل في طبقة. */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:url('brand/dust_light.jpg') center / cover no-repeat;
+  opacity:.17;
+}
 body {
   margin: 0;
   background: var(--cream);
@@ -122,23 +138,25 @@ body {
 
 /* ── Type ──────────────────────────────────────────────────────────────── */
 h1, h2, h3, h4 { margin: 0; font-weight: 700; text-wrap: balance; }
-h1 { font-family: var(--fs); font-weight: 400; font-size: clamp(24px, 5.5vw, 32px); line-height: 1.35; }
+h1 { font-family: var(--ft); font-weight: 200; font-size: clamp(25px, 5.5vw, 31px);
+     letter-spacing: -.02em; line-height: 1.35; }
 h2 { font-family: var(--fd); font-size: 19px; }
 h3 { font-family: var(--fd); font-size: 16.5px; }
 p  { margin: 0; }
 a  { color: var(--rose-deep); }
 
+/* الحاجب اللاتيني: نفس مقاس واجهة العميلة وتباعدها — علامة الهوية الأوضح. */
 .eyebrow {
-  font-size: 11px; letter-spacing: .18em; font-weight: 700;
+  direction: ltr; font: 500 9.5px/1 var(--fd); letter-spacing: .42em;
   color: var(--rose); text-transform: uppercase;
 }
 
 /* The poster's pill ribbon, used to head a section. */
 .ribbon {
   display: block; width: fit-content; margin: 34px auto 6px;
-  background: var(--blush-2); color: var(--rose-deep);
-  border-radius: var(--r-pill); padding: 6px 24px;
-  font-size: 12px; letter-spacing: .18em; font-weight: 700;
+  direction: ltr; color: var(--rose); font: 500 10px/1 var(--fd);
+  letter-spacing: .42em; text-transform: uppercase;
+  padding: 6px 0 10px; border-bottom: 1px solid var(--line-2);
 }
 .ribbon-sub {
   text-align: center; color: var(--ink-3); font-size: 13px;
@@ -152,16 +170,16 @@ a  { color: var(--rose-deep); }
 
 /* ── Surfaces ──────────────────────────────────────────────────────────── */
 .card {
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--r-lg); padding: 18px; box-shadow: var(--sh);
+  background: rgba(255,255,255,.66); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: 18px;
 }
 
 /* The poster's arch, used for the one thing a screen most wants you to do. */
 .arch {
   background: linear-gradient(168deg, var(--blush) 0%, var(--surface) 92%);
   border: 1px solid var(--line-2);
-  border-radius: min(46vw, 260px) min(46vw, 260px) var(--r-lg) var(--r-lg);
-  padding: 40px 24px 26px; text-align: center; box-shadow: var(--sh);
+  border-radius: 78px 78px var(--r-lg) var(--r-lg);
+  padding: 34px 24px 26px; text-align: center;
 }
 
 .badge {
@@ -198,15 +216,16 @@ a  { color: var(--rose-deep); }
 /* ── Buttons ───────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  min-height: var(--tap); padding: 11px 20px; border-radius: var(--r-pill);
+  min-height: var(--tap); padding: 11px 20px; border-radius: var(--r-btn);
   border: 1px solid transparent; font-family: var(--ft); font-size: 15px;
-  font-weight: 700; cursor: pointer; transition: background .18s, border-color .18s, transform .12s;
+  font-weight: 500; cursor: pointer; transition: background .18s, border-color .18s, transform .12s;
   text-decoration: none; width: 100%;
 }
 .btn:active { transform: scale(.985); }
 .btn[disabled] { opacity: .45; cursor: not-allowed; }
-.btn-primary { background: var(--rose-deep); color: #FFF6F2; }
-.btn-primary:hover:not([disabled]) { background: var(--rose); }
+/* الفعل الأساسي بلون الحبر لا بلون الهوية — كزرّ «تأكيد البيانات» عند العميلة. */
+.btn-primary { background: var(--ink); color: var(--cream); }
+.btn-primary:hover:not([disabled]) { background: var(--espresso); }
 .btn-soft    { background: var(--blush); color: var(--rose-deep); }
 .btn-soft:hover:not([disabled]) { background: var(--blush-2); }
 .btn-ghost   { background: transparent; color: var(--ink); border-color: var(--line-2); }
@@ -229,19 +248,20 @@ a  { color: var(--rose-deep); }
 
 /* ── Forms ─────────────────────────────────────────────────────────────── */
 .field { margin-bottom: 16px; }
-.label { display: block; font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 6px; }
+.label { display: block; font-size: 11.5px; font-weight: 500; color: var(--ink-3);
+         letter-spacing: .02em; margin-bottom: 6px; }
 .label .opt { font-weight: 400; color: var(--ink-3); font-size: 12px; }
 
 /* 16px minimum: anything smaller makes iOS zoom the page on focus. */
 .input, select.input, textarea.input {
   width: 100%; min-height: var(--tap); padding: 11px 14px;
-  background: var(--surface); color: var(--ink);
+  background: rgba(255,255,255,.66); color: var(--ink);
   border: 1px solid var(--line-2); border-radius: var(--r);
   font-family: var(--ft); font-size: 16px; outline: none;
   transition: border-color .18s, box-shadow .18s;
   -webkit-appearance: none; appearance: none;
 }
-.input:focus { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(201, 138, 126, .14); }
+.input:focus { border-color: var(--rose); box-shadow: none; background: rgba(255,255,255,.9); }
 .input::placeholder { color: var(--ink-3); }
 .input.ltr { direction: ltr; text-align: right; }
 textarea.input { min-height: 84px; resize: vertical; line-height: 1.6; }
