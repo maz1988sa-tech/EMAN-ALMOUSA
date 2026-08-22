@@ -10,10 +10,10 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <!-- ?v= يطابق VERSION في sw.js: بدونه يخدم متصفح العميلة نسخة CSS
      القديمة من ذاكرته بعد كل نشر، فتظهر الواجهة كما كانت. -->
-<link rel="stylesheet" href="assets/fonts.css?v=23">
+<link rel="stylesheet" href="assets/fonts.css?v=24">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=23">
+<link rel="stylesheet" href="assets/client-theme.css?v=24">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -249,7 +249,7 @@
   <nav class="menu" id="menu">
     <a href="#" data-go="0">الواجهة<i>HOME</i></a>
     <a href="#" data-go="1">الخدمات<i>SERVICES</i></a>
-    <a href="#" data-go="2">الموعد<i>APPOINTMENT</i></a>
+    <a href="#" data-go="2">حجز الموعد<i>APPOINTMENT</i></a>
     <a href="#" data-go="3">التأكيد<i>CONFIRM</i></a>
     <a href="#" data-go="4">تواصل<i>CONTACT</i></a>
     <div class="menu-foot">EMAN AAL MOUSA · RIYADH</div>
@@ -390,7 +390,7 @@ import {
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositFor, verifyReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
-} from './assets/db.js?v=23';
+} from './assets/db.js?v=24';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
