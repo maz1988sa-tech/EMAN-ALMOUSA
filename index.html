@@ -10,10 +10,10 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <!-- ?v= يطابق VERSION في sw.js: بدونه يخدم متصفح العميلة نسخة CSS
      القديمة من ذاكرته بعد كل نشر، فتظهر الواجهة كما كانت. -->
-<link rel="stylesheet" href="assets/fonts.css?v=12">
+<link rel="stylesheet" href="assets/fonts.css?v=13">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=12">
+<link rel="stylesheet" href="assets/client-theme.css?v=13">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -271,13 +271,12 @@
         </div>
         <div class="grow">
           <div class="fields">
-            <div class="field"><label for="nm">الاسم الكامل</label><input id="nm" type="text" autocomplete="name" placeholder="مثال: نورة العتيبي"></div>
+            <div class="field"><label for="nm">الاسم الكامل<i class="req" aria-hidden="true"></i></label><input id="nm" type="text" autocomplete="name" required aria-required="true" placeholder="مثال: نورة العتيبي"></div>
             <div class="field phone">
-              <div><label for="ph">رقم الجوال</label><input id="ph" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel" placeholder="05X XXX XXXX"></div>
+              <div><label for="ph">رقم الجوال<i class="req" aria-hidden="true"></i></label><input id="ph" type="tel" inputmode="numeric" autocomplete="tel" required aria-required="true" placeholder="05X XXX XXXX"></div>
               <span class="pre">+966</span>
             </div>
-            <div id="peopleFields"></div>
-            <div class="field"><label for="locTxt">الحي والمدينة <span class="opt">اختياري</span></label><input id="locTxt" type="text" placeholder="مثال: حي النخيل، الرياض"></div>
+            <div class="field"><label for="locTxt">الحي والمدينة<i class="req" aria-hidden="true"></i></label><input id="locTxt" type="text" required aria-required="true" placeholder="مثال: حي النخيل، الرياض"></div>
             <div class="field map" id="locField">
               <div>
                 <label for="loc">الموقع <span class="opt">رابط من خرائط قوقل — اختياري</span></label>
@@ -310,7 +309,7 @@
         <div>
           <p class="eyebrow">DEPOSIT</p>
           <h2 class="title">تثبيت الموعد</h2>
-          <p class="sub-line">حوّلي العربون ثم أرفقي صورة التحويل، ويُسجَّل حجزك فورًا.</p>
+          <p class="sub-line">عزيزتي العميلة، لتأكيد الحجز نرجو تحويل العربون وإرفاق الإيصال.</p>
         </div>
         <div class="grow">
           <div class="ref-card">
@@ -388,7 +387,7 @@ import {
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositDue, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
-} from './assets/db.js?v=12';
+} from './assets/db.js?v=13';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -863,12 +862,6 @@ function openSheetPanel() {
   el('rcWhen').textContent = `${state.date ? fmtDate(state.date, { short: true }) : '—'} · ${time12(state.time)}`;
   el('rcDep').innerHTML = `${money(totalPrice())}<i class="rs"></i>`;
 
-  const flat = flatPicked();
-  el('peopleFields').innerHTML = flat.length > 1
-    ? `<div class="field"><label>أسماء المجموعة <span class="opt">اختياري</span></label>
-        ${flat.map((s, i) => `<input class="person-in" type="text" placeholder="${esc(s.name)} — الاسم" aria-label="اسم الشخص ${i + 1}">`).join('')}
-       </div>`
-    : '';
   showPane('form');
   sheet.classList.add('open'); sheetOpen = true; gate();
 }
@@ -882,19 +875,54 @@ el('confirmBtn').addEventListener('click', () => {
 const MAPS_RE = /^https:\/\/((maps\.app\.goo\.gl)|(goo\.gl\/maps)|((www\.)?google\.[a-z]{2,3}(\.[a-z]{2})?\/maps)|(maps\.google\.[a-z]{2,3}(\.[a-z]{2})?))(\/|\?)\S*$/i;
 const loc = el('loc'), locField = el('locField'), locErr = el('locErr');
 const sendBtn = el('sendBooking'), toPayBtn = el('toPay');
-const phone = el('ph'), nameIn = el('nm');
+const phone = el('ph'), nameIn = el('nm'), district = el('locTxt');
+
+/* الأرقام العربية والفارسية تُوحَّد إلى لاتينية أثناء الكتابة، ويُقصّ ما زاد،
+   فترى العميلة الرقم بصيغة واحدة مهما كانت لوحة مفاتيحها. */
+const toLatinDigits = (str) => String(str).replace(/[٠-٩۰-۹]/g, (d) => {
+  const a = '٠١٢٣٤٥٦٧٨٩'.indexOf(d);
+  return String(a >= 0 ? a : '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+});
+function unifyPhone() {
+  const before = phone.value;
+  const caret = toLatinDigits(before.slice(0, phone.selectionStart ?? before.length)).replace(/\D/g, '').length;
+  let s = toLatinDigits(before).replace(/\D/g, '')
+    .replace(/^00966/, '0').replace(/^966/, '0');
+  if (s && s[0] !== '0') s = `0${s}`;
+  s = s.slice(0, 10);
+  if (s === before) return;
+  phone.value = s;
+  const pos = Math.min(caret, s.length);
+  try { phone.setSelectionRange(pos, pos); } catch { /* بعض المتصفحات تمنعه على tel */ }
+  gate();
+}
+
+/* الحقول الإلزامية الثلاثة: النقطة الحمراء تُعلنها، والإطار الأحمر لا يظهر
+   إلا بعد أن تغادر العميلة الحقل فارغًا — لا نلوّنه أحمر وهي تكتب فيه. */
+const REQUIRED = [
+  { in: nameIn,   ok: (v) => v.trim().length > 1 },
+  { in: phone,    ok: (v) => !!normalisePhone(v) },
+  { in: district, ok: (v) => v.trim().length > 1 },
+];
 function gate() {
   const v = loc.value.trim();
   const mapOk = !v || MAPS_RE.test(v);
   locField.classList.toggle('bad', !!v && !mapOk);
   locField.classList.toggle('ok', !!v && mapOk);
   locErr.classList.toggle('on', !!v && !mapOk);
-  const phoneOk = !!normalisePhone(phone.value);
-  toPayBtn.disabled = !(mapOk && phoneOk && nameIn.value.trim().length > 1) || state.busy;
+  let reqOk = true;
+  REQUIRED.forEach((r) => {
+    const good = r.ok(r.in.value);
+    if (!good) reqOk = false;
+    r.in.closest('.field').classList.toggle('bad', !!r.touched && !good);
+  });
+  toPayBtn.disabled = !(mapOk && reqOk) || state.busy;
   // الحجز مرفوض من الخادم بلا إيصال، فلا معنى لزرّ إرسال قبل اختيار ملف.
   sendBtn.disabled = !state.receiptFile || state.busy;
 }
-[loc, phone, nameIn].forEach((e) => { e.addEventListener('input', gate); e.addEventListener('blur', gate); });
+[loc, phone, nameIn, district].forEach((e) => { e.addEventListener('input', gate); e.addEventListener('blur', gate); });
+phone.addEventListener('input', unifyPhone);
+REQUIRED.forEach((r) => r.in.addEventListener('blur', () => { r.touched = true; gate(); }));
 
 /* ── لوحة العربون ─────────────────────────────────────────────────────
    الرفع يسبق إنشاء الحجز لأن الخادم يرفض حجزًا بلا إيصال. لو نجح الرفع
@@ -1007,7 +1035,6 @@ async function submit() {
       date: state.date,
       time: state.time,
       serviceIds: flatPicked().map((s) => s.id),
-      personNames: [...document.querySelectorAll('.person-in')].map((i) => i.value.trim()),
       locText: el('locTxt').value.trim(),
       locMap: loc.value.trim(),
       notes: el('prf').value.trim(),
