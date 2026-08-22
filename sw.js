@@ -9,7 +9,7 @@
    gone, the page's own error state explains it.
 */
 
-const VERSION = 'v21';
+const VERSION = 'v22';
 const SHELL = `shell-${VERSION}`;
 
 const ASSETS = [
