@@ -480,3 +480,16 @@ select.input {
 .priceline .label{margin:0;flex:1}
 .priceline .input{width:110px;min-height:38px;padding:7px 10px;text-align:center}
 .priceline[hidden]{display:none}
+
+/* النسخ الاحتياطية: صفٌّ يحمل ثلاثة أفعال قصيرة، تنزل تحت الاسم في الشاشات
+   الضيّقة بدل أن تضغطه. */
+.bkrow { flex-wrap: wrap; row-gap: 8px; }
+.bkacts { display: flex; gap: 6px; flex: 0 0 auto; }
+.btn.xs {
+  padding: 7px 11px; font-size: 13px; min-height: 0; border-radius: var(--r-btn);
+}
+@media (max-width: 400px) {
+  .bkrow .grow { flex: 1 0 100%; }
+  .bkacts { flex: 1 0 100%; }
+  .bkacts .btn { flex: 1; }
+}

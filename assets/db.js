@@ -336,6 +336,117 @@ export const uuid = () => (crypto?.randomUUID
       return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     }));
 
+/* ── النسخ الاحتياطي ────────────────────────────────────────────────────
+   لقطةٌ كاملة تُحفظ في تخزين المشروع نفسه، باسمٍ هو تاريخها ووقتها. صور
+   الإيصالات تُنسخ معها في دلوٍ منفصل، لأنّ كانس الملفّات اليتيمة يمسح ما
+   لا يشير إليه حجزٌ قائم — فنسخةٌ داخل دلو الإيصالات كانت ستُمحى وحدها.
+
+   والاستعادة تُرجع المفقود ولا تمسّ الموجود: هذا شرطٌ لا مساومة فيه، لأنّ
+   أسوأ ما قد تفعله ميزةُ إنقاذ أن تصير هي الكارثة. */
+
+const BK = 'backups';
+const SNAP_DIR = 'snapshots';
+const FILE_DIR = 'files';
+
+/** 2026-08-22_2247 — يُقرأ كتاريخ ويُرتَّب كنصّ. */
+function stamp(d = new Date()) {
+  const p2 = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`
+       + `_${p2(d.getHours())}${p2(d.getMinutes())}`;
+}
+
+/** يقرأ الوقت من اسم الملف نفسه، فلا يعتمد على بيانات التخزين الوصفية. */
+export function backupDate(name) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})/.exec(name || '');
+  if (!m) return null;
+  return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+}
+
+export const backups = {
+  /** لقطة جديدة. `auto` تُعلّم النسخة التي أخذها النظام قبل حذفٍ جماعي. */
+  async create({ auto = false } = {}) {
+    const { data: snap, error } = await sb.rpc('admin_snapshot');
+    if (error) throw error;
+
+    const base = `${stamp()}${auto ? '-auto' : ''}`;
+    const body = new Blob([JSON.stringify(snap)], { type: 'application/json' });
+    const up = await sb.storage.from(BK)
+      .upload(`${SNAP_DIR}/${base}.json`, body, { contentType: 'application/json', upsert: true });
+    if (up.error) throw up.error;
+
+    // الصور محاولةٌ حسنة النيّة: فشل نسخة لا يُسقط النسخة الاحتياطية كلّها.
+    const paths = (snap.bookings || []).map((b) => b.receipt_path).filter(Boolean);
+    let copied = 0;
+    for (const path of paths) {
+      try {
+        const r = await sb.storage.from('receipts')
+          .copy(path, `${FILE_DIR}/${base}/${path}`, { destinationBucket: BK });
+        if (!r.error) copied += 1;
+      } catch { /* صورة واحدة لا تُفسد اللقطة */ }
+    }
+    return { name: `${base}.json`, counts: snap.counts || {}, receipts_copied: copied,
+             receipts_total: paths.length };
+  },
+
+  async list() {
+    const { data, error } = await sb.storage.from(BK)
+      .list(SNAP_DIR, { limit: 100, sortBy: { column: 'name', order: 'desc' } });
+    if (error) throw error;
+    return (data || [])
+      .filter((f) => f.name.endsWith('.json'))
+      .map((f) => ({
+        name: f.name,
+        base: f.name.replace(/\.json$/, ''),
+        auto: f.name.includes('-auto'),
+        at: backupDate(f.name),
+        size: f.metadata?.size || 0,
+      }));
+  },
+
+  async read(name) {
+    const { data, error } = await sb.storage.from(BK).download(`${SNAP_DIR}/${name}`);
+    if (error) throw error;
+    return JSON.parse(await data.text());
+  },
+
+  /** يعيد الصفوف ثمّ الصور. الصور تُنسخ ولا تُستبدل: الموجود أحدث. */
+  async restore(name, { includeSettings = false } = {}) {
+    const snap = await this.read(name);
+    const { data, error } = await sb.rpc('admin_restore_snapshot', {
+      p_data: snap, p_include_settings: includeSettings,
+    });
+    if (error) throw error;
+
+    const base = name.replace(/\.json$/, '');
+    const paths = (snap.bookings || []).map((b) => b.receipt_path).filter(Boolean);
+    let back = 0;
+    for (const path of paths) {
+      try {
+        const r = await sb.storage.from(BK)
+          .copy(`${FILE_DIR}/${base}/${path}`, path, { destinationBucket: 'receipts' });
+        if (!r.error) back += 1;
+      } catch { /* موجودة أصلًا، أو لم تُنسخ يوم اللقطة */ }
+    }
+    return { ...(data || {}), receipts_restored: back };
+  },
+
+  async remove(name) {
+    const base = name.replace(/\.json$/, '');
+    const { data: files } = await sb.storage.from(BK).list(`${FILE_DIR}/${base}/pending`, { limit: 1000 });
+    const kids = (files || []).map((f) => `${FILE_DIR}/${base}/pending/${f.name}`);
+    if (kids.length) { try { await sb.storage.from(BK).remove(kids); } catch { /* لاحقًا */ } }
+    const { error } = await sb.storage.from(BK).remove([`${SNAP_DIR}/${name}`]);
+    if (error) throw error;
+  },
+
+  async link(name, seconds = 300) {
+    const { data, error } = await sb.storage.from(BK)
+      .createSignedUrl(`${SNAP_DIR}/${name}`, seconds, { download: name });
+    if (error) throw error;
+    return data.signedUrl;
+  },
+};
+
 export const admin = {
   async signIn(email, password) {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });

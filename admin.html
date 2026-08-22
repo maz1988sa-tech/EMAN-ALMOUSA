@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#2b1c16">
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/fonts.css?v=26">
-<link rel="stylesheet" href="assets/theme.css?v=26">
+<link rel="stylesheet" href="assets/fonts.css?v=27">
+<link rel="stylesheet" href="assets/theme.css?v=27">
 <style>
   .appbar { position: sticky; top: 0; z-index: 40; background: var(--surface);
             border-bottom: 1px solid var(--line); }
@@ -158,14 +158,14 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=26';
+import { icon, hydrateIcons } from './assets/icons.js?v=27';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
-  today, addDays, parseDate, weekday, addMinutes, prettyPhone, telHref, waHref,
+  today, addDays, parseDate, weekday, addMinutes, prettyPhone, telHref, waHref, isoDate,
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
-  receiptUrl, purgeOrphanReceipts, uuid, isOffline, NET_MSG,
-} from './assets/db.js?v=26';
+  receiptUrl, purgeOrphanReceipts, uuid, isOffline, NET_MSG, backups,
+} from './assets/db.js?v=27';
 
 const view = document.getElementById('view');
 const sheet = document.getElementById('sheet');
@@ -360,7 +360,7 @@ function renderTabs() {
       ${t.id === 'home' && n ? `<span class="dot num">${int(n)}</span>` : ''}
     </button>`).join('');
   host.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => {
-    S.tab = b.dataset.tab; renderTabs(); render(); window.scrollTo({ top: 0 });
+    S.tab = b.dataset.tab; bkFlash = ''; renderTabs(); render(); window.scrollTo({ top: 0 });
   });
 }
 
@@ -1043,6 +1043,10 @@ function editService(s) {
 
 const note = (msg) => `<div class="note danger mb">${icon('close', 18)}<span>${esc(msg)}</span></div>`;
 
+/* رسالة تنجو من إعادة رسم الشاشة. الاستعادة تُنعش البيانات فتُعاد الشاشة
+   مرّتين، وكان التقرير يُمحى بيده قبل أن يُقرأ. يبقى حتى تنتقل من الشاشة. */
+let bkFlash = '';
+
 /* ── Settings ─────────────────────────────────────────────────────────── */
 
 function renderSettings() {
@@ -1150,16 +1154,25 @@ function renderSettings() {
     <button class="btn btn-primary mb" id="saveSettings">حفظ الإعدادات</button>
 
     <div class="sec-head"><h2>النسخ الاحتياطي</h2><span class="rule"></span></div>
-    <p class="muted mb">نزّلي نسخة كاملة من كل شيء. احتفظي بها خارج الجهاز.</p>
+    <p class="muted mb">نسخة كاملة تُحفظ في سحابة المنصّة باسم تاريخها.
+      الاستعادة تُرجع المحذوف ولا تمسّ حجزًا قائمًا.</p>
+    <div class="btn-row mb">
+      <button class="btn btn-primary" id="bkNew">${icon('wallet', 18)} أنشئي نسخة الآن</button>
+    </div>
+    <div id="bkMsg">${bkFlash}</div>
+    <div class="card mb" id="bkList"><p class="hint" style="margin:0">جارٍ القراءة…</p></div>
+
+    <p class="muted mb">أو نسخة على جهازك:</p>
     <div class="btn-row">
-      <button class="btn btn-soft" id="btnBackup">${icon('wallet', 18)} نسخة JSON</button>
+      <button class="btn btn-soft" id="btnBackup">${icon('wallet', 18)} ملفّ JSON</button>
       <button class="btn btn-ghost" id="btnCsv">${icon('export', 18)} تصدير CSV</button>
     </div>
 
     <div class="sec-head" style="margin-top:26px"><h2>حذف الحجوزات</h2><span class="rule"></span></div>
     <div class="card danger-zone">
-      <p class="hint" style="margin-top:0">الحذف نهائي ولا يمكن التراجع عنه. يمسح الحجز
-        وعناصره وسجلّه وصورة إيصاله. <b>خذي نسخة احتياطية أولًا.</b></p>
+      <p class="hint" style="margin-top:0">يمسح الحجز وعناصره وسجلّه وصورة إيصاله.
+        <b>تُؤخذ نسخة احتياطية تلقائيًا قبل الحذف</b>، وتجدينها في «النسخ الاحتياطي»
+        أعلاه لاستعادتها متى شئتِ.</p>
 
       <div class="field"><label class="label" for="pg-scope">النطاق</label>
         <select class="input" id="pg-scope">
@@ -1303,16 +1316,103 @@ function renderSettings() {
       const label = scope.options[scope.selectedIndex].text.split('—')[0].trim();
       if (!confirm(`سيُحذف ${last.count} حجزًا (${label}) نهائيًا بلا تراجع.\nمتأكدة؟`)) return;
       go.disabled = true; perr.innerHTML = '';
-      const was = go.innerHTML; go.textContent = 'جارٍ الحذف…';
+      const was = go.innerHTML;
       try {
+        /* الحذف الجماعي هو أرجح أسباب الفقد، فتُؤخذ نسخة قبله دائمًا —
+           لا بوصفها خيارًا بل شرطًا: إن تعذّرت النسخة لم يجرِ الحذف. */
+        go.textContent = 'جارٍ أخذ نسخة احتياطية…';
+        await backups.create({ auto: true });
+        go.textContent = 'جارٍ الحذف…';
         const r = await admin.purgeBookings(last.from, last.to);
-        toast(`حُذف ${r.count} حجزًا`, 'ok');
+        toast(`حُذف ${r.count} حجزًا — النسخة محفوظة`, 'ok');
         word.value = ''; reload();
       } catch (e) {
-        perr.innerHTML = note(e.message); go.innerHTML = was; gate();
+        perr.innerHTML = note(isOffline(e) ? NET_MSG : e.message);
+        go.innerHTML = was; hydrateIcons(go); gate();
       }
     };
   }
+
+  /* ── النسخ السحابية ─────────────────────────────────────────────────
+     القائمة تُبنى من التخزين نفسه لا من حالةٍ محفوظة، فما تراه هو ما هناك. */
+  const bkList = document.getElementById('bkList');
+  const bkMsg  = document.getElementById('bkMsg');
+
+  async function drawBackups() {
+    let rows = [];
+    try { rows = await backups.list(); }
+    catch (e) {
+      bkList.innerHTML = `<p class="hint" style="margin:0">تعذّرت القراءة: ${esc(e.message)}</p>`;
+      return;
+    }
+    if (!rows.length) {
+      bkList.innerHTML = '<p class="hint" style="margin:0">لا نسخ بعد. أنشئي أوّل نسخة الآن.</p>';
+      return;
+    }
+    bkList.innerHTML = `<div class="list">${rows.map((r) => `
+      <div class="rowline bkrow">
+        <span class="grow">
+          <span class="t">${esc(fmtDate(isoDate(r.at || new Date())))}
+            ${r.at ? `· ${esc(fmtTime(`${String(r.at.getHours()).padStart(2, '0')}:${String(r.at.getMinutes()).padStart(2, '0')}`))}` : ''}</span>
+          <span class="s">${r.auto ? 'تلقائية قبل حذف جماعي · ' : ''}${int(Math.round((r.size || 0) / 1024))} كِب</span>
+        </span>
+        <span class="bkacts">
+          <button class="btn btn-soft xs" data-bk-get="${esc(r.name)}">استعادة</button>
+          <button class="btn btn-ghost xs" data-bk-dl="${esc(r.name)}">تنزيل</button>
+          <button class="btn btn-ghost xs" data-bk-rm="${esc(r.name)}">حذف</button>
+        </span>
+      </div>`).join('')}</div>`;
+    hydrateIcons(bkList);
+
+    bkList.querySelectorAll('[data-bk-dl]').forEach((b) => b.onclick = async () => {
+      try { window.open(await backups.link(b.dataset.bkDl), '_blank'); }
+      catch (e) { toast(e.message, 'danger'); }
+    });
+
+    bkList.querySelectorAll('[data-bk-rm]').forEach((b) => b.onclick = async () => {
+      if (!confirm('حذف هذه النسخة الاحتياطية؟')) return;
+      b.disabled = true;
+      try { await backups.remove(b.dataset.bkRm); toast('حُذفت النسخة', 'ok'); drawBackups(); }
+      catch (e) { b.disabled = false; toast(e.message, 'danger'); }
+    });
+
+    bkList.querySelectorAll('[data-bk-get]').forEach((b) => b.onclick = async () => {
+      const name = b.dataset.bkGet;
+      if (!confirm(`استعادة نسخة ${name}؟\nسيعود المحذوف، ولن يتغيّر أو يُحذف أيّ حجزٍ قائم.`)) return;
+      b.disabled = true; const was = b.textContent; b.textContent = 'جارٍ…';
+      bkMsg.innerHTML = '';
+      try {
+        const r = await backups.restore(name);
+        const back = Number(r.bookings || 0);
+        bkFlash = `<div class="note ok mb">${icon('check', 18)}<span>${
+          back ? `عاد ${int(back)} ${back === 1 ? 'حجز' : back <= 10 ? 'حجوزات' : 'حجزًا'}`
+               : 'لا شيء ناقص — كل ما في النسخة موجود بالفعل'
+        }${Number(r.receipts_restored) ? ` و${int(r.receipts_restored)} إيصالًا` : ''}.</span></div>`;
+        bkMsg.innerHTML = bkFlash; hydrateIcons(bkMsg);
+        toast('تمّت الاستعادة', 'ok');
+        reload();
+      } catch (e) {
+        bkMsg.innerHTML = note(isOffline(e) ? NET_MSG : e.message);
+      } finally { b.disabled = false; b.textContent = was; }
+    });
+  }
+  drawBackups();
+
+  document.getElementById('bkNew').onclick = async (ev) => {
+    const b = ev.currentTarget; b.disabled = true;
+    const was = b.innerHTML; b.textContent = 'جارٍ أخذ النسخة…'; bkMsg.innerHTML = '';
+    try {
+      const r = await backups.create();
+      const c = r.counts || {};
+      bkFlash = `<div class="note ok mb">${icon('check', 18)}<span>حُفظت النسخة —
+        ${int(c.bookings || 0)} حجز و${int(c.services || 0)} خدمة${
+        r.receipts_total ? ` و${int(r.receipts_copied)} من ${int(r.receipts_total)} إيصال` : ''}.</span></div>`;
+      bkMsg.innerHTML = bkFlash; hydrateIcons(bkMsg);
+      drawBackups();
+    } catch (e) {
+      bkMsg.innerHTML = note(isOffline(e) ? NET_MSG : e.message);
+    } finally { b.disabled = false; b.innerHTML = was; hydrateIcons(b); }
+  };
 
   document.getElementById('btnBackup').onclick = async () => {
     const data = await admin.exportAll();
