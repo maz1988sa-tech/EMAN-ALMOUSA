@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#A9675C">
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/fonts.css?v=16">
-<link rel="stylesheet" href="assets/theme.css?v=16">
+<link rel="stylesheet" href="assets/fonts.css?v=17">
+<link rel="stylesheet" href="assets/theme.css?v=17">
 <style>
   .appbar { position: sticky; top: 0; z-index: 40; background: var(--surface);
             border-bottom: 1px solid var(--line); }
@@ -155,14 +155,14 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=16';
+import { icon, hydrateIcons } from './assets/icons.js?v=17';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
   today, addDays, parseDate, weekday, addMinutes, prettyPhone, telHref, waHref,
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
-  receiptUrl, depositDue, purgeOrphanReceipts,
-} from './assets/db.js?v=16';
+  receiptUrl, purgeOrphanReceipts,
+} from './assets/db.js?v=17';
 
 const view = document.getElementById('view');
 const sheet = document.getElementById('sheet');
@@ -713,6 +713,9 @@ function editService(s) {
         <input class="input ltr" id="s-price" type="number" min="0" inputmode="numeric" value="${Number(s.price)}"></div>
       <div class="field" style="margin:0"><label class="label" for="s-dur">المدة (دقيقة)</label>
         <input class="input ltr" id="s-dur" type="number" min="15" max="600" step="5" inputmode="numeric" value="${Number(s.duration_min)}"></div>
+      <div class="field" style="margin:0"><label class="label" for="s-dep">العربون (ر.س)</label>
+        <input class="input ltr" id="s-dep" type="number" min="0" inputmode="numeric" value="${Number(s.deposit_amount || 0)}">
+        <p class="hint">المبلغ المطلوب لتثبيت الموعد لكل شخص. صفر = بلا عربون.</p></div>
     </div>
     <div class="field"><label class="label" for="s-desc">وصف مختصر <span class="opt">(اختياري)</span></label>
       <input class="input" id="s-desc" value="${esc(s.description || '')}"></div>
@@ -741,13 +744,19 @@ function editService(s) {
     const name = document.getElementById('s-name').value.trim();
     const price = Number(document.getElementById('s-price').value);
     const dur = Number(document.getElementById('s-dur').value);
+    const dep = Number(document.getElementById('s-dep').value);
     const err = document.getElementById('s-err');
     if (name.length < 2) { err.innerHTML = note('اكتبي اسم الخدمة.'); return; }
     if (!(dur >= 15 && dur <= 600)) { err.innerHTML = note('المدة بين 15 و600 دقيقة.'); return; }
     if (!(price >= 0)) { err.innerHTML = note('السعر غير صحيح.'); return; }
     if (price === 0 && !confirm('السعر صفر. هل تريدين المتابعة؟')) return;
+    // القاعدة ترفض عربونًا يتجاوز السعر، فيُقال هنا بلغة مفهومة بدل رسالة خطأ من الخادم.
+    if (!(dep >= 0) || dep > price) {
+      err.innerHTML = note('العربون بين صفر وسعر الخدمة.'); return;
+    }
     await admin.saveService({
       ...(s.id ? { id: s.id } : {}), name, icon: ico, price, duration_min: dur,
+      deposit_amount: dep,
       description: document.getElementById('s-desc').value.trim() || null,
       bookable_by_client: document.getElementById('s-public').checked,
       group_discount: document.getElementById('s-group').checked,
@@ -828,10 +837,12 @@ function renderSettings() {
       <p class="label">العربون والتحويل</p>
       <p class="hint" style="margin-top:0">صفحة الحجز تعرض هذه البيانات للعميلة، ولا يُسجَّل حجز
         قبل رفع صورة التحويل.</p>
-      <div class="field"><label class="label" for="set-dep">نسبة العربون من الإجمالي (%)</label>
-        <input class="input ltr" id="set-dep" type="number" min="0" max="100" step="1" inputmode="numeric"
-               value="${Math.round(Number(s.deposit_rate ?? 0.25) * 100)}">
-        <p class="hint">مثال: 25 يعني حجزًا بـ 1,000 ريال عربونه 250.</p></div>
+      <p class="hint">مبلغ العربون يُوضع بجانب كل خدمة في «الخدمات»، ويُجمع
+        على عدد الأشخاص في الحجز.</p>
+      <label class="choice mb"><input type="checkbox" id="set-ocr" ${s.receipt_ocr_required ? 'checked' : ''}>
+        <span class="grow"><span class="t">افحصي صورة الإيصال قبل قبول الحجز</span>
+        <span class="s">يقرأ النظام الصورة ويرفض الحجز إن لم يجد مبلغ العربون وكلمة تدلّ على تحويل.
+          يحتاج مفتاح قراءة مضبوطًا في الخادم.</span></span></label>
       <div class="field"><label class="label" for="set-bank">اسم البنك</label>
         <input class="input" id="set-bank" placeholder="مثال: مصرف الراجحي"
                value="${esc(s.bank_name || '')}"></div>
@@ -887,10 +898,6 @@ function renderSettings() {
     if (wa && !normalisePhone(wa))  { err.innerHTML = note('رقم واتساب غير صحيح.'); return; }
     if (drv && !normalisePhone(drv)) { err.innerHTML = note('رقم السائق غير صحيح.'); return; }
 
-    const depPct = Number(document.getElementById('set-dep').value);
-    if (!(depPct >= 0 && depPct <= 100)) {
-      err.innerHTML = note('نسبة العربون يجب أن تكون بين 0 و 100.'); return;
-    }
     const grp = Number(document.getElementById('set-grp').value);
     if (!(grp >= 0)) { err.innerHTML = note('مبلغ خصم المجموعة غير صحيح.'); return; }
     // الآيبان يُخزَّن بلا مسافات: SA ثم 22 رقمًا. القاعدة ترفض غير ذلك،
@@ -918,8 +925,8 @@ function renderSettings() {
         max_advance_days: Number(document.getElementById('set-adv').value),
         whatsapp_phone: wa ? normalisePhone(wa) : null,
         driver_phone: drv ? normalisePhone(drv) : null,
-        deposit_rate: depPct / 100,
         group_discount_amount: grp,
+        receipt_ocr_required: document.getElementById('set-ocr').checked,
         bank_name: document.getElementById('set-bank').value.trim() || null,
         iban: ibanRaw || null,
         beneficiary_name: document.getElementById('set-benef').value.trim() || null,
@@ -1032,13 +1039,13 @@ async function openBooking(id) {
     <div class="card mb">
       <p class="label">إيصال العربون</p>
       <p class="hint" style="margin-top:0">أرسلته العميلة قبل تثبيت الحجز. المطلوب حسب الإعدادات:
-        <b>${riyal(depositDue(b.price, S.settings?.deposit_rate))}</b></p>
+        <b>${riyal(Number(b.deposit_due || 0))}</b></p>
       <div id="d-receipt" style="margin-top:8px">
         <button class="btn btn-ghost" id="d-showrec">عرض صورة الإيصال</button>
       </div>
       ${Number(b.deposit) <= 0 ? `
         <button class="btn btn-primary" id="d-gotdep" style="margin-top:10px">
-          تأكيد استلام ${riyal(depositDue(b.price, S.settings?.deposit_rate))}</button>` : ''}
+          تأكيد استلام ${riyal(Number(b.deposit_due || 0))}</button>` : ''}
     </div>` : `
     <div class="card mb">
       <p class="label">إيصال العربون</p>
@@ -1070,7 +1077,7 @@ async function openBooking(id) {
           <span class="s">التفاصيل ورابط المتابعة</span></span></a>
         <a class="choice" href="${waHref(b.client_phone, templates.reminder(b))}" target="_blank" rel="noopener">
           ${icon('bell', 18)}<span class="grow"><span class="t">تذكير قبل الموعد</span></span></a>
-        ${due > 0 ? `<a class="choice" href="${waHref(b.client_phone, templates.deposit(b, S.settings?.deposit_rate))}" target="_blank" rel="noopener">
+        ${due > 0 ? `<a class="choice" href="${waHref(b.client_phone, templates.deposit(b))}" target="_blank" rel="noopener">
           ${icon('riyal', 18)}<span class="grow"><span class="t">طلب العربون</span></span></a>` : ''}
         <a class="choice" href="${waHref(b.client_phone, templates.thanks(b))}" target="_blank" rel="noopener">
           ${icon('heart', 18)}<span class="grow"><span class="t">شكر بعد المناسبة</span></span></a>
@@ -1100,7 +1107,7 @@ async function openBooking(id) {
   if (gotDep) gotDep.onclick = async () => {
     gotDep.disabled = true;
     try {
-      await admin.update(b.id, { deposit: depositDue(b.price, S.settings?.deposit_rate) });
+      await admin.update(b.id, { deposit: Number(b.deposit_due || 0) });
       closeSheet(sheet); toast('سُجّل استلام العربون', 'ok'); reload();
     } catch (e) { gotDep.disabled = false; toast(e.message, 'danger'); }
   };

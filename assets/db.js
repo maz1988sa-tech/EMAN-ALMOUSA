@@ -242,9 +242,31 @@ export async function receiptUrl(path, seconds = 300) {
   return data?.signedUrl || null;
 }
 
-// العربون المطلوب من الإجمالي، بنسبة الإعدادات، مقرَّبًا لأقرب ريال.
+/* العربون: مبلغ ثابت تضعه صاحبة العمل بجانب كل خدمة، يُجمع على من
+   اختارتهم العميلة — عنصر لكل شخص — ولا يتجاوز المستحقّ بعد الخصم.
+   الرقم هنا للعرض فقط؛ الخادم يعيد حسابه من قاعدة البيانات عند الحجز. */
+export const depositFor = (services, dueTotal) => {
+  const sum = (services || []).reduce((n, s) => n + Number(s?.deposit_amount || 0), 0);
+  const cap = Number(dueTotal ?? Infinity);
+  return Math.max(0, Math.min(Math.round(sum), isFinite(cap) ? cap : Math.round(sum)));
+};
+
+/* يُبقى للتوافق مع نسخة قديمة من اللوحة قد تكون مفتوحة في تبويب. */
 export const depositDue = (price, rate) =>
   Math.round(Number(price || 0) * Number(rate ?? 0.25));
+
+/* يطلب من الخادم قراءة صورة الإيصال وتسجيل ما فيها. لا يُرجع حكمًا
+   مُلزِمًا — الحكم في create_booking — لكنه يخبر العميلة مبكرًا إن كانت
+   الصورة لا تصلح، فلا تكتشف ذلك بعد ملء كل شيء. */
+export async function verifyReceipt(path) {
+  try {
+    const { data, error } = await sb.functions.invoke('verify-receipt', { body: { path } });
+    if (error) return { ok: false, reason: 'unreachable' };
+    return data || { ok: false, reason: 'empty' };
+  } catch {
+    return { ok: false, reason: 'unreachable' };
+  }
+}
 
 export async function createBooking(payload) {
   const { data, error } = await sb.rpc('create_booking', {
@@ -469,10 +491,10 @@ export const templates = {
     + `${Number(b.price - b.deposit) > 0 ? `\nالمتبقي: ${riyal(b.price - b.deposit)}` : ''}`
     + `\n\nنراكِ غدًا 💗`,
 
-  // النسبة تأتي من الإعدادات، فلا يفترق ما يقوله القالب عمّا تعرضه الصفحة.
-  deposit: (b, rate) =>
+  // العربون محسوب ومخزَّن مع الحجز، فلا يفترق ما يقوله القالب عمّا في اللوحة.
+  deposit: (b) =>
     `أهلاً ${b.client_name} 🌸\nلتثبيت موعدك بتاريخ ${fmtDate(b.the_date)} الساعة ${fmtTime(b.start_time)}، `
-    + `يلزم عربون ${riyal(depositDue(b.price, rate))} من إجمالي ${riyal(b.price)}.\n\nشاكرين لكِ 💗`,
+    + `يلزم عربون ${riyal(Number(b.deposit_due || 0))} من إجمالي ${riyal(b.price)}.\n\nشاكرين لكِ 💗`,
 
   thanks: (b) =>
     `شكرًا لثقتك ${b.client_name} 🌸\nسعدنا بخدمتك اليوم.\n\n`

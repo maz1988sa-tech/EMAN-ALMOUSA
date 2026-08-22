@@ -10,10 +10,10 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <!-- ?v= يطابق VERSION في sw.js: بدونه يخدم متصفح العميلة نسخة CSS
      القديمة من ذاكرته بعد كل نشر، فتظهر الواجهة كما كانت. -->
-<link rel="stylesheet" href="assets/fonts.css?v=16">
+<link rel="stylesheet" href="assets/fonts.css?v=17">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=16">
+<link rel="stylesheet" href="assets/client-theme.css?v=17">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -223,7 +223,7 @@
           <div class="c-pair" data-anim="4">
             <a class="arch" href="#" data-link="tiktok">
               <span class="a-row"><span class="a-ic">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 3.5v10.2a3.3 3.3 0 1 1-2.4-3.17"/><path d="M14.5 3.5c.5 2.2 2 3.5 4.2 3.7"/></svg>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.62 5.82A4.28 4.28 0 0 1 15.56 3h-3.1v12.4a2.59 2.59 0 1 1-1.82-2.47V9.72a5.78 5.78 0 1 0 4.92 5.71V8.9a7.33 7.33 0 0 0 4.28 1.37V7.19a4.28 4.28 0 0 1-3.22-1.37Z"/></svg>
               </span><b>تيك توك</b></span>
               <i>TIKTOK</i><em></em>
               <small>تابعي المقاطع ونصائح الجمال</small>
@@ -339,6 +339,7 @@
           </button>
           <input id="rcptFile" type="file" hidden>
 
+          <p class="rcpt-chk" id="rcptChk" hidden></p>
           <div class="rcpt-prev" id="rcptPrev" hidden>
             <img id="rcptImg" alt="" src="">
             <span class="rcpt-pdf" id="rcptPdf" hidden>PDF</span>
@@ -387,9 +388,9 @@ import {
   getPublicSettings, getServices, getDaysWithAvailability, getAvailableSlots,
   createBooking, getBookingByToken, requestCancel,
   fmtDate, fmtDuration, money, riyal, esc,
-  uploadReceipt, depositDue, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
+  uploadReceipt, depositFor, verifyReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
-} from './assets/db.js?v=16';
+} from './assets/db.js?v=17';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -936,7 +937,14 @@ function gate() {
   });
   toPayBtn.disabled = !(mapOk && reqOk) || state.busy;
   // الحجز مرفوض من الخادم بلا إيصال، فلا معنى لزرّ إرسال قبل اختيار ملف.
-  sendBtn.disabled = !state.receiptFile || state.busy;
+  // ومتى كان الفحص مفعّلًا في الإعدادات لم يُفتح الإرسال على صورة رفضها الفحص:
+  // الخادم سيرفضها على كل حال، فمنعها هنا يوفّر على العميلة محاولة خاسرة.
+  const c = state.receiptCheck;
+  const scanBad = !!state.settings?.receipt_ocr_required && !!c && c.ok !== false
+    && (!c.skipped) && (!c.keywords?.length
+      || (Number(state.depositDue || 0) > 0
+          && !(c.numbers || []).some((n) => Number(n) >= Number(state.depositDue))));
+  sendBtn.disabled = !state.receiptPath || state.busy || scanBad;
 }
 [loc, phone, nameIn, district].forEach((e) => { e.addEventListener('input', gate); e.addEventListener('blur', gate); });
 phone.addEventListener('input', unifyPhone);
@@ -959,7 +967,8 @@ function showPane(name) {
 function paintPay() {
   const cfg = state.settings || {};
   const total = totalPrice();
-  const due = depositDue(total, cfg.deposit_rate);
+  const due = depositFor(flatPicked(), total);
+  state.depositDue = due;
   el('payAmt').innerHTML = `${money(due)}<i class="rs"></i>`;
   el('payTotal').innerHTML = `${money(total)}<i class="rs"></i>`;
 
@@ -986,7 +995,8 @@ function paintPay() {
 }
 
 function clearReceipt() {
-  state.receiptFile = null; state.receiptPath = null;
+  state.receiptFile = null; state.receiptPath = null; state.receiptCheck = null;
+  el('rcptChk').hidden = true;
   if (state.receiptPreview) { URL.revokeObjectURL(state.receiptPreview); state.receiptPreview = null; }
   rcptInput.value = '';
   rcptPrev.hidden = true; dropBtn.hidden = false;
@@ -997,6 +1007,63 @@ const kb = (n) => (n < 1024 * 1024 ? `\u2066${Math.round(n / 1024)} KB\u2069` : 
 
 dropBtn.addEventListener('click', () => rcptInput.click());
 el('rcptClear').addEventListener('click', clearReceipt);
+/* مزوّد القراءة يرفض ما تجاوز ميجابايت، ولقطة شاشة الجوال قد تتجاوزه.
+   تُصغَّر هنا قبل الرفع: أسرع في الرفع، وتبقى الأرقام مقروءة. */
+const OCR_MAX = 1024 * 1024;
+async function shrinkForOcr(file) {
+  if (file.type === 'application/pdf' || file.size <= OCR_MAX) return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
+    cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+    for (const q of [0.85, 0.7, 0.55]) {
+      const blob = await new Promise((r) => cv.toBlob(r, 'image/jpeg', q));
+      if (blob && blob.size <= OCR_MAX) {
+        return new File([blob], 'receipt.jpg', { type: 'image/jpeg' });
+      }
+    }
+  } catch { /* تعذّر التصغير: يُرفع الأصل ويتكفّل الخادم بالباقي */ }
+  return file;
+}
+
+/* يُرفع الإيصال ويُفحص فور اختياره لا عند الإرسال: تعرف العميلة أن الصورة
+   لا تصلح وهي واقفة عندها، لا بعد أن تضغط إرسال. */
+function chk(kind, text) {
+  const box = el('rcptChk');
+  box.className = `rcpt-chk ${kind}`;
+  box.textContent = text;
+  box.hidden = !text;
+}
+async function uploadAndCheck() {
+  const need = Number(state.depositDue || 0);
+  chk('wait', 'جارٍ رفع الإيصال وفحصه…');
+  gate();
+  try {
+    const file = await shrinkForOcr(state.receiptFile);
+    state.receiptPath = await uploadReceipt(file);
+  } catch (e) {
+    state.receiptCheck = null; chk('bad', e.message || 'تعذّر رفع الإيصال');
+    gate(); return;
+  }
+  const r = await verifyReceipt(state.receiptPath);
+  state.receiptCheck = r;
+  if (!r || r.skipped || r.reason === 'unreachable' || r.reason === 'ocr_failed') {
+    // الفحص لم يعمل؛ لا نمنع من هنا — الخادم هو من يقرّر عند الإرسال.
+    chk('ok', 'تم رفع الإيصال');
+  } else if (r.reason === 'too_large') {
+    chk('bad', 'حجم الصورة كبير على الفحص — أرفقي لقطة شاشة أصغر');
+  } else if (!r.keywords?.length) {
+    chk('bad', 'الصورة لا تبدو إيصال تحويل — أرفقي إشعار التحويل من تطبيق البنك');
+  } else if (need > 0 && !(r.numbers || []).some((n) => Number(n) >= need)) {
+    chk('bad', `لم نجد مبلغ العربون (${money(need)} ﷼) في الصورة — تأكدي من وضوحها`);
+  } else {
+    chk('ok', 'تم التحقق من الإيصال');
+  }
+  gate();
+}
+
 rcptInput.addEventListener('change', () => {
   const f = rcptInput.files && rcptInput.files[0];
   if (!f) return;
@@ -1019,6 +1086,7 @@ rcptInput.addEventListener('change', () => {
   el('rcptSize').textContent = kb(f.size);
   rcptPrev.hidden = false; dropBtn.hidden = true;
   gate();
+  uploadAndCheck();
 });
 
 el('copyIban').addEventListener('click', async function copyIban() {
@@ -1042,9 +1110,10 @@ async function submit() {
   const label = sendBtn.querySelector('span'); const was = label.textContent;
   el('payErr').hidden = true;
   try {
-    if (!state.receiptPath) {
+    if (!state.receiptPath) {          // الرفع تمّ عند الاختيار؛ هذه شبكة أمان
       label.textContent = 'جارٍ رفع الإيصال…';
-      state.receiptPath = await uploadReceipt(state.receiptFile);
+      state.receiptPath = await uploadReceipt(await shrinkForOcr(state.receiptFile));
+      await verifyReceipt(state.receiptPath);
     }
     label.textContent = 'جارٍ الإرسال…';
     const result = await createBooking({
@@ -1326,6 +1395,7 @@ window.__sheet = () => openSheetPanel();
 window.__money = () => ({ sub: subtotal(), disc: groupDiscount(),
                           total: totalPrice(), people: discountPeople() });
 window.__setDisc = (v) => { state.settings.group_discount_amount = v; renderServices(); renderCart(); };
+window.__state = () => state;
 </script>
 </body>
 </html>

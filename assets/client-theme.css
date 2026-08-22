@@ -313,7 +313,16 @@ button{border:0;background:none;cursor:pointer}
 .drop-ic{color:var(--clay)}
 .drop-t{font-size:13px;font-weight:500}
 .drop-s{font-size:10px;color:var(--muted)}
-.drop[hidden],.rcpt-prev[hidden],.mpick[hidden]{display:none}
+/* حالة فحص الإيصال: ينتظر، أو يطمئن، أو يقول ما الخطب بالضبط. */
+.rcpt-chk{margin:0 2px 8px;font-size:11.5px;line-height:1.65;display:flex;align-items:center;gap:7px}
+.drop[hidden],.rcpt-chk[hidden]{display:none}   /* display:grid/flex يبطلان hidden لولا هذا */
+.rcpt-chk::before{content:"";flex:0 0 auto;width:7px;height:7px;border-radius:50%;background:currentColor}
+.rcpt-chk.wait{color:var(--muted)}
+.rcpt-chk.wait::before{animation:chkPulse 1.1s ease-in-out infinite}
+.rcpt-chk.ok{color:var(--clay)}
+.rcpt-chk.bad{color:#a8493f}
+@keyframes chkPulse{0%,100%{opacity:.25}50%{opacity:1}}
+.rcpt-prev[hidden],.mpick[hidden]{display:none}
 .rcpt-prev{display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:center;padding:10px;border:1px solid var(--line-l);background:rgba(255,255,255,.62)}
 .rcpt-prev img{width:54px;height:54px;object-fit:cover;border-radius:4px}
 .rcpt-prev img[hidden]{display:none}
@@ -369,12 +378,12 @@ button{border:0;background:none;cursor:pointer}
 .c-pair{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 .arch[hidden]{display:none}
 .c-pair:has(.arch[hidden]){grid-template-columns:1fr}
-.arch{position:relative;min-height:180px;padding:16px 15px 18px;border-radius:90px 90px 14px 14px;
+.arch{position:relative;min-height:180px;padding:34px 15px 18px;border-radius:78px 78px 14px 14px;
       background:#fdfbf8;border:1px solid rgba(43,28,22,.08);box-shadow:0 12px 30px rgba(75,48,39,.08);
       display:flex;flex-direction:column;justify-content:flex-end;text-align:start;text-decoration:none;color:var(--ink)}
-.a-row{display:flex;align-items:center;gap:10px}
-.a-ic{flex:0 0 auto;width:36px;height:36px;border:1px solid rgba(43,28,22,.2);border-radius:50%;display:grid;place-items:center;color:#3b241c}
-.arch b{display:block;font-size:17px;font-weight:500}
+.a-row{display:flex;align-items:center;justify-content:center;gap:9px}
+.a-ic{flex:0 0 auto;width:33px;height:33px;border:1px solid rgba(43,28,22,.2);border-radius:50%;display:grid;place-items:center;color:#3b241c}
+.arch b{font-size:16px;font-weight:500;white-space:nowrap}
 .arch i{display:block;direction:ltr;margin-top:7px;font:500 10px/1 var(--serif);font-style:normal;letter-spacing:.3em;color:#a06f5c}
 .arch em{display:block;height:1px;margin:11px 0;background:rgba(43,28,22,.1)}
 .arch small{display:block;font-size:10.5px;line-height:1.75;color:var(--muted)}
@@ -454,6 +463,13 @@ button{border:0;background:none;cursor:pointer}
 @media (max-height:780px){
   .pane[data-pane="form"] .eyebrow{display:none}
   .pane[data-pane="form"] .grow{padding-block:12px;gap:10px}
+  .pane[data-pane="pay"] .eyebrow{display:none}
+  .pane[data-pane="pay"] .grow{padding-block:9px;gap:8px}
+  /* الإيصال المرفق يضيف بطاقة معاينة وسطر فحص، فتُشذَّب الصفوف حوله */
+  .bank .row{padding:6px 14px}
+  .summary .row{padding:6px 14px}
+  .rcpt-prev{padding:8px;grid-template-columns:46px 1fr auto}
+  .rcpt-prev img{width:46px;height:46px}
   .field{padding:9px 14px 10px}
   .recap{padding:11px 14px;gap:6px}
   .ticket .note,.screen .note{display:none}
@@ -489,7 +505,13 @@ button{border:0;background:none;cursor:pointer}
   .arts.pair .art{width:106px;height:130px;border-radius:53px 53px 6px 6px}
   .arts .art{width:112px;height:134px;border-radius:56px 56px 6px 6px}
   .pane[data-pane="pay"] .sub-line{display:none}
-  .pane[data-pane="pay"] .grow{gap:8px}
+  .pane[data-pane="pay"] .grow{gap:6px;padding-block:6px}
+  .pane[data-pane="pay"] .title{font-size:25px}
+  .ref-card{padding:8px 14px}
+  .rcpt-chk{margin-bottom:5px}
+  .bank .row{padding:6px 14px}
+  .summary .row{padding:6px 14px}
+  .drop{padding:9px 14px}
   .rcpt-prev{padding:8px}
   .rcpt-prev img{width:46px;height:46px}
 }
