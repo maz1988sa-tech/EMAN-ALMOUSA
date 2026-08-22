@@ -144,7 +144,9 @@ button{border:0;background:none;cursor:pointer}
    يُقرأ من نظرة — هو سبب نزول الرقم فوقه. */
 /* الوسم <small> داخل الشريط مضبوط على 10px بانتقائية أعلى، فيُطابَق هنا
    بنفس العمق وإلا بقي السطر صغيرًا. */
-.svc-cart .cart-off{display:block;margin-top:5px;font-size:14px;font-weight:500;
+.svc-cart .cart-off{grid-column:1/-1;display:block;margin-top:9px;padding-top:8px;
+  border-top:1px solid rgba(255,255,255,.15);
+  font-size:17px;font-weight:500;line-height:1.3;
   color:var(--blush);transform-origin:right center}
 .svc-cart .cart-off[hidden]{display:none}
 /* يظهر بقفزة تلفت العين ثم يستقرّ — يُشغَّل عند أول ظهور وعند تغيّر المبلغ. */
@@ -159,7 +161,7 @@ button{border:0;background:none;cursor:pointer}
 
 .cart-go{height:46px;padding:0 20px;border-radius:999px;background:#fff;color:var(--ink);font-size:12.5px;display:flex;align-items:center;gap:10px;transition:transform .18s ease}
 .cart-go:active{transform:scale(.97)}
-.svc-screen.has-cart .svc-inner{padding-bottom:calc(var(--gut) + 104px + env(safe-area-inset-bottom))}
+.svc-screen.has-cart .svc-inner{padding-bottom:calc(var(--gut) + var(--cart-h,89px) + 15px + env(safe-area-inset-bottom))}
 .svc-progress{position:absolute;z-index:4;top:calc(var(--bar) + 4px);inset-inline:24px;display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
 .svc-progress i{display:block;height:2px;background:rgba(255,255,255,.22);transition:background .3s ease}
 .svc-progress i.on{background:var(--clay-2)}

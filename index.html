@@ -10,10 +10,10 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <!-- ?v= يطابق VERSION في sw.js: بدونه يخدم متصفح العميلة نسخة CSS
      القديمة من ذاكرته بعد كل نشر، فتظهر الواجهة كما كانت. -->
-<link rel="stylesheet" href="assets/fonts.css?v=14">
+<link rel="stylesheet" href="assets/fonts.css?v=15">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=14">
+<link rel="stylesheet" href="assets/client-theme.css?v=15">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -59,12 +59,14 @@
       <button class="arrow l" id="svcNext" type="button" aria-label="التالي"><svg width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M8 1 1.5 7.5 8 14" stroke="currentColor" stroke-width="1.2"/></svg></button>
       <button class="arrow r" id="svcPrev" type="button" aria-label="السابق" disabled><svg width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="m1 1 6.5 6.5L1 14" stroke="currentColor" stroke-width="1.2"/></svg></button>
       <div class="svc-cart" id="svcCart">
-        <div><small id="cartMeta"></small><b><span id="cartTotal">0</span><i class="rs"></i></b>
-          <small class="cart-off" id="cartOff" hidden>تم تطبيق الخصم
-            (<span dir="ltr"><span id="cartOffVal">0</span><i class="rs"></i></span>)</small></div>
+        <div><small id="cartMeta"></small><b><span id="cartTotal">0</span><i class="rs"></i></b></div>
         <button class="cart-go" type="button" id="cartGo">متابعة
           <svg width="18" height="12" viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M17 6H1m5 5L1 6l5-5" stroke="currentColor" stroke-width="1.1"/></svg>
         </button>
+        <!-- سطر الخصم يمتدّ على عرض الشريط كاملًا لا داخل عمود السعر:
+             بحجم 17 لا يسع نصفَ الشريط، ولأنه خبر عن الحجز كلّه لا عن الرقم وحده. -->
+        <small class="cart-off" id="cartOff" hidden>تم تطبيق خصم المجموعة
+          (<span dir="ltr"><span id="cartOffVal">0</span><i class="rs"></i></span>)</small>
       </div>
     </section>
 
@@ -387,7 +389,7 @@ import {
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositDue, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
-} from './assets/db.js?v=14';
+} from './assets/db.js?v=15';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -682,6 +684,18 @@ function renderCart() {
   }
 }
 el('cartGo').addEventListener('click', () => go(2));
+
+/* ارتفاع الشريط يتغيّر بتغيّر محتواه (سطر الخصم قد يلتفّ سطرين على الشاشات
+   الضيّقة)، فبدل رقم ثابت في CSS يُقاس الشريط ويُبلَّغ به التنسيق — فتبقى
+   بطاقة الخدمة فوقه دائمًا مهما طال نصّه. */
+{
+  const bar = el('svcCart');
+  const publish = () => document.documentElement.style
+    .setProperty('--cart-h', `${Math.ceil(bar.getBoundingClientRect().height)}px`);
+  publish();
+  if (window.ResizeObserver) new ResizeObserver(publish).observe(bar);
+  else window.addEventListener('resize', publish);
+}
 
 /* ════════════════════════════════════════════════════════════════════════
    شاشة التاريخ والوقت — الأيام والأوقات من قاعدة البيانات
