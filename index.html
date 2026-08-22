@@ -10,10 +10,10 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <!-- ?v= يطابق VERSION في sw.js: بدونه يخدم متصفح العميلة نسخة CSS
      القديمة من ذاكرته بعد كل نشر، فتظهر الواجهة كما كانت. -->
-<link rel="stylesheet" href="assets/fonts.css?v=22">
+<link rel="stylesheet" href="assets/fonts.css?v=23">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=22">
+<link rel="stylesheet" href="assets/client-theme.css?v=23">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -273,7 +273,7 @@
         </div>
         <div class="grow">
           <div class="fields">
-            <div class="field"><label for="nm">الاسم الكامل<i class="req" aria-hidden="true"></i></label><input id="nm" type="text" autocomplete="name" required aria-required="true" placeholder="مثال: نورة العتيبي"></div>
+            <div class="field"><label for="nm">الاسم الكامل<i class="req" aria-hidden="true"></i></label><input id="nm" type="text" autocomplete="name" required aria-required="true" placeholder="مثال: إيمان آل موسى"></div>
             <div class="field phone">
               <div><label for="ph">رقم الجوال<i class="req" aria-hidden="true"></i></label><input id="ph" type="tel" inputmode="numeric" autocomplete="tel" required aria-required="true" placeholder="05X XXX XXXX"></div>
               <span class="pre">+966</span>
@@ -390,7 +390,7 @@ import {
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositFor, verifyReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
-} from './assets/db.js?v=22';
+} from './assets/db.js?v=23';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
