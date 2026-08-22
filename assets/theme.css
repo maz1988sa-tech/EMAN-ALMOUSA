@@ -474,3 +474,9 @@ select.input {
 .bar.muted .fill{background:var(--line-2)}
 .bar.ok .fill{background:var(--ok)}
 .bar.bad .fill{background:var(--danger)}
+
+/* سطر السعر الخاص: يظهر تحت الخدمة متى اختيرت، ويختفي متى صفّرت. */
+.priceline{display:flex;align-items:center;gap:10px;padding:0 0 10px;margin-top:-4px}
+.priceline .label{margin:0;flex:1}
+.priceline .input{width:110px;min-height:38px;padding:7px 10px;text-align:center}
+.priceline[hidden]{display:none}

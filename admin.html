@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#2b1c16">
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/fonts.css?v=24">
-<link rel="stylesheet" href="assets/theme.css?v=24">
+<link rel="stylesheet" href="assets/fonts.css?v=25">
+<link rel="stylesheet" href="assets/theme.css?v=25">
 <style>
   .appbar { position: sticky; top: 0; z-index: 40; background: var(--surface);
             border-bottom: 1px solid var(--line); }
@@ -158,14 +158,14 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=24';
+import { icon, hydrateIcons } from './assets/icons.js?v=25';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
   today, addDays, parseDate, weekday, addMinutes, prettyPhone, telHref, waHref,
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
   receiptUrl, purgeOrphanReceipts,
-} from './assets/db.js?v=24';
+} from './assets/db.js?v=25';
 
 const view = document.getElementById('view');
 const sheet = document.getElementById('sheet');
@@ -1578,9 +1578,14 @@ function openEdit(b) {
   items.forEach((i) => { if (i.service_id) counts[i.service_id] = (counts[i.service_id] || 0) + 1; });
   /* عناصر تشير إلى خدمة حُذفت أو أُخفيت لا تظهر في العدّادات. لو استُبدلت
      القائمة عندئذٍ ضاعت خدمات الحجز، فتُترك كما هي ما لم تُلمس العدّادات. */
+  /* السعر المحفوظ لكل خدمة يعود كما هو، فتعديلٌ في الموعد لا يمحو سعرًا
+     خاصًّا اتُّفق عليه. */
+  const saved = {};
+  items.forEach((i) => { if (i.service_id && saved[i.service_id] === undefined) saved[i.service_id] = Number(i.price); });
   const mapped = Object.values(counts).reduce((n, v) => n + v, 0);
   const orphan = items.length - mapped;
-  const origKey = Object.entries(counts).sort().map(([k, v]) => `${k}:${v}`).join(',');
+  const origKey = Object.entries(counts).sort()
+    .map(([k, v]) => `${k}:${v}@${Number(saved[k] ?? 0)}`).join(',');
 
   showSheet(`تعديل — ${b.client_name}`, `
     <div class="field"><label class="label" for="e-name">اسم العميلة</label>
@@ -1608,10 +1613,17 @@ function openEdit(b) {
               <span class="val" data-ev="${esc(sv.id)}">${int(counts[sv.id] || 0)}</span>
               <button type="button" data-ed="+" data-sid="${esc(sv.id)}" aria-label="زيادة">+</button>
             </span>
+          </div>
+          <div class="priceline" data-ep="${esc(sv.id)}" ${counts[sv.id] ? '' : 'hidden'}>
+            <label class="label" for="ep-${esc(sv.id)}">سعر خاص لكل شخص</label>
+            <input class="input ltr" id="ep-${esc(sv.id)}" data-eprice="${esc(sv.id)}"
+                   type="number" min="0" inputmode="numeric"
+                   value="${Number(saved[sv.id] ?? sv.price)}">
           </div>`).join('')}
       </div>
       <div class="leader" style="margin-top:8px"><span class="k">الإجمالي بعد التعديل</span>
         <span class="d"></span><span class="v" id="e-sum">—</span></div>
+      <p class="hint" id="e-disc" hidden style="color:var(--rose)"></p>
       <p class="hint" id="e-dur">—</p>
       ${orphan > 0 ? `<div class="note warn" style="margin-top:10px">${icon('clock', 18)}
         <span>${int(orphan)} من خدمات هذا الحجز لم تعد في قائمة الخدمات النشطة، فلا تظهر أعلاه.
@@ -1635,13 +1647,29 @@ function openEdit(b) {
   const g = (id) => document.getElementById(id);
   const readCounts = () => Object.fromEntries(svcs.map((sv) =>
     [sv.id, Number(document.querySelector(`[data-ev="${CSS.escape(sv.id)}"]`).textContent) || 0]));
+  const ePrice = (sv) => {
+    const el = document.querySelector(`[data-eprice="${CSS.escape(sv.id)}"]`);
+    const v = Number(el?.value);
+    return isFinite(v) && v >= 0 ? v : Number(saved[sv.id] ?? sv.price);
+  };
   function recompute() {
     const c = readCounts();
-    let total = 0, dur = 0, n = 0;
-    svcs.forEach((sv) => { total += sv.price * c[sv.id]; dur += sv.duration_min * c[sv.id]; n += c[sv.id]; });
-    g('e-sum').textContent = n ? `${money(total)} ر.س` : '—';
+    let total = 0, dur = 0, n = 0, grp = 0;
+    svcs.forEach((sv) => {
+      total += ePrice(sv) * c[sv.id]; dur += sv.duration_min * c[sv.id]; n += c[sv.id];
+      if (sv.group_discount) grp += c[sv.id];
+      const box = document.querySelector(`[data-ep="${CSS.escape(sv.id)}"]`);
+      if (box) box.hidden = c[sv.id] === 0;
+    });
+    const per = Number(S.settings?.group_discount_amount || 0);
+    const disc = (per > 0 && grp >= 2) ? Math.min(per * grp, total) : 0;
+    g('e-sum').textContent = n ? `${money(total - disc)} ر.س` : '—';
+    const dline = g('e-disc');
+    dline.hidden = !disc;
+    if (disc) dline.textContent = `خصم المجموعة (${int(grp)} أشخاص) −${money(disc)} ر.س`;
     g('e-dur').textContent = n ? `${int(n)} خدمة · ${fmtDuration(Math.max(dur, 15))}` : 'اختاري خدمة واحدة على الأقل.';
   }
+  document.querySelectorAll('[data-eprice]').forEach((el) => el.oninput = recompute);
   document.querySelectorAll('[data-ed]').forEach((btn) => btn.onclick = () => {
     const cell = document.querySelector(`[data-ev="${CSS.escape(btn.dataset.sid)}"]`);
     const next = Math.max(0, Math.min(12, Number(cell.textContent) + (btn.dataset.ed === '+' ? 1 : -1)));
@@ -1665,16 +1693,19 @@ function openEdit(b) {
     if (map && !/^https:\/\/\S+$/i.test(map)) { err.innerHTML = note('رابط الخريطة يجب أن يبدأ بـ https://'); return; }
     err.innerHTML = '';
     const btn = g('e-save'); btn.disabled = true; btn.textContent = 'جارٍ الحفظ…';
-    const nowKey = Object.entries(c).filter(([, v]) => v > 0).sort().map(([k, v]) => `${k}:${v}`).join(',');
+    const nowKey = Object.entries(c).filter(([, v]) => v > 0).sort()
+      .map(([k, v]) => `${k}:${v}@${ePrice(svcs.find((sv) => sv.id === k))}`).join(',');
     try {
       // لا تُستبدل العناصر إلا إذا تغيّرت فعلًا: تصحيح رقم جوال لا يصحّ أن
       // يعيد بناء خدمات الحجز.
       if (nowKey !== origKey) await admin.replaceItems(b.id, chosen.map((sv) => ({
         service_id: sv.id, service_name: sv.name, service_icon: sv.icon,
-        price: sv.price, duration_min: sv.duration_min,
+        price: ePrice(sv), duration_min: sv.duration_min,
         group_discount: sv.group_discount, deposit_amount: sv.deposit_amount || 0,
       })));
       await admin.update(b.id, {
+        ...(nowKey !== origKey
+          ? { discount_per_person: Number(S.settings?.group_discount_amount || 0) } : {}),
         client_name: name, client_phone: phone, the_date: date,
         start_time: time.length === 5 ? `${time}:00` : time,
         loc_text: g('e-loc').value.trim() || null,
@@ -1730,10 +1761,16 @@ function openNewBooking() {
               <span class="val" data-nv="${esc(sv.id)}">0</span>
               <button type="button" data-nd="+" data-sid="${esc(sv.id)}" aria-label="زيادة">+</button>
             </span>
+          </div>
+          <div class="priceline" data-np="${esc(sv.id)}" hidden>
+            <label class="label" for="np-${esc(sv.id)}">سعر خاص لكل شخص</label>
+            <input class="input ltr" id="np-${esc(sv.id)}" data-nprice="${esc(sv.id)}"
+                   type="number" min="0" inputmode="numeric" value="${Number(sv.price)}">
           </div>`).join('')}
       </div>
       <div class="leader" style="margin-top:8px"><span class="k">الإجمالي</span>
         <span class="d"></span><span class="v" id="n-sum">—</span></div>
+      <p class="hint" id="n-disc" hidden style="color:var(--rose)"></p>
       <p class="hint" id="n-dur">اختاري خدمة واحدة على الأقل.</p>
     </div>
     <div class="split mb">
@@ -1755,17 +1792,36 @@ function openNewBooking() {
   const gn = (id) => document.getElementById(id);
   const nCounts = () => Object.fromEntries(svcs.map((sv) =>
     [sv.id, Number(document.querySelector(`[data-nv="${CSS.escape(sv.id)}"]`).textContent) || 0]));
+  // السعر المكتوب يعلو على سعر القائمة — أحيانًا تعطي زوجتك سعرًا خاصًا.
+  const nPrice = (sv) => {
+    const el = document.querySelector(`[data-nprice="${CSS.escape(sv.id)}"]`);
+    const v = Number(el?.value);
+    return isFinite(v) && v >= 0 ? v : Number(sv.price);
+  };
   function nRecompute() {
     const c = nCounts();
-    let total = 0, dur = 0, n = 0;
-    svcs.forEach((sv) => { total += sv.price * c[sv.id]; dur += sv.duration_min * c[sv.id]; n += c[sv.id]; });
-    gn('n-sum').textContent = n ? `${money(total)} ر.س` : '—';
+    let total = 0, dur = 0, n = 0, grp = 0;
+    svcs.forEach((sv) => {
+      const q = c[sv.id];
+      total += nPrice(sv) * q; dur += sv.duration_min * q; n += q;
+      if (sv.group_discount) grp += q;
+      const box = document.querySelector(`[data-np="${CSS.escape(sv.id)}"]`);
+      if (box) box.hidden = q === 0;
+    });
+    // نفس قاعدة صفحة العميلة: من شخصين فأكثر على الخدمات المؤهَّلة.
+    const per = Number(S.settings?.group_discount_amount || 0);
+    const disc = (per > 0 && grp >= 2) ? Math.min(per * grp, total) : 0;
+    gn('n-sum').textContent = n ? `${money(total - disc)} ر.س` : '—';
+    const dline = gn('n-disc');
+    dline.hidden = !disc;
+    if (disc) dline.textContent = `خصم المجموعة (${int(grp)} أشخاص) −${money(disc)} ر.س`;
     const t = gn('n-time').value;
     const ends = (n && t) ? ` · ينتهي ${fmtTime(addMinutes(t, dur).time)}` : '';
     gn('n-dur').textContent = n
       ? `${int(n)} شخص · ${fmtDuration(Math.max(dur, 15))}${ends}`
       : 'اختاري خدمة واحدة على الأقل.';
   }
+  document.querySelectorAll('[data-nprice]').forEach((el) => el.oninput = nRecompute);
   document.querySelectorAll('[data-nd]').forEach((btn) => btn.onclick = () => {
     const cell = document.querySelector(`[data-nv="${CSS.escape(btn.dataset.sid)}"]`);
     const next = Math.max(0, Math.min(12, Number(cell.textContent) + (btn.dataset.nd === '+' ? 1 : -1)));
@@ -1797,10 +1853,12 @@ function openNewBooking() {
         duration_min: Math.max(dur, 15), status: 'confirmed',
         loc_text: gn('n-loc').value.trim() || null,
         loc_map: map || null,
+        // بدونه يبقى صفرًا فلا يُطبَّق خصم المجموعة على الحجز اليدوي.
+        discount_per_person: Number(S.settings?.group_discount_amount || 0),
         confirmed_at: new Date().toISOString(),
       }, chosen.map((sv) => ({
         service_id: sv.id, service_name: sv.name, service_icon: sv.icon,
-        price: sv.price, duration_min: sv.duration_min,
+        price: nPrice(sv), duration_min: sv.duration_min,
         group_discount: sv.group_discount, deposit_amount: sv.deposit_amount || 0,
       })));
       closeSheet(sheet); toast('حُفظ الحجز', 'ok'); reload();

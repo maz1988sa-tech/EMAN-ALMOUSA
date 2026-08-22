@@ -285,3 +285,12 @@ alter table public.receipt_scans
   add column if not exists error    text,
   add column if not exists iban_hit boolean not null default false,
   add column if not exists raw_text text;
+
+-- ملحق: صلاحية دوال المُشغِّلات لدور اللوحة.
+-- المُشغِّل يعمل بصلاحية من استدعى الجدول. حجز العميلة يمرّ عبر دالّة
+-- SECURITY DEFINER فينجو، أمّا إدخال اللوحة المباشر فيصطدم بأوّل مُشغِّل.
+grant execute on function public.gen_booking_ref()          to authenticated;
+grant execute on function public.bookings_set_ref()         to authenticated;
+grant execute on function public.bookings_apply_override()  to authenticated;
+grant execute on function public.booking_items_sync()       to authenticated;
+grant execute on function public.recalc_booking(uuid)       to authenticated;
