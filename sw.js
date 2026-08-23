@@ -9,7 +9,7 @@
    gone, the page's own error state explains it.
 */
 
-const VERSION = 'v27';
+const VERSION = 'v28';
 const SHELL = `shell-${VERSION}`;
 
 const ASSETS = [
@@ -27,7 +27,6 @@ const ASSETS = [
   './assets/vendor/supabase.js',
   './assets/favicon.svg',
   './assets/favicon-admin.svg',
-  './assets/brand-identity.jpg',
   './assets/icon-192.svg',
   './assets/icon-512.svg',
   './assets/icon-admin-192.svg',
