@@ -140,8 +140,10 @@ body {
 h1, h2, h3, h4 { margin: 0; font-weight: 700; text-wrap: balance; }
 h1 { font-family: var(--ft); font-weight: 200; font-size: clamp(25px, 5.5vw, 31px);
      letter-spacing: -.02em; line-height: 1.35; }
-h2 { font-family: var(--fd); font-size: 19px; }
-h3 { font-family: var(--fd); font-size: 16.5px; }
+/* اللوحة أداةٌ تُقرأ سريعًا لا وثيقةٌ تُتأمَّل: عناوينها بخطّ التبويبات نفسه
+   فتبدو الشاشة نظامًا واحدًا. الخطّ النسخيّ يبقى لصفحة العميلة وحدها. */
+h2 { font-family: var(--ft); font-weight: 700; font-size: 18px; letter-spacing: -.01em; }
+h3 { font-family: var(--ft); font-weight: 700; font-size: 16px; letter-spacing: -.005em; }
 p  { margin: 0; }
 a  { color: var(--rose-deep); }
 
