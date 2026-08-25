@@ -54,7 +54,7 @@
 :root, [data-time="dawn"] {
   --sky-a:#F9E7D8; --sky-b:#F2D9CF; --sky-c:#DCE1E7;
   --hill-1:#E4CFC0; --hill-2:#D3BCAF; --hill-3:#BFA79A;
-  --glass:rgba(255,255,255,.34); --glass-2:rgba(255,255,255,.22);
+  --glass:rgba(255,255,255,.56); --glass-2:rgba(255,255,255,.40);
   --glass-line:rgba(255,255,255,.72); --glass-sh:0 16px 40px rgba(88,58,44,.13);
 }
 [data-time="noon"] {
@@ -65,7 +65,7 @@
   --rose:#AE6E45; --rose-deep:#8E5734;
   --ink:#33261D; --ink-2:#6B5A48; --ink-3:#94836F;
   --line:rgba(51,38,29,.10); --line-2:rgba(51,38,29,.18);
-  --glass:rgba(255,255,255,.36); --glass-2:rgba(255,255,255,.23);
+  --glass:rgba(255,255,255,.58); --glass-2:rgba(255,255,255,.42);
   --glass-line:rgba(255,255,255,.78); --glass-sh:0 16px 40px rgba(90,70,44,.14);
 }
 [data-time="dusk"] {
@@ -76,7 +76,7 @@
   --rose:#A8482F; --rose-deep:#8B3722;
   --ink:#33201E; --ink-2:#6A4640; --ink-3:#8E655C;
   --line:rgba(51,32,30,.12); --line-2:rgba(51,32,30,.2);
-  --glass:rgba(255,248,242,.33); --glass-2:rgba(255,248,242,.21);
+  --glass:rgba(255,248,242,.55); --glass-2:rgba(255,248,242,.40);
   --glass-line:rgba(255,240,228,.66); --glass-sh:0 16px 42px rgba(70,32,40,.22);
 }
 [data-time="night"] {
@@ -92,7 +92,7 @@
   --warn:#E0BE7C; --warn-bg:rgba(190,150,80,.2); --warn-line:rgba(224,190,124,.3);
   --danger:#E39E90; --danger-bg:rgba(180,100,90,.22); --danger-line:rgba(227,158,144,.3);
   --info:#A7B4C8; --info-bg:rgba(140,160,190,.16);
-  --glass:rgba(255,250,255,.13); --glass-2:rgba(255,250,255,.08);
+  --glass:rgba(255,250,255,.17); --glass-2:rgba(255,250,255,.11);
   --glass-line:rgba(255,250,255,.20); --glass-sh:0 18px 46px rgba(0,0,0,.42);
 }
 
@@ -262,11 +262,14 @@ a  { color: var(--rose-deep); }
 }
 
 /* The poster's arch, used for the one thing a screen most wants you to do. */
+/* لا انحناء ضخم بلا مبرّر — إطار البطاقات نفسه. وسطحٌ حقيقي: بلا خلفية
+   كانت الحالة الفارغة تبدو فجوةً في الصفحة لا رسالةً فيها. */
 .arch {
-  background: linear-gradient(168deg, var(--blush) 0%, var(--surface) 92%);
-  border: 1px solid var(--line-2);
-  border-radius: 78px 78px var(--r-lg) var(--r-lg);
-  padding: 34px 24px 26px; text-align: center;
+  background: var(--glass); border: 1px solid var(--glass-line);
+  border-radius: var(--r-lg); box-shadow: var(--glass-sh);
+  -webkit-backdrop-filter: blur(13px) saturate(1.45);
+  backdrop-filter: blur(13px) saturate(1.45);
+  padding: 26px 24px 22px; text-align: center;
 }
 
 .badge {
@@ -438,7 +441,13 @@ select.input {
 .note.warn   { background: var(--warn-bg);   color: var(--warn);   border-color: var(--warn-line); }
 .note.danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-line); }
 
-.empty { text-align: center; padding: 34px 18px; color: var(--ink-3); }
+.empty {
+  text-align: center; padding: 26px 18px; color: var(--ink-2);
+  background: var(--glass); border: 1px solid var(--glass-line);
+  border-radius: var(--r-lg); box-shadow: var(--glass-sh);
+  -webkit-backdrop-filter: blur(13px) saturate(1.45);
+  backdrop-filter: blur(13px) saturate(1.45);
+}
 .empty .badge { margin: 0 auto 10px; }
 .empty p { font-size: 14px; }
 

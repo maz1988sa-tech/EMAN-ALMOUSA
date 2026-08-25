@@ -8,11 +8,13 @@
 <meta name="theme-color" content="#2b1c16">
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/fonts.css?v=30">
-<link rel="stylesheet" href="assets/theme.css?v=30">
+<link rel="stylesheet" href="assets/fonts.css?v=31">
+<link rel="stylesheet" href="assets/theme.css?v=31">
 <style>
-  .appbar { position: sticky; top: 0; z-index: 40; background: var(--surface);
-            border-bottom: 1px solid var(--line); }
+  .appbar { position: sticky; top: 0; z-index: 40;
+            background: var(--glass); border-bottom: 1px solid var(--glass-line);
+            -webkit-backdrop-filter: blur(16px) saturate(1.5);
+            backdrop-filter: blur(16px) saturate(1.5); }
   .appbar .row { display: flex; align-items: center; justify-content: space-between;
                  gap: 10px; padding: 12px 16px 10px; max-width: var(--page); margin: 0 auto; }
   .appbar .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
@@ -65,6 +67,20 @@
             font-variant-numeric: tabular-nums; }
 
   /* أفعالٌ سريعة من البطاقة نفسها، فلا تُفتح التفاصيل لمكالمة. */
+  .greet { background: var(--glass); border: 1px solid var(--glass-line);
+           border-radius: var(--r-lg); box-shadow: var(--glass-sh);
+           -webkit-backdrop-filter: blur(13px) saturate(1.45);
+           backdrop-filter: blur(13px) saturate(1.45);
+           padding: 22px 22px 20px; margin-top: 16px; }
+  .greet .kick { display: flex; align-items: center; gap: 7px; font-size: 11px;
+                 letter-spacing: .18em; color: var(--rose); margin-bottom: 8px; }
+  .greet .kick::after { content: ""; width: 5px; height: 5px; border-radius: 50%;
+                        background: var(--rose); }
+  .greet h1 { font-family: var(--fd); font-weight: 600; font-size: clamp(26px, 7.2vw, 34px);
+              line-height: 1.25; margin: 0 0 7px; letter-spacing: -.01em; }
+  .greet p { margin: 0; color: var(--ink-2); font-size: 14.5px; line-height: 1.7; }
+  .greet p b { color: var(--ink); font-weight: 700; }
+
   .qacts { display: flex; align-items: center; gap: 6px; margin-top: 10px; padding-top: 10px;
            border-top: 1px solid var(--line); }
   .qact { flex: 1; height: 38px; padding: 0; border-radius: var(--r-pill); cursor: pointer;
@@ -272,7 +288,7 @@
   <header class="appbar">
     <div class="row">
       <div class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=30"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=31"
              alt="EMAN AAL MOUSA" id="bizName" width="34" height="34">
         <span class="sub">لوحة التحكم</span>
       </div>
@@ -302,7 +318,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=30';
+import { icon, hydrateIcons } from './assets/icons.js?v=31';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -310,7 +326,7 @@ import {
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
   receiptUrl, purgeOrphanReceipts, uuid, isOffline, NET_MSG, backups,
   fillTemplate, TEMPLATE_FIELDS,
-} from './assets/db.js?v=30';
+} from './assets/db.js?v=31';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -637,6 +653,37 @@ function bindCards(root = view) {
 
 /* ── Home ─────────────────────────────────────────────────────────────── */
 
+/* بطاقة التحيّة: تفتح اللوحة بجملةٍ تقول حالة اليوم لا بجدول. التحيّة
+   تتبع الساعة نفسها التي يتبعها المشهد، فتبدو الشاشة كلّها شيئًا واحدًا. */
+const GREET = {
+  dawn:  { k: 'صباحك ورد',   h: 'صباح الخير' },
+  noon:  { k: 'نهارك سعيد',  h: 'نهارك مبارك' },
+  dusk:  { k: 'مساء الورد',  h: 'مساء الخير' },
+  night: { k: 'ليلةٌ هادئة', h: 'مساء الخير' },
+};
+
+function greetCard(todays, pending) {
+  const g = GREET[dayBand()] || GREET.dawn;
+  const name = (S.settings?.business_name || 'إيمان').split(' ')[0];
+  const left = todays.filter((b) => b.status !== 'done').length;
+  const money = todays.reduce((n, b) => n + Number(b.price || 0), 0);
+
+  const line = pending.length
+    ? `عندك <b>${int(pending.length)} ${pending.length === 1 ? 'طلب' : 'طلبات'}</b> بانتظار ردّك.`
+    : left
+      ? `عندك <b>${int(left)} ${left === 1 ? 'موعد' : left <= 10 ? 'مواعيد' : 'موعدًا'}</b> اليوم بقيمة ${riyal(money)}.`
+      : todays.length
+        ? 'انتهى يومك — <b>كل مواعيد اليوم مكتملة</b>.'
+        : 'لا مواعيد اليوم. صفحتك مفتوحة للحجز.';
+
+  return `
+    <div class="greet">
+      <span class="kick">${esc(g.k)}</span>
+      <h1>${esc(g.h)}، ${esc(name)}</h1>
+      <p>${line}</p>
+    </div>`;
+}
+
 function renderHome() {
   const t = today();
   const pending  = S.bookings.filter((b) => b.status === 'pending')
@@ -652,6 +699,7 @@ function renderHome() {
                                 .reduce((n, b) => n + (Number(b.price) - Number(b.deposit)), 0);
 
   view.innerHTML = `
+    ${greetCard(todays, pending)}
     ${pending.length ? `
       <div class="sec-head" style="margin-top:18px">
         <h2>طلبات بانتظارك</h2><span class="rule"></span>
