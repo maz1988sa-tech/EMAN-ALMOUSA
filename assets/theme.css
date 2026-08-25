@@ -46,6 +46,7 @@
   --chip:rgba(255,255,255,.46);
   --tint:rgba(255,255,255,.60);
   --c-done:#2E7A52; --c-open:#A8802F; --c-lost:#9C4636;
+  --danger-solid:#8E3A2C;
   --ok:#4C7A5A; --ok-bg:rgba(120,170,135,.24);
   --warn:#9A6524; --warn-bg:rgba(214,168,90,.24);
   --danger:#A44B3C; --danger-bg:rgba(196,110,95,.2);
@@ -60,6 +61,7 @@
   --chip:rgba(255,255,255,.48);
   --tint:rgba(255,255,255,.62);
   --c-done:#2E7A52; --c-open:#A8802F; --c-lost:#9C4636;
+  --danger-solid:#8E3A2C;
   --ok:#467052; --ok-bg:rgba(110,160,125,.24);
   --warn:#8C5F1E; --warn-bg:rgba(206,163,84,.26);
   --danger:#9C4636; --danger-bg:rgba(190,104,88,.2);
@@ -74,6 +76,7 @@
   --chip:rgba(255,246,238,.44);
   --tint:rgba(255,250,244,.58);
   --c-done:#2E7A52; --c-open:#A8802F; --c-lost:#9C4636;
+  --danger-solid:#8E3A2C;
   --ok:#3F6B4E; --ok-bg:rgba(120,165,132,.28);
   --warn:#8A5518; --warn-bg:rgba(212,164,80,.3);
   --danger:#93382A; --danger-bg:rgba(190,96,80,.26);
@@ -88,6 +91,7 @@
   --chip:rgba(255,250,255,.10);
   --tint:rgba(42,36,66,.58);
   --c-done:#45A876; --c-open:#CFA130; --c-lost:#D65F4A;
+  --danger-solid:#7E3226;
   --ok:#8FD0A6; --ok-bg:rgba(90,160,115,.22);
   --warn:#E0BE7C; --warn-bg:rgba(190,150,80,.22);
   --danger:#E39E90; --danger-bg:rgba(180,100,90,.24);
@@ -652,9 +656,45 @@ label.toggle { cursor: pointer; }
 .recent:hover { border-color: var(--accent); }
 .recent .chev { margin-inline-start: auto; opacity: .5; transform: scaleX(-1); }
 
-.danger-zone { border-color: var(--danger) !important; background: var(--danger-bg) !important; }
-.danger-zone .label { color: var(--danger); }
-.danger-zone .hint b { color: var(--danger); }
+/* منطقة الحذف: كانت غشاوةً حمراء على الزجاج، فيعبرها المشهد ويصير
+   نصّها رماديًّا على وردي — لا يُقرأ، وهو أخطر نصٍّ في اللوحة. صارت
+   سطحًا مصمتًا: أبيضُ على أحمر داكن (تباين ٧٫٥:١)، ويبدو الخطر خطرًا.
+   والشفافية هنا ليست مكسبًا: هذا الصندوق يجب أن يوقف العين لا يذوب. */
+.danger-zone {
+  background-image: none !important;
+  background-color: var(--danger-solid) !important;
+  border-color: color-mix(in srgb, #000 22%, var(--danger-solid)) !important;
+  color: #FFF;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  box-shadow: 0 14px 34px rgba(70, 24, 16, .28);
+}
+.danger-zone .hint { color: rgba(255, 255, 255, .84); }
+.danger-zone .hint b { color: #FFF; font-weight: 700; }
+.danger-zone .label { color: rgba(255, 255, 255, .9); }
+.danger-zone .label b { color: #FFF; }
+/* الحقول تبقى فاتحةً على السطح الداكن: أبيضُ على أحمر يُقرأ، ونصٌّ يُكتب
+   على أحمر لا يُقرأ. */
+/* background-color لا الاختصار: الاختصار يمسح موضع الخلفية ومقاسها،
+   فيكبر مثلّثا سهم القائمة حتى يبتلعا الحقل. */
+.danger-zone .input {
+  background-color: rgba(255, 255, 255, .92); color: #2B1C16;
+  border-color: rgba(255, 255, 255, .5);
+}
+.danger-zone .input::placeholder { color: #8A7568; }
+.danger-zone select.input {
+  background-image: linear-gradient(45deg, transparent 50%, #6D584C 50%),
+                    linear-gradient(135deg, #6D584C 50%, transparent 50%);
+}
+/* زرّ الحذف أبيضُ مصمت على السطح الأحمر: أعلى تباينٍ في اللوحة كلّها،
+   ويليق بفعلٍ لا رجعة فيه. */
+.danger-zone .btn-danger {
+  background: #FFF; border-color: #FFF; color: var(--danger-solid); font-weight: 700;
+}
+.danger-zone .btn-danger svg { color: var(--danger-solid); }
+.danger-zone .btn-danger:hover:not([disabled]) { background: #FFF; filter: brightness(.94); }
+.danger-zone .btn-danger[disabled] { opacity: .5; }
+.danger-zone .note { background: rgba(255, 255, 255, .16); border-color: transparent;
+                     color: #FFF; }
 
 .chiprow { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
 .chiprow::-webkit-scrollbar { display: none; }
