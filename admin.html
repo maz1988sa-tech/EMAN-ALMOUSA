@@ -210,6 +210,8 @@ import {
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
   receiptUrl, purgeOrphanReceipts, uuid, isOffline, NET_MSG, backups,
   fillTemplate, TEMPLATE_FIELDS,
+  uploadServiceMedia, removeServiceMedia, mediaUrl,
+  MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
 } from './assets/db.js?v=32';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
@@ -716,23 +718,52 @@ function renderHome() {
   const share = document.getElementById('shareDay');
   if (share) share.onclick = () => shareDayPlan(t);
   document.getElementById('btnNew').onclick = () => openNewBooking();
+  view.querySelectorAll('[data-iv]').forEach((b) => b.onclick = () => {
+    setIncomeView(b.dataset.iv); render(); hydrateIcons(view);
+  });
 }
 
-/* تقرير الدخل: المتوقّع هو ما حُجز، والفعلي ما اكتمل، والضائع ما أُلغي.
-   الثلاثة معًا لأن رقمًا واحدًا لا يقول إن كان الشهر جيّدًا أم مزدحمًا بالإلغاء. */
+/* تقرير الدخل: ثلاث حالاتٍ تُكمل بعضها — ما اكتمل، وما زال قادمًا، وما
+   ضاع. مجموعها كل ما مسّ الشهر. الشريط الثلاثيّ الذي كان هنا يقيس ثلاثة
+   أشياء بثلاثة مساطر، وهذا أسوأ ما يُفعَل ببيانٍ نسبته واحدة؛ فصارت
+   ثلاث صيغٍ تُختار: أرقامٌ مجرّدة، أو حلقة، أو شهرٌ في شبكة.
+
+   الألوان الثلاثة ليست ألوان الهوية: تلك متقاربة في الدفء فتلتبس حين
+   تتجاور في حلقة. هذه مُقاسة — أقلّ فرقٍ بينها ١٥٫٤ في الرؤية العاديّة
+   و٨ في عمى الألوان — ومعها فواصلُ بيضاء وعناوينُ مباشرة على كل جزء،
+   فلا يُعتمد على اللون وحده. */
+const INCOME_VIEWS = [
+  { id: 'tiles', label: 'أرقام' },
+  { id: 'ring',  label: 'حلقة' },
+  { id: 'grid',  label: 'شبكة' },
+];
+
+function incomeView() {
+  try { return localStorage.getItem('eam.incomeView') || 'tiles'; } catch { return 'tiles'; }
+}
+function setIncomeView(v) {
+  try { localStorage.setItem('eam.incomeView', v); } catch { /* وضع التصفّح الخاص */ }
+}
+
 function incomeReport(month) {
   const inMonth = S.bookings.filter((b) => b.the_date.startsWith(month));
-  const live = inMonth.filter((b) => !['cancelled', 'rejected', 'no_show'].includes(b.status));
   const doneL = inMonth.filter((b) => b.status === 'done');
-  const lost = inMonth.filter((b) => ['cancelled', 'rejected', 'no_show'].includes(b.status));
+  const openL = inMonth.filter((b) => ['pending', 'confirmed'].includes(b.status));
+  const lostL = inMonth.filter((b) => ['cancelled', 'rejected', 'no_show'].includes(b.status));
 
   const sum = (a) => a.reduce((n, b) => n + Number(b.price), 0);
-  const expected = sum(live), actual = sum(doneL), missed = sum(lost);
-  const top = Math.max(expected, missed, 1);
+  const doneV = sum(doneL), openV = sum(openL), lostV = sum(lostL);
+  const total = doneV + openV + lostV;
 
-  // إيراد كل خدمة يُجمع من العناصر لا من الحجز، فالحجز الجماعي يوزَّع صحيحًا.
+  const STATES = [
+    { k: 'done', label: 'مكتمل',  v: doneV, n: doneL.length, c: 'var(--c-done)' },
+    { k: 'open', label: 'قادم',   v: openV, n: openL.length, c: 'var(--c-open)' },
+    { k: 'lost', label: 'ضاع',    v: lostV, n: lostL.length, c: 'var(--c-lost)' },
+  ];
+
+  /* إيراد كل خدمة يُجمع من العناصر لا من الحجز، فالحجز الجماعي يوزَّع صحيحًا. */
   const per = new Map();
-  live.forEach((b) => (b.booking_items || []).forEach((i) => {
+  [...doneL, ...openL].forEach((b) => (b.booking_items || []).forEach((i) => {
     const k = i.service_name || 'أخرى';
     const cur = per.get(k) || { n: 0, v: 0 };
     per.set(k, { n: cur.n + 1, v: cur.v + Number(i.price || 0) });
@@ -740,23 +771,98 @@ function incomeReport(month) {
   const svcRows = [...per.entries()].sort((a, b) => b[1].v - a[1].v);
   const svcTop = Math.max(...svcRows.map(([, v]) => v.v), 1);
 
-  const bar = (cls, label, val, note) => `
-    <div class="bar ${cls}">
-      <div class="t"><span>${esc(label)}${note ? ` <span class="muted">${esc(note)}</span>` : ''}</span>
-        <b>${money(val)}</b></div>
-      <div class="track"><div class="fill" style="width:${Math.round((val / top) * 100)}%"></div></div>
+  const view = incomeView();
+
+  /* ── أ · أرقامٌ مجرّدة ─────────────────────────────────────────────
+     ثلاثة أرقامٍ عناوين لا تحتاج رسمًا: الرقم نفسه هو البيان. */
+  const tiles = () => `
+    <div class="stats3">
+      ${STATES.map((x) => `
+        <div class="stat">
+          <span class="k"><i class="dt" style="background:${x.c}"></i>${esc(x.label)}</span>
+          <span class="v">${money(x.v)}</span>
+          <span class="s">${x.n ? `${int(x.n)} حجز` : '—'}</span>
+        </div>`).join('')}
     </div>`;
+
+  /* ── ب · الحلقة ──────────────────────────────────────────────────
+     نسبةٌ من كلّ، ثلاثة أجزاء لا أكثر — وهو الحدّ الذي تبقى الحلقة عنده
+     مقروءة. الإجمالي في وسطها، والأجزاء معنونةٌ تحتها بقيمها. */
+  const ring = () => {
+    const R = 52, C = 2 * Math.PI * R;
+    let acc = 0;
+    const arcs = STATES.filter((x) => x.v > 0).map((x) => {
+      const len = C * (x.v / (total || 1));
+      const dash = Math.max(len - 3, 1.5);          // فاصلٌ من لون السطح بين الأجزاء
+      const el = `<circle cx="70" cy="70" r="${R}" fill="none" stroke="${x.c}"
+        stroke-width="13" stroke-dasharray="${dash.toFixed(2)} ${(C - dash).toFixed(2)}"
+        stroke-dashoffset="${(-acc).toFixed(2)}" transform="rotate(-90 70 70)"/>`;
+      acc += len;
+      return el;
+    }).join('');
+    return `
+      <div class="ringwrap">
+        <svg viewBox="0 0 140 140" class="ring" role="img"
+             aria-label="توزيع دخل الشهر: ${STATES.map((x) => `${x.label} ${money(x.v)}`).join('، ')}">
+          <circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--glass-2)" stroke-width="13"/>
+          ${arcs}
+        </svg>
+        <div class="ringmid"><b>${money(total)}</b><span>ر.س هذا الشهر</span></div>
+      </div>
+      <div class="legend">
+        ${STATES.map((x) => `
+          <div class="lg">
+            <i style="background:${x.c}"></i>
+            <span class="n">${esc(x.label)}</span>
+            <b>${money(x.v)}</b>
+            <span class="c">${x.n ? `${int(x.n)} حجز` : '—'}</span>
+          </div>`).join('')}
+      </div>`;
+  };
+
+  /* ── ج · شهرٌ في شبكة ────────────────────────────────────────────
+     السؤال الذي لا يجيبه أيّ شريط: أيّ الأيام تكسب؟ لونٌ واحد يتدرّج،
+     فالقراءة من الفاتح إلى الغامق لا من لونٍ إلى لون. */
+  const grid = () => {
+    const [y, mo] = month.split('-').map(Number);
+    const days = new Date(y, mo, 0).getDate();
+    const lead = new Date(y, mo - 1, 1).getDay();
+    const byDay = {};
+    [...doneL, ...openL].forEach((b) => {
+      byDay[b.the_date] = (byDay[b.the_date] || 0) + Number(b.price || 0);
+    });
+    const top = Math.max(...Object.values(byDay), 1);
+    const cells = [];
+    for (let i = 0; i < lead; i += 1) cells.push('<span class="hc blank"></span>');
+    for (let d = 1; d <= days; d += 1) {
+      const iso = `${month}-${String(d).padStart(2, '0')}`;
+      const v = byDay[iso] || 0;
+      const a = v ? 0.22 + 0.78 * (v / top) : 0;
+      cells.push(`<span class="hc${v ? '' : ' zero'}"
+        style="${v ? `--a:${a.toFixed(2)}` : ''}"
+        title="${esc(fmtDate(iso))}${v ? ` — ${money(v)} ر.س` : ''}">${int(d)}</span>`);
+    }
+    return `
+      <div class="heat">
+        ${WEEKDAYS.map((w) => `<span class="hd">${esc(w.short)}</span>`).join('')}
+        ${cells.join('')}
+      </div>
+      <div class="heatfoot">
+        <span>${money(doneV + openV)} ر.س على ${int(doneL.length + openL.length)} يوم حجز</span>
+        <span class="scale"><i style="--a:.22"></i><i style="--a:.45"></i><i style="--a:.7"></i><i style="--a:1"></i>الأعلى</span>
+      </div>`;
+  };
+
+  const body = view === 'ring' ? ring() : view === 'grid' ? grid() : tiles();
 
   return `
     <div class="sec-head"><h2>دخل هذا الشهر</h2><span class="rule"></span>
       <span class="count">${int(inMonth.length)} حجز</span></div>
-    <div class="card mb">
-      <div class="bars">
-        ${bar('', 'المتوقّع', expected, `${live.length} حجز قائم`)}
-        ${bar('ok', 'الفعلي المكتمل', actual, `${doneL.length} حجز`)}
-        ${missed > 0 ? bar('bad', 'ضاع بالإلغاء', missed, `${lost.length} حجز`) : ''}
-      </div>
+    <div class="viewseg" role="group" aria-label="صيغة عرض الدخل">
+      ${INCOME_VIEWS.map((v) => `
+        <button data-iv="${v.id}" ${v.id === view ? 'aria-pressed="true"' : ''}>${esc(v.label)}</button>`).join('')}
     </div>
+    <div class="card mb">${body}</div>
 
     ${svcRows.length ? `
       <div class="card">
@@ -1283,12 +1389,10 @@ function openMsgMenu(b) {
     ${T.length ? `<div class="card mb"><div class="list">
       ${T.map((t) => `
         <div class="rowline">
-          <span class="grow"><span class="t">${esc(t.title)}</span>
-            <span class="s">${esc(fillTemplate(t.body, b, { business: S.settings?.business_name, link })
-              .replace(/\s+/g, ' ').slice(0, 58))}…</span></span>
-          <a class="btn btn-soft xs" data-send="${esc(t.id)}"
+          <span class="grow"><span class="t">${esc(t.title)}</span></span>
+          <a class="qact" style="flex:0 0 auto;padding:0 15px" data-send="${esc(t.id)}"
              href="${waHref(b.client_phone, fillTemplate(t.body, b, { business: S.settings?.business_name, link }))}"
-             target="_blank" rel="noopener">إرسال</a>
+             target="_blank" rel="noopener">${icon('whatsapp', 15)}إرسال</a>
         </div>`).join('')}
     </div></div>` : '<div class="note mb">لا رسائل بعد — أضيفيها من الإعدادات ← الرسائل.</div>'}
     <a class="btn btn-ghost" href="${waHref(b.client_phone, '')}" target="_blank" rel="noopener"
@@ -1320,7 +1424,7 @@ function renderServices() {
 
 const ICON_CHOICES = ['bride', 'evening', 'lipstick', 'brush', 'mirror', 'sparkle', 'heart', 'user'];
 
-function editService(s) {
+function editService(s, carried = []) {
   showSheet(s.id ? 'تعديل الخدمة' : 'خدمة جديدة', `
     <div class="field"><label class="label" for="s-name">الاسم</label>
       <input class="input" id="s-name" value="${esc(s.name)}" placeholder="مثال: ميك اب خطوبة"></div>
@@ -1343,6 +1447,57 @@ function editService(s) {
     </div>
     <div class="field"><label class="label" for="s-desc">وصف مختصر <span class="opt">(اختياري)</span></label>
       <input class="input" id="s-desc" value="${esc(s.description || '')}"></div>
+
+    <div class="card mb" id="s-media">
+      <p class="label">فيديو تسويقي للخدمة <span class="opt">(اختياري)</span></p>
+      <div class="frame" data-frame>
+        ${s.media_kind === 'video' && s.media_path
+          ? `<video muted loop playsinline preload="metadata" data-prev
+                    style="--x:${Number(s.media_x ?? 50)}%;--y:${Number(s.media_y ?? 50)}%;--z:${Number(s.media_zoom ?? 1)}"
+                    ${s.poster_path ? `poster="${esc(mediaUrl(s.poster_path))}"` : ''}>
+               <source src="${esc(mediaUrl(s.media_path))}"></video>`
+          : `<span class="ph">${icon('sparkle', 28)}<span>معاينة الفيديو كما ستظهر في رابط الحجز</span></span>`}
+      </div>
+      <div class="btn-row mt">
+        <button class="btn" id="s-vidpick">${s.media_kind === 'video' ? 'استبدلي الفيديو' : 'رفع فيديو'}</button>
+        ${s.media_kind === 'video' ? '<button class="btn btn-danger" id="s-vidrm">إزالة</button>' : ''}
+      </div>
+      <input type="file" id="s-vidfile" accept="${MEDIA_ACCEPT_VIDEO}" hidden>
+
+      <div id="s-pos" ${s.media_kind === 'video' && s.media_path ? '' : 'hidden'}>
+        <p class="label" style="margin:14px 0 4px">تموضع الفيديو داخل الإطار</p>
+        <p class="hint" style="margin:0 0 8px">اضبطيه حتى يظهر الوجه في المنتصف — هكذا سيراه من يفتح رابط الحجز.</p>
+        <div class="chiprow mb">
+          ${[['وسط', 50, 50], ['أعلى', 50, 22], ['أسفل', 50, 78], ['يمين', 78, 50], ['يسار', 22, 50]]
+            .map(([l, x, y]) => `<button class="chip" data-pos="${x},${y}">${l}</button>`).join('')}
+        </div>
+        <div class="split">
+          <div class="field" style="margin:0"><label class="label" for="s-zoom">تكبير</label>
+            <input class="input ltr" id="s-zoom" type="range" min="1" max="3" step="0.05"
+                   value="${Number(s.media_zoom ?? 1)}"></div>
+          <div class="field" style="margin:0"><label class="label" for="s-vy">إزاحة رأسية ٪</label>
+            <input class="input ltr" id="s-vy" type="range" min="0" max="100" step="1"
+                   value="${Number(s.media_y ?? 50)}"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb">
+      <p class="label">صورة الخدمة <span class="opt">(تظهر قبل تشغيل الفيديو)</span></p>
+      <div class="frame img" data-poster>
+        ${s.poster_path
+          ? `<img src="${esc(mediaUrl(s.poster_path))}" alt=""
+                  style="--x:${Number(s.media_x ?? 50)}%;--y:${Number(s.media_y ?? 50)}%;--z:${Number(s.media_zoom ?? 1)}">`
+          : `<span class="ph">${icon('mirror', 26)}<span>لم تُضف صورة بعد</span></span>`}
+      </div>
+      <div class="btn-row mt">
+        <button class="btn" id="s-imgpick">${s.poster_path ? 'استبدلي الصورة' : '＋ رفع صورة'}</button>
+        ${s.poster_path ? '<button class="btn btn-danger" id="s-imgrm">إزالة</button>' : ''}
+      </div>
+      <input type="file" id="s-imgfile" accept="${MEDIA_ACCEPT_IMAGE}" hidden>
+      <p class="hint">تُستعمل خلفيةً للبطاقة إن لم يكن هناك فيديو.</p>
+    </div>
+
     <label class="toggle"><input type="checkbox" id="s-public" ${s.bookable_by_client ? 'checked' : ''}>
       <span class="grow"><span class="t">تظهر لصفحة العميلات</span>
         <span class="s">أوقفيها لخدمة تحجزينها أنتِ فقط</span></span><span class="sw"></span></label>
@@ -1361,6 +1516,89 @@ function editService(s) {
     document.querySelectorAll('[data-ico]').forEach((x) =>
       x.setAttribute('aria-pressed', String(x.dataset.ico === ico)));
   });
+
+  /* ── الوسائط ───────────────────────────────────────────────────────
+     يُرفع الملف فورًا ويُحتفظ بمساره في الذاكرة؛ الحفظ يثبّته على الخدمة.
+     ما رُفع ثم بُدِّل قبل الحفظ يُمحى من التخزين، فلا يتراكم يتيمٌ فيه. */
+  const M = {
+    kind: s.media_kind || null, path: s.media_path || null, poster: s.poster_path || null,
+    x: Number(s.media_x ?? 50), y: Number(s.media_y ?? 50), zoom: Number(s.media_zoom ?? 1),
+  };
+  const orphans = [...carried];
+
+  const paint = () => {
+    document.querySelectorAll('[data-prev], [data-poster] img').forEach((el) => {
+      el.style.setProperty('--x', `${M.x}%`);
+      el.style.setProperty('--y', `${M.y}%`);
+      el.style.setProperty('--z', String(M.zoom));
+    });
+  };
+
+  const pick = (btnId, fileId, want) => {
+    const btn = document.getElementById(btnId), inp = document.getElementById(fileId);
+    if (!btn || !inp) return;
+    btn.onclick = () => inp.click();
+    inp.onchange = async () => {
+      const f = inp.files?.[0]; if (!f) return;
+      btn.disabled = true; const label = btn.textContent; btn.textContent = 'جارٍ الرفع…';
+      try {
+        const up = await uploadServiceMedia(f, want);
+        if (want === 'video') { if (M.path) orphans.push(M.path); M.kind = 'video'; M.path = up.path; }
+        else { if (M.poster) orphans.push(M.poster); M.poster = up.path; }
+        redraw();
+      } catch (err) {
+        document.getElementById('s-err').innerHTML = note(err.message || 'تعذّر الرفع');
+        btn.disabled = false; btn.textContent = label;
+      }
+      inp.value = '';
+    };
+  };
+
+  const drop = (btnId, what) => {
+    const btn = document.getElementById(btnId); if (!btn) return;
+    btn.onclick = () => {
+      if (what === 'video') { if (M.path) orphans.push(M.path); M.path = null; M.kind = M.poster ? 'image' : null; }
+      else { if (M.poster) orphans.push(M.poster); M.poster = null; if (M.kind === 'image') M.kind = null; }
+      redraw();
+    };
+  };
+
+  /* إعادة الرسم تفتح المحرّر من جديد بالقيم الحاليّة: أبسط من تحديث ستّة
+     عناصر يدويًّا، ولا يضيع شيء لأنّ الحقول تُقرأ قبل إعادة الفتح. */
+  function redraw() {
+    const keep = {
+      ...s, name: document.getElementById('s-name').value,
+      description: document.getElementById('s-desc').value,
+      price: Number(document.getElementById('s-price').value),
+      duration_min: Number(document.getElementById('s-dur').value),
+      deposit_amount: Number(document.getElementById('s-dep').value),
+      bookable_by_client: document.getElementById('s-public').checked,
+      group_discount: document.getElementById('s-group').checked,
+      icon: ico,
+      media_kind: M.kind, media_path: M.path, poster_path: M.poster,
+      media_x: M.x, media_y: M.y, media_zoom: M.zoom,
+    };
+    editService(keep, orphans);
+  }
+
+  pick('s-vidpick', 's-vidfile', 'video');
+  pick('s-imgpick', 's-imgfile', 'image');
+  drop('s-vidrm', 'video');
+  drop('s-imgrm', 'image');
+
+  document.querySelectorAll('[data-pos]').forEach((b) => b.onclick = () => {
+    const [x, y] = b.dataset.pos.split(',').map(Number);
+    M.x = x; M.y = y;
+    const vy = document.getElementById('s-vy'); if (vy) vy.value = String(y);
+    document.querySelectorAll('[data-pos]').forEach((o) =>
+      o.setAttribute('aria-pressed', String(o === b)));
+    paint();
+  });
+  const zoomEl = document.getElementById('s-zoom');
+  if (zoomEl) zoomEl.oninput = () => { M.zoom = Number(zoomEl.value); paint(); };
+  const vyEl = document.getElementById('s-vy');
+  if (vyEl) vyEl.oninput = () => { M.y = Number(vyEl.value); paint(); };
+  paint();
 
   document.getElementById('s-save').onclick = async () => {
     const name = document.getElementById('s-name').value.trim();
@@ -1382,8 +1620,12 @@ function editService(s) {
       description: document.getElementById('s-desc').value.trim() || null,
       bookable_by_client: document.getElementById('s-public').checked,
       group_discount: document.getElementById('s-group').checked,
+      media_kind: M.kind, media_path: M.path, poster_path: M.poster,
+      media_x: M.x, media_y: M.y, media_zoom: M.zoom,
       active: true, sort: s.sort ?? 0,
     });
+    // ما استُبدل قبل الحفظ لم يعد يشير إليه شيء، فيُمحى بدل أن يتراكم.
+    if (orphans.length) await removeServiceMedia(orphans).catch(() => {});
     closeSheet(sheet); toast('حُفظت الخدمة', 'ok'); reload();
   };
   const del = document.getElementById('s-del');

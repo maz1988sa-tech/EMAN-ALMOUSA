@@ -234,6 +234,53 @@ export async function purgeOrphanReceipts() {
   return names.length;
 }
 
+/* ── وسائط الخدمة ──────────────────────────────────────────────────
+   فيديو تسويقي أو صورة، تُرفع لكل خدمة وتُعرض خلف بطاقتها في صفحة
+   العميلة. الدلو عامّ القراءة: هذه وسائط تُعرض لكل من يفتح الرابط،
+   وتوقيعُها المؤقّت يبطئ الصفحة بلا سرٍّ يُحمى. */
+const MEDIA_TYPES = {
+  'image/jpeg': { ext: 'jpg',  kind: 'image' },
+  'image/png':  { ext: 'png',  kind: 'image' },
+  'image/webp': { ext: 'webp', kind: 'image' },
+  'video/mp4':  { ext: 'mp4',  kind: 'video' },
+  'video/webm': { ext: 'webm', kind: 'video' },
+  'video/quicktime': { ext: 'mov', kind: 'video' },
+};
+export const MEDIA_ACCEPT_VIDEO = 'video/mp4,video/webm,video/quicktime';
+export const MEDIA_ACCEPT_IMAGE = 'image/jpeg,image/png,image/webp';
+export const MEDIA_MAX_BYTES = 25 * 1024 * 1024;
+
+export async function uploadServiceMedia(file, want) {
+  if (!file) throw new Error('اختاري الملف أولًا');
+  const t = MEDIA_TYPES[file.type];
+  if (!t) throw new Error('صيغة الملف غير مدعومة — MP4 أو WebM للفيديو، JPG أو PNG للصورة');
+  if (want && t.kind !== want) {
+    throw new Error(want === 'video' ? 'هذا ليس ملف فيديو' : 'هذه ليست صورة');
+  }
+  if (file.size > MEDIA_MAX_BYTES) throw new Error('حجم الملف كبير — الحد 25 ميجابايت');
+
+  const path = `svc/${crypto.randomUUID()}.${t.ext}`;
+  const { error } = await sb.storage.from('service-media')
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw new Error('تعذّر الرفع، تأكدي من الاتصال وحاولي مرة أخرى');
+  return { path, kind: t.kind };
+}
+
+/* الرابط العامّ يُبنى مرّةً بلا نداء شبكة — الدلو عامّ فلا توقيع. */
+export function mediaUrl(path) {
+  if (!path) return null;
+  const { data } = sb.storage.from('service-media').getPublicUrl(path);
+  return data?.publicUrl || null;
+}
+
+export async function removeServiceMedia(paths) {
+  const list = (Array.isArray(paths) ? paths : [paths]).filter(Boolean);
+  if (!list.length) return 0;
+  const { error } = await sb.storage.from('service-media').remove(list);
+  if (error) throw error;
+  return list.length;
+}
+
 // للوحة التحكم وحدها: رابط مؤقت لعرض الإيصال.
 export async function receiptUrl(path, seconds = 300) {
   if (!path) return null;

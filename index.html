@@ -390,6 +390,7 @@ import {
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositFor, verifyReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
+  mediaUrl,
 } from './assets/db.js?v=32';
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -441,7 +442,27 @@ const totalPrice= () => subtotal() - groupDiscount();
 const totalMins = () => flatPicked().reduce((n, s) => n + Number(s.duration_min), 0);
 const people    = () => flatPicked().length;
 
-const mediaFor = (s, i) => UI.media.find((m) => m.match.test(s.name)) || UI.media[i] || UI.fallback;
+/* الوسيطة تُقرأ من الخدمة نفسها متى رُفعت من اللوحة، فخدمةٌ جديدة تحمل
+   وجهها لا وجه غيرها. المجموعة المثبَّتة في الشيفرة تبقى احتياطًا لما لم
+   تُرفع له وسيطة بعد. `frame` هو ما ضبطته صاحبة العمل: موضعٌ نسبيّ
+   وتكبير، فيُقصّ الإطار كما رأته لا كما تصادف. */
+const mediaFor = (s, i) => {
+  if (s && s.media_path) {
+    const url = mediaUrl(s.media_path), poster = s.poster_path ? mediaUrl(s.poster_path) : '';
+    const frame = { x: Number(s.media_x ?? 50), y: Number(s.media_y ?? 50), z: Number(s.media_zoom ?? 1) };
+    return s.media_kind === 'video'
+      ? { video: url, poster: poster || '', thumb: poster || '', frame }
+      : { video: '', poster: url, thumb: url, frame };
+  }
+  if (s && s.poster_path) {
+    const url = mediaUrl(s.poster_path);
+    return { video: '', poster: url, thumb: url,
+             frame: { x: Number(s.media_x ?? 50), y: Number(s.media_y ?? 50), z: Number(s.media_zoom ?? 1) } };
+  }
+  return UI.media.find((m) => m.match.test(s.name)) || UI.media[i] || UI.fallback;
+};
+const frameStyle = (m) => m.frame
+  ? `object-position:${m.frame.x}% ${m.frame.y}%;transform:scale(${m.frame.z});` : '';
 const arN = (n, one, two, few) => (n === 1 ? one : n === 2 ? two : `${n} ${few}`);
 const el = (id) => document.getElementById(id);
 
@@ -552,9 +573,10 @@ function renderServices() {
   }
   svcRail.innerHTML = state.services.map((s, i) => {
     const m = mediaFor(s, i);
+    const fs = frameStyle(m);
     const bg = m.video
-      ? `<video class="bg" muted loop playsinline preload="metadata" poster="${m.poster}"><source src="${m.video}" type="video/mp4"></video>`
-      : `<img class="bg" src="${m.poster}" alt="">`;
+      ? `<video class="bg" muted loop playsinline preload="metadata" poster="${m.poster}" style="${fs}"><source src="${m.video}"></video>`
+      : `<img class="bg" src="${m.poster}" alt="" style="${fs}">`;
     return `
       <article class="svc${i === 0 ? ' active' : ''}" data-svc="${esc(s.id)}">
         <div class="bgwrap">${bg}</div>

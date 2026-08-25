@@ -44,6 +44,8 @@
   --glass:rgba(255,255,255,.34); --glass-2:rgba(255,255,255,.22);
   --glass-line:rgba(255,255,255,.72); --glass-sh:0 16px 40px rgba(88,58,44,.13);
   --chip:rgba(255,255,255,.46);
+  --tint:rgba(255,255,255,.60);
+  --c-done:#2E7A52; --c-open:#A8802F; --c-lost:#9C4636;
   --ok:#4C7A5A; --ok-bg:rgba(120,170,135,.24);
   --warn:#9A6524; --warn-bg:rgba(214,168,90,.24);
   --danger:#A44B3C; --danger-bg:rgba(196,110,95,.2);
@@ -56,6 +58,8 @@
   --glass:rgba(255,255,255,.36); --glass-2:rgba(255,255,255,.23);
   --glass-line:rgba(255,255,255,.78); --glass-sh:0 16px 40px rgba(90,70,44,.14);
   --chip:rgba(255,255,255,.48);
+  --tint:rgba(255,255,255,.62);
+  --c-done:#2E7A52; --c-open:#A8802F; --c-lost:#9C4636;
   --ok:#467052; --ok-bg:rgba(110,160,125,.24);
   --warn:#8C5F1E; --warn-bg:rgba(206,163,84,.26);
   --danger:#9C4636; --danger-bg:rgba(190,104,88,.2);
@@ -68,6 +72,8 @@
   --glass:rgba(255,248,242,.33); --glass-2:rgba(255,248,242,.21);
   --glass-line:rgba(255,240,228,.66); --glass-sh:0 16px 42px rgba(70,32,40,.22);
   --chip:rgba(255,246,238,.44);
+  --tint:rgba(255,250,244,.58);
+  --c-done:#2E7A52; --c-open:#A8802F; --c-lost:#9C4636;
   --ok:#3F6B4E; --ok-bg:rgba(120,165,132,.28);
   --warn:#8A5518; --warn-bg:rgba(212,164,80,.3);
   --danger:#93382A; --danger-bg:rgba(190,96,80,.26);
@@ -80,6 +86,8 @@
   --glass:rgba(255,250,255,.13); --glass-2:rgba(255,250,255,.08);
   --glass-line:rgba(255,250,255,.20); --glass-sh:0 18px 46px rgba(0,0,0,.42);
   --chip:rgba(255,250,255,.10);
+  --tint:rgba(42,36,66,.58);
+  --c-done:#45A876; --c-open:#CFA130; --c-lost:#D65F4A;
   --ok:#8FD0A6; --ok-bg:rgba(90,160,115,.22);
   --warn:#E0BE7C; --warn-bg:rgba(190,150,80,.22);
   --danger:#E39E90; --danger-bg:rgba(180,100,90,.24);
@@ -126,8 +134,12 @@
 
 
 /* ── الزجاج: تعريفٌ واحد ترثه كل الأسطح ──────────────────────────── */
+/* الزجاج وحده يمرّر لون المشهد خلفه، فتخضرّ بطاقةٌ تصادف أن تجلس فوق
+   الشجرة ويصعب قراءة ما فيها. طبقةٌ بيضاء تحت الزجاج تُبقي الشفافيّة
+   وتمنع اللون من العبور: يبقى المشهد ضوءًا لا صبغة. */
 .glassy, .card, .arch, .empty, .bk, .stat, .appbar .bar, .appbar .tabs, .panebar {
-  background: var(--glass);
+  background-image: linear-gradient(var(--tint), var(--tint));
+  background-color: var(--glass);
   border: 1px solid var(--glass-line);
   box-shadow: var(--glass-sh);
   -webkit-backdrop-filter: blur(13px) saturate(1.45);
@@ -281,7 +293,8 @@ a  { color: var(--accent); }
    --glass أرضيّةً و--glass-2 فوقها. طبقةٌ واحدة تختفي فوق الخلفيّة. */
 .arch, .empty {
   border-radius: var(--r-card); padding: 24px 20px 20px; text-align: center;
-  background-image: linear-gradient(var(--glass-2), var(--glass-2));
+  background-image: linear-gradient(var(--tint), var(--tint)),
+                    linear-gradient(var(--glass-2), var(--glass-2));
   background-color: var(--glass); margin-bottom: 12px;
 }
 .arch h2, .arch h3 { font-family: var(--fd); font-weight: var(--fw-d); font-size: 20px;
@@ -551,10 +564,12 @@ label.toggle { cursor: pointer; }
                 margin-bottom: 5px; }
 .bars .bar .t b { font-family: var(--fd); font-weight: var(--fw-d);
                   font-variant-numeric: tabular-nums; }
-.bars .bar .track { height: 7px; background: var(--glass-2); border-radius: var(--r-pill);
-                    overflow: hidden; }
+.bars .bar .track { height: 7px; background: color-mix(in srgb, var(--ink-3) 18%, transparent);
+                    border-radius: var(--r-pill); overflow: hidden; }
 .bars .bar .fill { height: 100%; background: var(--accent); border-radius: var(--r-pill); }
-.bars .bar.muted .fill { background: var(--glass-line); }
+/* المقارنة بين الخدمات مقدارٌ لا هويّة: لونٌ واحد يتدرّج، لا لونٌ لكل
+   خدمة. وكان هذا يرث --glass-line الأبيض فيختفي الشريط في مساره. */
+.bars .bar.muted .fill { background: color-mix(in srgb, var(--accent) 58%, transparent); }
 .bars .bar.ok  .fill { background: var(--ok); }
 .bars .bar.bad .fill { background: var(--danger); }
 
@@ -580,7 +595,8 @@ label.toggle { cursor: pointer; }
               transform: translateY(100%);
               transition: transform .28s cubic-bezier(.4,0,.2,1);
               padding-bottom: max(16px, env(safe-area-inset-bottom));
-              background-image: linear-gradient(var(--glass-2), var(--glass-2));
+              background-image: linear-gradient(var(--tint), var(--tint)),
+                                linear-gradient(var(--glass-2), var(--glass-2));
               background-color: var(--glass); border: 1px solid var(--glass-line);
               -webkit-backdrop-filter: blur(20px) saturate(1.6);
               backdrop-filter: blur(20px) saturate(1.6); }
@@ -588,14 +604,15 @@ label.toggle { cursor: pointer; }
 .sheet-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center;
               justify-content: space-between; gap: 11px; padding: 15px 17px;
               border-bottom: 1px solid var(--glass-line);
-              background-image: linear-gradient(var(--glass-2), var(--glass-2));
+              background-image: linear-gradient(var(--tint), var(--tint)),
+                                linear-gradient(var(--glass-2), var(--glass-2));
               background-color: var(--glass);
               -webkit-backdrop-filter: blur(20px) saturate(1.6);
               backdrop-filter: blur(20px) saturate(1.6); }
 .sheet-head h2 { flex: 1; font-size: 17px; font-weight: 700; }
 .sheet-content { padding: 16px 17px 18px; }
 /* داخل الورقة الأسطح تجلس على زجاجٍ لا على المشهد، فتأخذ الطبقة الثانية. */
-.sheet-content .card { background: var(--glass-2); }
+.sheet-content .card { background-image: none; background-color: var(--glass-2); }
 .sheet-content .arch { background-image: none; background-color: var(--glass-2); }
 
 /* ── الرسائل ───────────────────────────────────────────── */
@@ -686,3 +703,104 @@ label.toggle { cursor: pointer; }
     transition-duration: .001ms !important;
   }
 }
+
+
+/* ══ تقرير الدخل: ثلاث صيغ ═════════════════════════════════════════
+   الألوان الثلاثة مقيسة لا مختارة بالنظر (انظر التعليق في admin.html).
+   مع كل صيغةٍ عنوانٌ مباشر بجانب اللون، فلا يُحمَّل اللون وحده معنى.
+   ═══════════════════════════════════════════════════════════════════ */
+.viewseg { display: flex; gap: 2px; padding: 3px; margin: 0 4px 10px;
+           border-radius: var(--r-pill); background: var(--glass-2);
+           border: 1px solid var(--glass-line); width: fit-content; margin-inline-start: auto; }
+.viewseg button { border: 0; background: transparent; cursor: pointer; color: var(--ink-3);
+                  font-family: var(--ft); font-size: 11.5px; font-weight: 500;
+                  padding: 5px 13px; border-radius: var(--r-pill);
+                  transition: background .2s var(--ease), color .2s var(--ease); }
+.viewseg button[aria-pressed="true"] { background: var(--accent); color: #FFF; }
+
+/* أ · أرقام */
+.stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stats3 .stat { background-image: none; background-color: transparent; border: 0;
+                box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+                padding: 0; }
+.stats3 .stat + .stat { border-inline-start: 1px solid var(--glass-line);
+                        padding-inline-start: 10px; }
+.stats3 .k { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.stats3 .dt { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+.stats3 .v { font-size: 19px; }
+.stats3 .s { font-size: 10.5px; }
+
+/* ب · حلقة */
+.ringwrap { position: relative; width: 150px; margin: 2px auto 4px; }
+.ring { display: block; width: 100%; height: auto; }
+.ringmid { position: absolute; inset: 0; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; gap: 1px; pointer-events: none; }
+.ringmid b { font-family: var(--fd); font-weight: var(--fw-d); font-size: 21px;
+             font-variant-numeric: tabular-nums; line-height: 1.1; }
+.ringmid span { font-size: 10px; color: var(--ink-3); }
+.legend { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+.lg { display: flex; align-items: baseline; gap: 8px; padding: 5px 0;
+      border-bottom: 1px solid var(--glass-line); font-size: 12.5px; }
+.lg:last-child { border-bottom: 0; }
+.lg i { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 auto; align-self: center; }
+.lg .n { color: var(--ink-2); }
+.lg b { margin-inline-start: auto; font-family: var(--fd); font-weight: var(--fw-d);
+        font-size: 14px; font-variant-numeric: tabular-nums; }
+.lg .c { color: var(--ink-3); font-size: 11px; min-width: 52px; text-align: left; }
+
+/* ج · شبكة الشهر */
+.heat { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.heat .hd { text-align: center; font-size: 9.5px; color: var(--ink-3); padding-bottom: 3px; }
+.heat .hc { aspect-ratio: 1; border-radius: 7px; display: grid; place-items: center;
+            font-family: var(--fd); font-size: 10.5px; font-variant-numeric: tabular-nums;
+            color: var(--ink); background: color-mix(in srgb, var(--accent) calc(var(--a, 0) * 100%), transparent);
+            border: 1px solid var(--glass-line); }
+.heat .hc.zero { color: var(--ink-3); background: var(--glass-2); }
+.heat .hc.blank { border: 0; background: none; }
+.heatfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            margin-top: 10px; font-size: 11px; color: var(--ink-3); }
+.heatfoot .scale { display: inline-flex; align-items: center; gap: 3px; }
+.heatfoot .scale i { width: 11px; height: 11px; border-radius: 3px;
+                     background: color-mix(in srgb, var(--accent) calc(var(--a) * 100%), transparent);
+                     border: 1px solid var(--glass-line); }
+
+@media (max-width: 380px) {
+  .stats3 .v { font-size: 17px; }
+  .stats3 .k { font-size: 10px; }
+}
+
+
+/* ══ إطار وسائط الخدمة ═════════════════════════════════════════════
+   المعاينة بنسبة رابط الحجز نفسها، فما تراه هنا هو ما تراه العميلة.
+   التموضع يُخزَّن نسبةً مئويّة لا بالبكسل: الإطار يتغيّر عرضه بين
+   الجوّال والحاسوب، والنسبة تصمد.
+   ═══════════════════════════════════════════════════════════════════ */
+.frame { border-radius: var(--r-mid); border: 1px dashed var(--glass-line);
+         background: var(--glass-2); aspect-ratio: 16/10; display: grid;
+         place-items: center; overflow: hidden; position: relative; }
+.frame.img { aspect-ratio: 4/3; }
+.frame .ph { display: flex; flex-direction: column; align-items: center; gap: 8px;
+             color: var(--ink-3); font-size: 12px; text-align: center; padding: 0 20px; }
+.frame .ph svg { color: var(--accent); opacity: .75; }
+.frame video, .frame img { position: absolute; inset: 0; width: 100%; height: 100%;
+                           object-fit: cover;
+                           object-position: var(--x, 50%) var(--y, 50%);
+                           transform: scale(var(--z, 1)); transform-origin: var(--x, 50%) var(--y, 50%); }
+.frame:has(video), .frame:has(img) { border-style: solid; }
+
+/* المزلاج: مسارٌ رفيع وإبهامٌ بلون الهوية — لا مظهر النظام الافتراضي. */
+input[type="range"].input { -webkit-appearance: none; appearance: none; min-height: 38px;
+                            padding: 0 10px; background: transparent; border-color: transparent; }
+input[type="range"].input::-webkit-slider-runnable-track {
+  height: 5px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--ink-3) 22%, transparent); }
+input[type="range"].input::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); border: 2px solid #FFF; margin-top: -6.5px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+input[type="range"].input::-moz-range-track {
+  height: 5px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--ink-3) 22%, transparent); }
+input[type="range"].input::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%; background: var(--accent);
+  border: 2px solid #FFF; }
