@@ -564,7 +564,8 @@ function bindCards(root = view) {
   root.querySelectorAll('[data-msg]').forEach((el) => el.onclick = (e) => {
     e.stopPropagation();
     const b = (S.bookings || []).find((x) => x.id === el.dataset.msg);
-    if (b) openMsgMenu(b);
+    // من داخل ورقة التفاصيل تُفتح القائمة ومعها طريق عودة، فلا تضيع الورقة.
+    if (b) openMsgMenu(b, !!el.closest('#sheetContent'));
   });
   root.querySelectorAll('[data-tick]').forEach((el) => el.onclick = (e) => {
     e.stopPropagation();
@@ -1382,7 +1383,7 @@ function openTemplate(t) {
 }
 
 /* القائمة التي تفتح من زرّ «تواصل» على البطاقة. */
-function openMsgMenu(b) {
+function openMsgMenu(b, back = false) {
   const T = (S.templates || []).filter((t) => t.active !== false);
   const link = b.public_token ? `${location.origin}${location.pathname.replace(/admin\.html$/, '')}?t=${b.public_token}` : '';
   showSheet(`تواصل مع ${esc(b.client_name)}`, `
@@ -1390,13 +1391,16 @@ function openMsgMenu(b) {
       ${T.map((t) => `
         <div class="rowline">
           <span class="grow"><span class="t">${esc(t.title)}</span></span>
-          <a class="qact" style="flex:0 0 auto;padding:0 15px" data-send="${esc(t.id)}"
+          <a class="qact send" data-send="${esc(t.id)}"
              href="${waHref(b.client_phone, fillTemplate(t.body, b, { business: S.settings?.business_name, link }))}"
              target="_blank" rel="noopener">${icon('whatsapp', 15)}إرسال</a>
         </div>`).join('')}
     </div></div>` : '<div class="note mb">لا رسائل بعد — أضيفيها من الإعدادات ← الرسائل.</div>'}
-    <a class="btn btn-ghost" href="${waHref(b.client_phone, '')}" target="_blank" rel="noopener"
-       style="width:100%">فتح واتساب بلا رسالة</a>`);
+    <a class="btn btn-ghost mb" href="${waHref(b.client_phone, '')}" target="_blank" rel="noopener"
+       style="width:100%">فتح واتساب بلا رسالة</a>
+    ${back ? '<button class="btn" id="msg-back">رجوع إلى تفاصيل الحجز</button>' : ''}`);
+  const bk = document.getElementById('msg-back');
+  if (bk) bk.onclick = () => openBooking(b.id);
   hydrateIcons(sheet);
 }
 
@@ -2063,7 +2067,7 @@ async function openBooking(id) {
 
     <div class="qacts" style="border-top:0;padding-top:0;margin:0 0 12px">
       <a class="qact" href="${telHref(b.client_phone)}">${icon('phone', 15)}اتصال</a>
-      <a class="qact" href="${waHref(b.client_phone)}" target="_blank" rel="noopener">${icon('whatsapp', 15)}تواصل</a>
+      <button class="qact" data-msg="${b.id}">${icon('whatsapp', 15)}تواصل</button>
       ${b.loc_map
         ? `<a class="qact" href="${esc(b.loc_map)}" target="_blank" rel="noopener">${icon('pin', 15)}الموقع</a>`
         : `<span class="qact empty">${icon('pin', 15)}بلا موقع</span>`}
@@ -2152,8 +2156,7 @@ async function openBooking(id) {
       <p class="label">رسائل واتساب</p>
       <div class="list">
         <a class="choice" href="${waHref(b.client_phone, templates.confirm(b, track))}" target="_blank" rel="noopener">
-          ${icon('check', 18)}<span class="grow"><span class="t">تأكيد الموعد</span>
-          <span class="s">التفاصيل ورابط المتابعة</span></span></a>
+          ${icon('check', 18)}<span class="grow"><span class="t">تأكيد الموعد</span></span></a>
         <a class="choice" href="${waHref(b.client_phone, templates.reminder(b))}" target="_blank" rel="noopener">
           ${icon('bell', 18)}<span class="grow"><span class="t">تذكير قبل الموعد</span></span></a>
         ${due > 0 ? `<a class="choice" href="${waHref(b.client_phone, templates.deposit(b))}" target="_blank" rel="noopener">
@@ -2164,6 +2167,9 @@ async function openBooking(id) {
     </div>
 
     <div id="d-actions"></div>`);
+
+  // زرّ «تواصل» في الورقة هو زرّ البطاقة نفسه، فيُربط بالرابط نفسه.
+  bindCards(document.getElementById('sheetContent'));
 
   // الرابط موقّع ويُطلب عند الضغط، فلا يُسرَّب مسار الملف في صفحة مفتوحة.
   const showRec = document.getElementById('d-showrec');

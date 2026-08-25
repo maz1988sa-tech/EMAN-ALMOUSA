@@ -813,6 +813,9 @@ export function openSheet(el) {
   el.classList.add('open');
   el.removeAttribute('hidden');
   document.body.style.overflow = 'hidden';
+  /* الصفحة تتنحّى فيظهر خلف الورقة مشهدُ الساعة نفسه لا بطاقاتٌ مطموسة:
+     تقرأ صاحبته التفاصيل وخلفها سماؤها. تعود الصفحة متى أُغلقت. */
+  document.body.classList.add('sheeting');
 
   const focusables = () => el.querySelectorAll(
     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
@@ -833,6 +836,7 @@ export function openSheet(el) {
   function close() {
     el.classList.remove('open');
     document.body.style.overflow = '';
+    document.body.classList.remove('sheeting');
     document.removeEventListener('keydown', onKey);
     el.removeEventListener('click', onClick);
     setTimeout(() => { el.setAttribute('hidden', ''); opener?.focus?.(); }, 260);

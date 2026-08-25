@@ -376,6 +376,18 @@ a  { color: var(--accent); }
         text-decoration: none; transition: background .2s var(--ease), border-color .2s var(--ease); }
 .qact:hover { background: var(--glass); border-color: var(--accent); }
 .qact svg { width: 16px; height: 16px; color: var(--accent); }
+/* زرّ الإرسال في قائمة التواصل: إطارٌ أبيض مصمت. القائمة كلّها صفوفٌ
+   متشابهة، والأبيض هو ما يفصل الفعل عن الاسم في لمحة. */
+.qact.send { flex: 0 0 auto; padding: 0 16px; background: #FFF;
+             border-color: color-mix(in srgb, var(--ink-3) 26%, transparent);
+             color: var(--ink); font-weight: 500;
+             box-shadow: 0 2px 6px rgba(60, 40, 30, .10); }
+.qact.send:hover { background: #FFF; border-color: var(--accent); }
+.qact.send svg { color: var(--accent); }
+[data-time="night"] .qact.send { background: #FBF6FA; color: #2B1C16;
+                                 border-color: rgba(0, 0, 0, .18); }
+[data-time="night"] .qact.send svg { color: #A8562F; }
+
 /* الموقع غير المضاف يظهر بإطارٍ مقطّع: موجودٌ دائمًا، معطّل المعنى لا الوصول */
 .qact.empty { border-style: dashed; color: var(--ink-3); background: transparent;
               padding: 0; text-align: center; }
@@ -587,12 +599,18 @@ label.toggle { cursor: pointer; }
 .note b { color: inherit; }
 
 /* ── الورقة المنبثقة ───────────────────────────────────── */
-/* الحجاب خفيفٌ عمدًا: الغامق يسحب الدفء من الزجاج فوقه فتبدو الورقة
-   رماديّة على لوحةٍ كلّها كريميّة. الفصل يأتي من الطمس لا من السواد. */
-.sheet { position: fixed; inset: 0; z-index: 90; background: rgba(58,42,38,.26);
-         -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+/* بلا حجاب: حين تُفتح ورقة تتنحّى الصفحة فيظهر خلفها مشهدُ الساعة نفسه.
+   الحجاب الغامق كان يسحب الدفء من الزجاج فوقه ويطمس البطاقات طمسًا
+   رماديًّا؛ وهذا يجعل الورقة زجاجًا على سماءٍ حقيقيّة — وهي اللغة التي
+   بُنيت عليها اللوحة كلّها. زجاج الورقة نفسه يأخذ لونه من المشهد. */
+.sheet { position: fixed; inset: 0; z-index: 90; background: transparent;
+         -webkit-backdrop-filter: none; backdrop-filter: none;
          display: flex; align-items: flex-end; justify-content: center;
          opacity: 0; pointer-events: none; transition: opacity .24s; }
+
+.shell, .appbar { transition: opacity .3s var(--ease), transform .3s var(--ease); }
+body.sheeting .shell,
+body.sheeting .appbar { opacity: 0; transform: scale(.985); pointer-events: none; }
 .sheet[open], .sheet.open { opacity: 1; pointer-events: auto; }
 .sheet-body { width: 100%; max-width: var(--page); max-height: 92vh; overflow-y: auto;
               border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--sh-3);
