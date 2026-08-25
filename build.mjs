@@ -8,6 +8,9 @@
  * وفيه مكسب ثانٍ لا يقلّ: ملفّاتٌ أصغر تصل أسرع إلى جوّال العميلة.
  *
  * التشغيل:  node build.mjs        →  dist/
+ *
+ * إصدار node مثبَّت في .node-version حتى لا يختار خادم البناء إصدارًا
+ * قديمًا لا تعمل عليه أدوات التصغير — عطلٌ لا يظهر إلا هناك.
  */
 import { rm, mkdir, cp, readFile, writeFile, readdir, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
