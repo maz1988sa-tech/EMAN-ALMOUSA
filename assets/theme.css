@@ -29,15 +29,16 @@
   --danger:    #B3564F;  --danger-bg: #FBEAE8;  --danger-line:#EFCFCB;
   --info:      #6E7F94;  --info-bg:   #EEF1F4;
 
-  /* Aref Ruqaa لم يكن محمَّلًا أصلًا فكان يسقط إلى Amiri صامتًا؛ يُسمّى الآن
-     ما يُستعمل فعلًا. الخطّان هما خطّا واجهة العميلة نفسها. */
-  --fd: 'Amiri', Georgia, 'Times New Roman', serif;
-  --fs: 'Amiri', Georgia, 'Times New Roman', serif;
-  --ft: 'Tajawal', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* خطّا اللوحة المعتمدان بعد المفاضلة: ريدكس برو للعناوين والأرقام،
+     وIBM Plex Arabic لكل ما يُقرأ سطرًا سطرًا. واجهة العميلة تحتفظ بخطّها
+     النسخيّ — تلك صفحة هويّة، وهذه أداةٌ تُقرأ سريعًا. */
+  --fd: 'Readex Pro', 'Tajawal', system-ui, sans-serif;
+  --fs: 'Readex Pro', 'Tajawal', system-ui, sans-serif;
+  --ft: 'IBM Plex Sans Arabic', 'Tajawal', system-ui, -apple-system, sans-serif;
 
-  /* الهندسة: الأوعية مربّعة والأدوات مستديرة — قاعدة واجهة العميلة نفسها.
-     البطاقة والحقل يُحدّان بخطّ شعرة، والزرّ وحده يستدير قليلًا. */
-  --r-xl: 16px; --r-lg: 2px; --r: 2px; --r-sm: 2px; --r-btn: 4px; --r-pill: 999px;
+  /* الهندسة الجديدة: بطاقاتٌ زجاجية مستديرة تطفو على مشهد اليوم. قاعدة
+     «الأوعية مربّعة» تبقى لواجهة العميلة وحدها؛ اللوحة لها لغتها. */
+  --r-xl: 28px; --r-lg: 24px; --r: 18px; --r-sm: 12px; --r-btn: 999px; --r-pill: 999px;
   --sh:   none;
   --sh-2: 0 18px 44px rgba(20, 10, 7, .16);
   --sh-3: 0 -10px 40px rgba(20, 10, 7, .18);
@@ -45,6 +46,91 @@
   --tap: 44px;           /* minimum comfortable touch target */
   --page: 560px;
 }
+/* ══ مشهدٌ واحد، أربعة أضواء ═══════════════════════════════════════════
+   البطاقات لا تتغيّر — لا شكلها ولا خطّها. الذي يتغيّر السماء والضوء
+   خلفها. الساعة تُشتقّ في اللوحة من ساعة الجهاز، فلا تُطلب من إيمان.
+   ═════════════════════════════════════════════════════════════════════ */
+
+:root, [data-time="dawn"] {
+  --sky-a:#F9E7D8; --sky-b:#F2D9CF; --sky-c:#DCE1E7;
+  --hill-1:#E4CFC0; --hill-2:#D3BCAF; --hill-3:#BFA79A;
+  --glass:rgba(255,255,255,.34); --glass-2:rgba(255,255,255,.22);
+  --glass-line:rgba(255,255,255,.72); --glass-sh:0 16px 40px rgba(88,58,44,.13);
+}
+[data-time="noon"] {
+  --sky-a:#E8F0F3; --sky-b:#F4EADD; --sky-c:#E9DCC8;
+  --hill-1:#E0D2BB; --hill-2:#CDBB9F; --hill-3:#B6A183;
+  --cream:#F4EADD; --surface:#FFFCF8; --surface-2:#EFE3D2;
+  --blush:#F2E4D2; --blush-2:#E3C8AE;
+  --rose:#AE6E45; --rose-deep:#8E5734;
+  --ink:#33261D; --ink-2:#6B5A48; --ink-3:#94836F;
+  --line:rgba(51,38,29,.10); --line-2:rgba(51,38,29,.18);
+  --glass:rgba(255,255,255,.36); --glass-2:rgba(255,255,255,.23);
+  --glass-line:rgba(255,255,255,.78); --glass-sh:0 16px 40px rgba(90,70,44,.14);
+}
+[data-time="dusk"] {
+  --sky-a:#F8C58F; --sky-b:#DE8768; --sky-c:#8A5675;
+  --hill-1:#B87470; --hill-2:#8E5A66; --hill-3:#63415A;
+  --cream:#E8A183; --surface:#FFF7F0; --surface-2:#F3DCCB;
+  --blush:#F6E0CE; --blush-2:#E5B79A;
+  --rose:#A8482F; --rose-deep:#8B3722;
+  --ink:#33201E; --ink-2:#6A4640; --ink-3:#8E655C;
+  --line:rgba(51,32,30,.12); --line-2:rgba(51,32,30,.2);
+  --glass:rgba(255,248,242,.33); --glass-2:rgba(255,248,242,.21);
+  --glass-line:rgba(255,240,228,.66); --glass-sh:0 16px 42px rgba(70,32,40,.22);
+}
+[data-time="night"] {
+  --sky-a:#1B1E3A; --sky-b:#2A2447; --sky-c:#3E2B49;
+  --hill-1:#2E2A4C; --hill-2:#241F3D; --hill-3:#1A1730;
+  --cream:#191539; --surface:#241E3C; --surface-2:#2C2547;
+  --blush:#2E2749; --blush-2:#453963;
+  --rose:#E0A177; --rose-deep:#EFC2A0;
+  --ink:#F3ECF2; --ink-2:#C2B4C6; --ink-3:#96879C;
+  --line:rgba(255,250,255,.12); --line-2:rgba(255,250,255,.2);
+  --espresso:#0E0B1E;
+  --ok:#8FD0A6; --ok-bg:rgba(90,160,115,.2); --ok-line:rgba(143,208,166,.3);
+  --warn:#E0BE7C; --warn-bg:rgba(190,150,80,.2); --warn-line:rgba(224,190,124,.3);
+  --danger:#E39E90; --danger-bg:rgba(180,100,90,.22); --danger-line:rgba(227,158,144,.3);
+  --info:#A7B4C8; --info-bg:rgba(140,160,190,.16);
+  --glass:rgba(255,250,255,.13); --glass-2:rgba(255,250,255,.08);
+  --glass-line:rgba(255,250,255,.20); --glass-sh:0 18px 46px rgba(0,0,0,.42);
+}
+
+/* ── المشهد ───────────────────────────────────────────────────────── */
+.scene{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.scene .sky{position:absolute;inset:0;transition:background 1s ease;
+  background:linear-gradient(178deg,var(--sky-a) 0%,var(--sky-b) 46%,var(--sky-c) 100%)}
+.scene .layer{position:absolute;inset:0;opacity:0;transition:opacity 1s ease}
+.scene .layer.on{opacity:1}
+.scene svg{position:absolute;inset:0;width:100%;height:100%}
+
+@keyframes sc-glide{from{transform:translate3d(-14vw,0,0)}to{transform:translate3d(114vw,-4vh,0)}}
+@keyframes sc-drift{from{transform:translate3d(-8vw,0,0)}to{transform:translate3d(108vw,0,0)}}
+@keyframes sc-twink{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes sc-sway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+@keyframes sc-float{0%,100%{transform:translate3d(0,0,0);opacity:.35}50%{transform:translate3d(3vw,-5vh,0);opacity:1}}
+@keyframes sc-halo{0%,100%{opacity:.55}50%{opacity:.95}}
+.sc-bird{animation:sc-glide 26s linear infinite}
+.sc-bird.b{animation-duration:34s;animation-delay:-9s}
+.sc-bird.c{animation-duration:30s;animation-delay:-18s}
+.sc-cloud{animation:sc-drift 90s linear infinite}
+.sc-cloud.b{animation-duration:130s;animation-delay:-40s}
+.sc-canopy{animation:sc-sway 9s ease-in-out infinite;transform-origin:50% 92%}
+.sc-star{animation:sc-twink 4s ease-in-out infinite}
+.sc-orb{animation:sc-halo 7s ease-in-out infinite}
+.sc-fly{animation:sc-float 11s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){
+  .sc-bird,.sc-cloud,.sc-canopy,.sc-star,.sc-orb,.sc-fly{animation:none!important}
+}
+
+/* ── الزجاج: تعريفٌ واحد ترثه كل الأسطح ──────────────────────────── */
+.glassy{
+  background:var(--glass);border:1px solid var(--glass-line);
+  box-shadow:var(--glass-sh);
+  -webkit-backdrop-filter:blur(13px) saturate(1.45);
+  backdrop-filter:blur(13px) saturate(1.45);
+  transition:background .6s ease,border-color .6s ease}
+
 /* السمة hidden تُهزَم أمام أي display صريح — تُثبَّت هنا لكل الصفحة. */
 [hidden]{display:none!important}
 
@@ -103,14 +189,10 @@ html { direction: rtl; -webkit-text-size-adjust: 100%; }
 
 /* نسيج الغبار كما في شاشات العميلة الفاتحة: طبقة ساكنة خلف كل شيء
    بشفافية خفيفة. جعله خلفية للجسم يبتلع النصّ، فيُفصل في طبقة. */
-body::before{
-  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:url('brand/dust_light.jpg') center / cover no-repeat;
-  opacity:.17;
-}
+body::before { display: none; }  /* المشهد حلّ محلّ الغبار */
 body {
   margin: 0;
-  background: var(--cream);
+  background: var(--sky-b);
   color: var(--ink);
   font-family: var(--ft);
   font-size: 16px;
@@ -172,8 +254,11 @@ a  { color: var(--rose-deep); }
 
 /* ── Surfaces ──────────────────────────────────────────────────────────── */
 .card {
-  background: rgba(255,255,255,.66); border: 1px solid var(--line);
-  border-radius: var(--r-lg); padding: 18px;
+  background: var(--glass); border: 1px solid var(--glass-line);
+  border-radius: var(--r-lg); padding: 18px; box-shadow: var(--glass-sh);
+  -webkit-backdrop-filter: blur(13px) saturate(1.45);
+  backdrop-filter: blur(13px) saturate(1.45);
+  transition: background .6s ease, border-color .6s ease;
 }
 
 /* The poster's arch, used for the one thing a screen most wants you to do. */

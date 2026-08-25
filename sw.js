@@ -9,7 +9,7 @@
    gone, the page's own error state explains it.
 */
 
-const VERSION = 'v29';
+const VERSION = 'v30';
 const SHELL = `shell-${VERSION}`;
 
 const ASSETS = [
@@ -48,6 +48,19 @@ const ASSETS = [
   // تفتح الصفحة بلا خلفيات في بيت العميلة حيث لا شبكة.
   './assets/brand/hero_still.jpg',
   './assets/brand/logo_dark.png',
+  './assets/brand/mark_sm.png',
+  './assets/fonts/readex-pro-arabic-500-normal.woff2',
+  './assets/fonts/readex-pro-arabic-600-normal.woff2',
+  './assets/fonts/readex-pro-latin-500-normal.woff2',
+  './assets/fonts/readex-pro-latin-600-normal.woff2',
+  './assets/fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2',
+  './assets/fonts/ibm-plex-sans-arabic-arabic-500-normal.woff2',
+  './assets/fonts/ibm-plex-sans-arabic-arabic-600-normal.woff2',
+  './assets/fonts/ibm-plex-sans-arabic-arabic-700-normal.woff2',
+  './assets/fonts/ibm-plex-sans-arabic-latin-400-normal.woff2',
+  './assets/fonts/ibm-plex-sans-arabic-latin-500-normal.woff2',
+  './assets/fonts/ibm-plex-sans-arabic-latin-600-normal.woff2',
+  './assets/fonts/ibm-plex-sans-arabic-latin-700-normal.woff2',
   './assets/brand/logo_light.png',
   './assets/brand/dust_a.jpg',
   './assets/brand/dust_light.jpg',

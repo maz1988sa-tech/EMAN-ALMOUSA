@@ -447,6 +447,35 @@ export const backups = {
   },
 };
 
+/* ── رسائل التواصل ──────────────────────────────────────────────────────
+   القوالب صارت صفوفًا في القاعدة تملكها إيمان، لا نصوصًا محفورة في الكود.
+   والحقول بين قوسين معقوفين تُبدَّل هنا عند الإرسال: بدونها تكتب اسم كل
+   عميلة بيدها في كل مرّة، وقالبٌ كهذا يُهجَر بعد ثالث استعمال. */
+
+export const TEMPLATE_FIELDS = [
+  '{الاسم}', '{التاريخ}', '{الوقت}', '{الخدمة}', '{الإجمالي}',
+  '{العربون}', '{المتبقي}', '{الموقع}', '{رابط الحجز}', '{الاسم التجاري}',
+];
+
+export function fillTemplate(body, b = {}, extra = {}) {
+  const items = b.booking_items || b.items || [];
+  const due = Number(b.price || 0) - Number(b.deposit || 0);
+  const map = {
+    '{الاسم}':          b.client_name || '',
+    '{التاريخ}':        b.the_date ? fmtDate(b.the_date) : '',
+    '{الوقت}':          b.start_time ? fmtTime(b.start_time) : '',
+    '{الخدمة}':         items.map((i) => i.service_name).filter(Boolean).join(' + '),
+    '{الإجمالي}':       riyal(b.price || 0),
+    '{العربون}':        riyal(b.deposit || 0),
+    '{المتبقي}':        riyal(Math.max(due, 0)),
+    '{الموقع}':         b.loc_text || '',
+    '{رابط الحجز}':     extra.link || '',
+    '{الاسم التجاري}':  extra.business || CFG.BUSINESS_NAME || '',
+  };
+  // الحقل غير المعروف يبقى كما هو بدل أن يُمحى: خطؤها يجب أن يُرى لا يُبتلع.
+  return String(body || '').replace(/\{[^}]{1,24}\}/g, (m) => (m in map ? map[m] : m));
+}
+
 export const admin = {
   async signIn(email, password) {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
@@ -525,6 +554,24 @@ export const admin = {
       if (error) throw error;
       return Array.isArray(data) ? data[0] : data;
     });
+  },
+
+  async templates() {
+    const { data, error } = await sb.from('message_templates')
+      .select('*').eq('active', true).order('pinned', { ascending: false })
+      .order('sort').order('created_at');
+    if (error) throw error;
+    return data || [];
+  },
+  async saveTemplate(row) {
+    const { data, error } = await sb.from('message_templates').upsert(row).select().maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+  async deleteTemplate(id) {
+    // المدمجة تُخفى ولا تُحذف: حذفها يعني ضياع نصٍّ لا تملك استعادته.
+    const { error } = await sb.from('message_templates').update({ active: false }).eq('id', id);
+    if (error) throw error;
   },
 
   async services() {
