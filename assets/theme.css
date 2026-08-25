@@ -1,101 +1,102 @@
 /* ==========================================================================
-   Iman Almousa — shared visual language
-   Colours sampled from the reference poster rather than eyeballed:
-   the cream ground, the blush ribbon, the badge circles and the warm
-   near-black of its display type.
+   لوحة إيمان آل موسى — لغةٌ بصريّة واحدة
+
+   هذا الملف نقلٌ حرفيّ لنموذج «ضوء اليوم» المعتمد: بطاقاتٌ زجاجيّة تطفو
+   على مشهدٍ يتبع ساعة الجهاز، لا أسطحٌ صمّاء فوق خلفيّة. القيم مأخوذة من
+   النموذج كما هي — الشفافيّة والانحناء والمقاسات — فلا تفترق الشاشة عن
+   الورقة التي وُوفق عليها.
+
+   طبقتان من الزجاج: السطح على المشهد يأخذ --glass، وما يجلس داخل سطحٍ
+   آخر يأخذ --glass-2. جمعهما هو ما يجعل النموذج مقروءًا، وإهماله هو ما
+   جعل النسخة السابقة تختفي فوق الخلفيّة.
    ========================================================================== */
 
 :root {
-  /* القيم مأخوذة حرفيًا من واجهة العميلة (client-theme.css) لا مقاربة لها،
-     فلا يفترق اللونان حين تُفتح الصفحتان جنبًا إلى جنب. */
-  --cream:     #faf5f0;   /* = --paper */
-  --surface:   #fffcfa;
-  --surface-2: #f2e7de;   /* = --paper-2 */
-  --blush:     #f1ded2;
-  --blush-2:   #e6c2b1;   /* = --blush */
-  --rose:      #b0705c;   /* = --clay */
-  --rose-deep: #96594a;
-  --ink:       #2b1c16;   /* = --ink */
-  --ink-2:     #6d584c;
-  --ink-3:     #8a7568;   /* = --muted */
-  --line:      rgba(43,28,22,.10);
-  --line-2:    rgba(43,28,22,.18);
-  --espresso:  #150c09;
+  --r-xl: 28px;  --r-card: 26px; --r-lg: 24px;
+  --r: 18px;     --r-mid: 18px;  --r-sm: 12px;
+  --r-btn: 999px; --r-pill: 999px;
+  --tap: 46px;
+  --page: 470px;
+  --ease: cubic-bezier(.4,.15,.2,1);
 
-  /* Semantic colours sit inside the same warm family so a status pill never
-     looks pasted in from another design. */
-  --ok:        #6F8C6B;  --ok-bg:     #EDF3EC;  --ok-line:  #D2E0CF;
-  --warn:      #B98442;  --warn-bg:   #FBF1E4;  --warn-line:#EDDCC2;
-  --danger:    #B3564F;  --danger-bg: #FBEAE8;  --danger-line:#EFCFCB;
-  --info:      #6E7F94;  --info-bg:   #EEF1F4;
-
-  /* خطّا اللوحة المعتمدان بعد المفاضلة: ريدكس برو للعناوين والأرقام،
-     وIBM Plex Arabic لكل ما يُقرأ سطرًا سطرًا. واجهة العميلة تحتفظ بخطّها
-     النسخيّ — تلك صفحة هويّة، وهذه أداةٌ تُقرأ سريعًا. */
-  --fd: 'Readex Pro', 'Tajawal', system-ui, sans-serif;
-  --fs: 'Readex Pro', 'Tajawal', system-ui, sans-serif;
-  --ft: 'IBM Plex Sans Arabic', 'Tajawal', system-ui, -apple-system, sans-serif;
-
-  /* الهندسة الجديدة: بطاقاتٌ زجاجية مستديرة تطفو على مشهد اليوم. قاعدة
-     «الأوعية مربّعة» تبقى لواجهة العميلة وحدها؛ اللوحة لها لغتها. */
-  --r-xl: 28px; --r-lg: 24px; --r: 18px; --r-sm: 12px; --r-btn: 999px; --r-pill: 999px;
   --sh:   none;
   --sh-2: 0 18px 44px rgba(20, 10, 7, .16);
   --sh-3: 0 -10px 40px rgba(20, 10, 7, .18);
 
-  --tap: 44px;           /* minimum comfortable touch target */
-  --page: 560px;
+  /* ريدكس برو للعناوين والأرقام، وIBM Plex Arabic لما يُقرأ سطرًا سطرًا.
+     هذا هو «الخط ج» الذي اختِير من بين الثلاثة في النموذج. */
+  --fd: 'Readex Pro', 'Tajawal', system-ui, sans-serif;
+  --fs: 'Readex Pro', 'Tajawal', system-ui, sans-serif;
+  --ft: 'IBM Plex Sans Arabic', 'Tajawal', system-ui, -apple-system, sans-serif;
+  --fw-d: 600;
 }
+
 /* ══ مشهدٌ واحد، أربعة أضواء ═══════════════════════════════════════════
-   البطاقات لا تتغيّر — لا شكلها ولا خطّها. الذي يتغيّر السماء والضوء
-   خلفها. الساعة تُشتقّ في اللوحة من ساعة الجهاز، فلا تُطلب من إيمان.
+   القيم من النموذج حرفيًّا. الأسماء القديمة (--rose و --surface و --cream)
+   تبقى مرادفاتٍ لأنّ في الصفحة نداءاتٍ عليها؛ الجديد هو --accent و--chip.
    ═════════════════════════════════════════════════════════════════════ */
 
 :root, [data-time="dawn"] {
   --sky-a:#F9E7D8; --sky-b:#F2D9CF; --sky-c:#DCE1E7;
   --hill-1:#E4CFC0; --hill-2:#D3BCAF; --hill-3:#BFA79A;
-  --glass:rgba(255,255,255,.56); --glass-2:rgba(255,255,255,.40);
+  --ink:#3A2A26; --ink-2:#6E5A53; --ink-3:#93807A;
+  --accent:#B87550; --gold:#B08A3C;
+  --glass:rgba(255,255,255,.34); --glass-2:rgba(255,255,255,.22);
   --glass-line:rgba(255,255,255,.72); --glass-sh:0 16px 40px rgba(88,58,44,.13);
+  --chip:rgba(255,255,255,.46);
+  --ok:#4C7A5A; --ok-bg:rgba(120,170,135,.24);
+  --warn:#9A6524; --warn-bg:rgba(214,168,90,.24);
+  --danger:#A44B3C; --danger-bg:rgba(196,110,95,.2);
 }
 [data-time="noon"] {
   --sky-a:#E8F0F3; --sky-b:#F4EADD; --sky-c:#E9DCC8;
   --hill-1:#E0D2BB; --hill-2:#CDBB9F; --hill-3:#B6A183;
-  --cream:#F4EADD; --surface:#FFFCF8; --surface-2:#EFE3D2;
-  --blush:#F2E4D2; --blush-2:#E3C8AE;
-  --rose:#AE6E45; --rose-deep:#8E5734;
   --ink:#33261D; --ink-2:#6B5A48; --ink-3:#94836F;
-  --line:rgba(51,38,29,.10); --line-2:rgba(51,38,29,.18);
-  --glass:rgba(255,255,255,.58); --glass-2:rgba(255,255,255,.42);
+  --accent:#AE6E45; --gold:#A8802F;
+  --glass:rgba(255,255,255,.36); --glass-2:rgba(255,255,255,.23);
   --glass-line:rgba(255,255,255,.78); --glass-sh:0 16px 40px rgba(90,70,44,.14);
+  --chip:rgba(255,255,255,.48);
+  --ok:#467052; --ok-bg:rgba(110,160,125,.24);
+  --warn:#8C5F1E; --warn-bg:rgba(206,163,84,.26);
+  --danger:#9C4636; --danger-bg:rgba(190,104,88,.2);
 }
 [data-time="dusk"] {
   --sky-a:#F8C58F; --sky-b:#DE8768; --sky-c:#8A5675;
   --hill-1:#B87470; --hill-2:#8E5A66; --hill-3:#63415A;
-  --cream:#E8A183; --surface:#FFF7F0; --surface-2:#F3DCCB;
-  --blush:#F6E0CE; --blush-2:#E5B79A;
-  --rose:#A8482F; --rose-deep:#8B3722;
   --ink:#33201E; --ink-2:#6A4640; --ink-3:#8E655C;
-  --line:rgba(51,32,30,.12); --line-2:rgba(51,32,30,.2);
-  --glass:rgba(255,248,242,.55); --glass-2:rgba(255,248,242,.40);
+  --accent:#A8482F; --gold:#9A6B22;
+  --glass:rgba(255,248,242,.33); --glass-2:rgba(255,248,242,.21);
   --glass-line:rgba(255,240,228,.66); --glass-sh:0 16px 42px rgba(70,32,40,.22);
+  --chip:rgba(255,246,238,.44);
+  --ok:#3F6B4E; --ok-bg:rgba(120,165,132,.28);
+  --warn:#8A5518; --warn-bg:rgba(212,164,80,.3);
+  --danger:#93382A; --danger-bg:rgba(190,96,80,.26);
 }
 [data-time="night"] {
   --sky-a:#1B1E3A; --sky-b:#2A2447; --sky-c:#3E2B49;
   --hill-1:#2E2A4C; --hill-2:#241F3D; --hill-3:#1A1730;
-  --cream:#191539; --surface:#241E3C; --surface-2:#2C2547;
-  --blush:#2E2749; --blush-2:#453963;
-  --rose:#E0A177; --rose-deep:#EFC2A0;
   --ink:#F3ECF2; --ink-2:#C2B4C6; --ink-3:#96879C;
-  --line:rgba(255,250,255,.12); --line-2:rgba(255,250,255,.2);
-  --espresso:#0E0B1E;
-  --ok:#8FD0A6; --ok-bg:rgba(90,160,115,.2); --ok-line:rgba(143,208,166,.3);
-  --warn:#E0BE7C; --warn-bg:rgba(190,150,80,.2); --warn-line:rgba(224,190,124,.3);
-  --danger:#E39E90; --danger-bg:rgba(180,100,90,.22); --danger-line:rgba(227,158,144,.3);
-  --info:#A7B4C8; --info-bg:rgba(140,160,190,.16);
-  --glass:rgba(255,250,255,.17); --glass-2:rgba(255,250,255,.11);
+  --accent:#E0A177; --gold:#E5C68C;
+  --glass:rgba(255,250,255,.13); --glass-2:rgba(255,250,255,.08);
   --glass-line:rgba(255,250,255,.20); --glass-sh:0 18px 46px rgba(0,0,0,.42);
+  --chip:rgba(255,250,255,.10);
+  --ok:#8FD0A6; --ok-bg:rgba(90,160,115,.22);
+  --warn:#E0BE7C; --warn-bg:rgba(190,150,80,.22);
+  --danger:#E39E90; --danger-bg:rgba(180,100,90,.24);
+  --sh-2: 0 18px 44px rgba(0,0,0,.5);
+  --sh-3: 0 -10px 40px rgba(0,0,0,.55);
 }
 
+/* مرادفات الأسماء القديمة — نداءٌ واحد فائت يكسر لونًا، فتُترك موصولة. */
+:root, [data-time] {
+  --rose: var(--accent); --rose-deep: var(--accent);
+  --cream: var(--sky-b); --surface: var(--glass); --surface-2: var(--glass-2);
+  --blush: var(--chip); --blush-2: var(--chip); --blush-deep: var(--accent);
+  --espresso: var(--ink);
+  --line: var(--glass-line); --line-2: var(--glass-line);
+  --ok-line: transparent; --warn-line: transparent; --danger-line: transparent;
+  --info: var(--ink-2); --info-bg: var(--chip);
+}
 /* ── المشهد ───────────────────────────────────────────────────────── */
 .scene{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
 .scene .sky{position:absolute;inset:0;transition:background 1s ease;
@@ -123,238 +124,315 @@
   .sc-bird,.sc-cloud,.sc-canopy,.sc-star,.sc-orb,.sc-fly{animation:none!important}
 }
 
+
 /* ── الزجاج: تعريفٌ واحد ترثه كل الأسطح ──────────────────────────── */
-.glassy{
-  background:var(--glass);border:1px solid var(--glass-line);
-  box-shadow:var(--glass-sh);
-  -webkit-backdrop-filter:blur(13px) saturate(1.45);
-  backdrop-filter:blur(13px) saturate(1.45);
-  transition:background .6s ease,border-color .6s ease}
+.glassy, .card, .arch, .empty, .bk, .stat, .appbar .bar, .appbar .tabs, .panebar {
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  box-shadow: var(--glass-sh);
+  -webkit-backdrop-filter: blur(13px) saturate(1.45);
+  backdrop-filter: blur(13px) saturate(1.45);
+  transition: background .6s var(--ease), border-color .6s var(--ease);
+}
 
 /* السمة hidden تُهزَم أمام أي display صريح — تُثبَّت هنا لكل الصفحة. */
-[hidden]{display:none!important}
-
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --cream:     #1a100c;
-  --surface:   #241610;
-  --surface-2: #2e1d16;
-  --blush:     #402a21;
-  --blush-2:   #5a3d31;
-  --rose:      #c98a72;
-  --rose-deep: #e6c2b1;
-  --ink:       #f6ece5;
-  --ink-2:     #d3bcae;
-  --ink-3:     #a68d7d;
-  --line:      rgba(255,255,255,.10);
-  --line-2:    rgba(255,255,255,.18);
-  --espresso:  #0d0705;
-    --ok:        #A8C4A2;  --ok-bg:     #26302A;  --ok-line:  #3A4A38;
-    --warn:      #E0AE7E;  --warn-bg:   #3A2A1C;  --warn-line:#523C28;
-    --danger:    #E89A92;  --danger-bg: #3D2320;  --danger-line:#5A332F;
-    --info:      #A9B8C8;  --info-bg:   #262E36;
-    --sh:   none;
-  --sh-2: 0 18px 44px rgba(0, 0, 0, .5);
-  --sh-3: 0 -10px 40px rgba(0, 0, 0, .55);
-  }
-}
-
-:root[data-theme="dark"] {
-  --cream:     #1a100c;
-  --surface:   #241610;
-  --surface-2: #2e1d16;
-  --blush:     #402a21;
-  --blush-2:   #5a3d31;
-  --rose:      #c98a72;
-  --rose-deep: #e6c2b1;
-  --ink:       #f6ece5;
-  --ink-2:     #d3bcae;
-  --ink-3:     #a68d7d;
-  --line:      rgba(255,255,255,.10);
-  --line-2:    rgba(255,255,255,.18);
-  --espresso:  #0d0705;
-  --ok:        #A8C4A2;  --ok-bg:     #26302A;  --ok-line:  #3A4A38;
-  --warn:      #E0AE7E;  --warn-bg:   #3A2A1C;  --warn-line:#523C28;
-  --danger:    #E89A92;  --danger-bg: #3D2320;  --danger-line:#5A332F;
-  --info:      #A9B8C8;  --info-bg:   #262E36;
-  --sh:   none;
-  --sh-2: 0 18px 44px rgba(0, 0, 0, .5);
-  --sh-3: 0 -10px 40px rgba(0, 0, 0, .55);
-}
+[hidden] { display: none !important; }
 
 *, *::before, *::after { box-sizing: border-box; }
-
 html { direction: rtl; -webkit-text-size-adjust: 100%; }
-
-/* نسيج الغبار كما في شاشات العميلة الفاتحة: طبقة ساكنة خلف كل شيء
-   بشفافية خفيفة. جعله خلفية للجسم يبتلع النصّ، فيُفصل في طبقة. */
-body::before { display: none; }  /* المشهد حلّ محلّ الغبار */
 body {
-  margin: 0;
+  margin: 0; min-height: 100vh;
   background: var(--sky-b);
   color: var(--ink);
   font-family: var(--ft);
-  font-size: 16px;
-  line-height: 1.7;
+  font-size: 15px; line-height: 1.7;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  transition: background 1s var(--ease), color .6s var(--ease);
 }
+body::before { display: none; }
 
-/* Focus is always visible. Icon-only controls are the ones that need it most. */
-:focus-visible {
-  outline: 2px solid var(--rose);
-  outline-offset: 2px;
-  border-radius: 6px;
-}
-
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--glass-line); border-radius: 3px; }
 
 .ic { flex-shrink: 0; display: block; }
-
-.shell { max-width: var(--page); margin: 0 auto; padding: 0 16px 40px; }
-
-/* Digits line up in columns wherever money or counts are shown. */
 .num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--ink-3); }
+.center { text-align: center; }
+.hide { display: none !important; }
+.mt { margin-top: 10px; }
+.mb { margin-bottom: 12px; }
+.gap { height: 10px; }
 
-/* ── Type ──────────────────────────────────────────────────────────────── */
+/* ── إطار الورقة ───────────────────────────────────────── */
+.shell { position: relative; z-index: 1; max-width: var(--page); margin: 0 auto;
+         padding: 0 15px 40px; }
+.shell.login { padding-top: 8vh; }
+.list { display: flex; flex-direction: column; }
+.row { display: flex; gap: 8px; }
+.split, .grid2, .pg-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── Type ──────────────────────────────────────────────── */
 h1, h2, h3, h4 { margin: 0; font-weight: 700; text-wrap: balance; }
-h1 { font-family: var(--ft); font-weight: 200; font-size: clamp(25px, 5.5vw, 31px);
-     letter-spacing: -.02em; line-height: 1.35; }
-/* اللوحة أداةٌ تُقرأ سريعًا لا وثيقةٌ تُتأمَّل: عناوينها بخطّ التبويبات نفسه
-   فتبدو الشاشة نظامًا واحدًا. الخطّ النسخيّ يبقى لصفحة العميلة وحدها. */
-h2 { font-family: var(--ft); font-weight: 700; font-size: 18px; letter-spacing: -.01em; }
-h3 { font-family: var(--ft); font-weight: 700; font-size: 16px; letter-spacing: -.005em; }
+h1 { font-family: var(--fd); font-weight: var(--fw-d);
+     font-size: clamp(26px, 7.4vw, 35px); line-height: 1.25; letter-spacing: -.01em; }
+h2 { font-family: var(--ft); font-weight: 700; font-size: 16px; letter-spacing: -.01em; }
+h3 { font-family: var(--fd); font-weight: var(--fw-d); font-size: 20px; }
 p  { margin: 0; }
-a  { color: var(--rose-deep); }
+a  { color: var(--accent); }
 
-/* الحاجب اللاتيني: نفس مقاس واجهة العميلة وتباعدها — علامة الهوية الأوضح. */
-.eyebrow {
-  direction: ltr; font: 500 9.5px/1 var(--fd); letter-spacing: .42em;
-  color: var(--rose); text-transform: uppercase;
+.eyebrow { direction: ltr; font: 500 9.5px/1 var(--fd); letter-spacing: .42em;
+           color: var(--accent); text-transform: uppercase; }
+.ribbon { display: block; width: fit-content; margin: 30px auto 6px; direction: ltr;
+          color: var(--accent); font: 500 10px/1 var(--fd); letter-spacing: .42em;
+          text-transform: uppercase; padding: 6px 0 10px;
+          border-bottom: 1px solid var(--glass-line); }
+.ribbon-sub { text-align: center; color: var(--ink-3); font-size: 13px;
+              margin: 0 auto 18px; max-width: 44ch; text-wrap: balance; }
+
+/* ── شريط التطبيق: علامةٌ واسمٌ وساعة ─────────────────── */
+/* الشريط يلتصق بالأعلى لأنّ صفحات اللوحة طويلة، ولا يصحّ أن تصعد إيمان
+   إلى رأس الصفحة لتبدّل تبويبًا. وحتى لا يمرّ المحتوى حادًّا في الفراغ
+   بين الحبّتين، يُطمَس ما خلف الشريط كلّه لا ما خلفهما وحدهما. */
+.appbar { position: sticky; top: 0; z-index: 40; padding: 12px 15px 9px;
+          max-width: var(--page); margin: 0 auto;
+          -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+          -webkit-mask-image: linear-gradient(#000 76%, transparent);
+          mask-image: linear-gradient(#000 76%, transparent); }
+.appbar .tabs { margin-bottom: 0; }
+.appbar .bar { display: flex; align-items: center; gap: 11px;
+               padding: 9px 12px; border-radius: var(--r-card); margin-bottom: 9px; }
+.appbar > * { -webkit-mask-image: none; mask-image: none; }
+.appbar .brandmark { width: 38px; height: 38px; border-radius: 11px; flex: 0 0 auto;
+                     display: block; object-fit: contain; background: var(--glass-2);
+                     border: 1px solid var(--glass-line); padding: 4px; }
+.appbar .brand { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; }
+.appbar .name { min-width: 0; line-height: 1.3; }
+.appbar .name b { display: block; font-size: 14px; font-weight: 700;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.appbar .sub { display: block; font: 500 9.5px/1.4 var(--fd); direction: ltr;
+               letter-spacing: .2em; color: var(--ink-3); text-transform: uppercase; }
+.appbar .acts { display: flex; gap: 6px; flex: 0 0 auto; }
+.appbar .clock { font-size: 11.5px; color: var(--ink-2); background: var(--chip);
+                 border: 1px solid var(--glass-line); padding: 4px 10px;
+                 border-radius: var(--r-pill); font-variant-numeric: tabular-nums;
+                 white-space: nowrap; }
+
+/* ── تبويبات ───────────────────────────────────────────── */
+.appbar .tabs { display: flex; gap: 2px; padding: 5px; border-radius: var(--r-pill);
+                overflow-x: auto; scrollbar-width: none; }
+.appbar .tabs::-webkit-scrollbar { display: none; }
+.tab { flex: 1 0 auto; border: 0; background: transparent; cursor: pointer;
+       color: var(--ink-3); font-family: var(--ft); font-size: 12.5px; font-weight: 500;
+       padding: 8px 11px; border-radius: var(--r-pill); white-space: nowrap;
+       display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+       transition: background .2s var(--ease), color .2s var(--ease); }
+.tab svg { width: 15px; height: 15px; }
+.tab[aria-current="page"] { background: var(--accent); color: #FFF; }
+.tab .dot { background: var(--danger); color: #FFF; border-radius: var(--r-pill);
+            font-size: 10px; line-height: 1.6; padding: 0 5px; }
+.tab[aria-current="page"] .dot { background: rgba(255,255,255,.28); }
+
+/* أقسام الإعدادات: الشريط نفسه بمقاسٍ أصغر. */
+.panebar { display: flex; gap: 2px; margin: 14px 0 4px; padding: 4px;
+           border-radius: var(--r-pill); overflow-x: auto; scrollbar-width: none; }
+.panebar::-webkit-scrollbar { display: none; }
+.panetab { flex: 1 0 auto; border: 0; background: transparent; color: var(--ink-3);
+           font-family: var(--ft); font-size: 12px; font-weight: 500; padding: 7px 12px;
+           border-radius: var(--r-pill); cursor: pointer; white-space: nowrap;
+           transition: background .2s var(--ease), color .2s var(--ease); }
+.panetab[aria-current="true"] { background: var(--accent); color: #FFF; }
+
+/* ── بطاقة التحيّة ─────────────────────────────────────── */
+.greet { padding: 20px 20px 18px; margin-bottom: 12px; border-radius: var(--r-card);
+         background: var(--glass); border: 1px solid var(--glass-line);
+         box-shadow: var(--glass-sh);
+         -webkit-backdrop-filter: blur(13px) saturate(1.45);
+         backdrop-filter: blur(13px) saturate(1.45); }
+.greet .kick { font-size: 10.5px; letter-spacing: .2em; color: var(--accent);
+               margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.greet .kick::after { content: ""; width: 5px; height: 5px; border-radius: 50%;
+                      background: var(--accent); }
+.greet h1 { margin: 0 0 7px; }
+.greet p { color: var(--ink-2); font-size: 14.5px; line-height: 1.65; }
+.greet p b { color: var(--ink); font-weight: 700; }
+
+/* ── الإحصاءات ─────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+.stat { padding: 14px 15px 15px; border-radius: var(--r-card); }
+.stat .k, .stat .l { display: block; font-size: 11.5px; color: var(--ink-3); margin-bottom: 2px; }
+.stat .v { display: block; font-family: var(--fd); font-size: 25px; font-weight: var(--fw-d);
+           line-height: 1.15; font-variant-numeric: tabular-nums; }
+.stat .v em { font-style: normal; font-size: 14px; color: var(--ink-3); }
+.stat .s { display: block; font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+
+/* ── ترويسة قسم ────────────────────────────────────────── */
+.sec-head { display: flex; align-items: center; gap: 10px; margin: 22px 4px 11px; }
+.sec-head:first-child { margin-top: 0; }
+.sec-head .rule { flex: 1; height: 1px; background: var(--glass-line); }
+.sec-head .count { font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* ── الأسطح ────────────────────────────────────────────── */
+.card { padding: 15px 16px; border-radius: var(--r-card); margin-bottom: 10px; }
+
+/* القوس والحالة الفارغة تجلسان على المشهد مباشرة، فتأخذان الطبقتين معًا:
+   --glass أرضيّةً و--glass-2 فوقها. طبقةٌ واحدة تختفي فوق الخلفيّة. */
+.arch, .empty {
+  border-radius: var(--r-card); padding: 24px 20px 20px; text-align: center;
+  background-image: linear-gradient(var(--glass-2), var(--glass-2));
+  background-color: var(--glass); margin-bottom: 12px;
 }
+.arch h2, .arch h3 { font-family: var(--fd); font-weight: var(--fw-d); font-size: 20px;
+                     margin: 0 0 5px; }
+.arch p, .empty p { margin: 0; font-size: 13px; color: var(--ink-2); }
+.empty .badge, .arch .badge { margin: 0 auto 11px; }
 
-/* The poster's pill ribbon, used to head a section. */
-.ribbon {
-  display: block; width: fit-content; margin: 34px auto 6px;
-  direction: ltr; color: var(--rose); font: 500 10px/1 var(--fd);
-  letter-spacing: .42em; text-transform: uppercase;
-  padding: 6px 0 10px; border-bottom: 1px solid var(--line-2);
-}
-.ribbon-sub {
-  text-align: center; color: var(--ink-3); font-size: 13px;
-  margin: 0 auto 18px; max-width: 44ch; text-wrap: balance;
-}
+.badge { width: 52px; height: 52px; border-radius: 50%; background: var(--chip);
+         color: var(--accent); display: grid; place-items: center; flex-shrink: 0; }
+.badge.lg { width: 56px; height: 56px; }
+.badge.on-surface { background: var(--chip); }
 
-/* A heading with a hairline rule running to the edge. */
-.sec-head { display: flex; align-items: baseline; gap: 10px; margin: 26px 0 12px; }
-.sec-head .rule { flex: 1; height: 1px; background: var(--line-2); }
-.sec-head .count { font-size: 11.5px; color: var(--ink-3); }
-
-/* ── Surfaces ──────────────────────────────────────────────────────────── */
-.card {
-  background: var(--glass); border: 1px solid var(--glass-line);
-  border-radius: var(--r-lg); padding: 18px; box-shadow: var(--glass-sh);
-  -webkit-backdrop-filter: blur(13px) saturate(1.45);
-  backdrop-filter: blur(13px) saturate(1.45);
-  transition: background .6s ease, border-color .6s ease;
-}
-
-/* The poster's arch, used for the one thing a screen most wants you to do. */
-/* لا انحناء ضخم بلا مبرّر — إطار البطاقات نفسه. وسطحٌ حقيقي: بلا خلفية
-   كانت الحالة الفارغة تبدو فجوةً في الصفحة لا رسالةً فيها. */
-.arch {
-  background: var(--glass); border: 1px solid var(--glass-line);
-  border-radius: var(--r-lg); box-shadow: var(--glass-sh);
-  -webkit-backdrop-filter: blur(13px) saturate(1.45);
-  backdrop-filter: blur(13px) saturate(1.45);
-  padding: 26px 24px 22px; text-align: center;
-}
-
-.badge {
-  width: 44px; height: 44px; border-radius: 50%;
-  background: var(--blush); color: var(--rose-deep);
-  display: grid; place-items: center; flex-shrink: 0;
-}
-.badge.lg { width: 58px; height: 58px; }
-.badge.on-surface { background: var(--surface); box-shadow: var(--sh); }
-
-/* Dotted leader rows, straight from the poster's services column. */
-.leader { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; font-size: 14px; }
-.leader .k { color: var(--ink-3); }
-.leader .d { flex: 1; border-bottom: 1px dotted var(--line-2); transform: translateY(-4px); }
-.leader .v { font-family: var(--fd); font-weight: 700; font-variant-numeric: tabular-nums; }
+/* ── سطور نقطيّة ───────────────────────────────────────── */
+.leader { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; font-size: 13px; }
+.leader .k { color: var(--ink-2); }
+.leader .d { flex: 1; border-bottom: 1px dotted var(--glass-line); transform: translateY(-4px); }
+.leader .v { font-family: var(--fd); font-weight: var(--fw-d); font-size: 15px;
+             font-variant-numeric: tabular-nums; }
 .leader .v.due  { color: var(--danger); }
 .leader .v.paid { color: var(--ok); }
 
-/* ── Pills ─────────────────────────────────────────────────────────────── */
-.pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11.5px; font-weight: 700; padding: 4px 11px;
-  border-radius: var(--r-pill); white-space: nowrap;
-  background: var(--surface-2); color: var(--ink-2);
-}
-.pill.pending   { background: var(--warn-bg);   color: var(--warn); }
-.pill.confirmed { background: var(--blush-2);   color: var(--rose-deep); }
-.pill.done      { background: var(--ok-bg);     color: var(--ok); }
+/* ══ بطاقة الحجز ═══════════════════════════════════════════════════
+   زرّ الإنجاز أوّل ما تصله الإبهام، والمبلغ في طرفها الآخر يُقرأ بلمحة.
+   الخدمات شاراتٌ بأيقوناتها، والأفعال الثلاثة أسفلها بلا فتح التفاصيل.
+   ═══════════════════════════════════════════════════════════════════ */
+.bk { padding: 14px 15px; border-radius: var(--r-card); margin-bottom: 10px;
+      position: relative; }
+.bk.dim { opacity: .62; }
+.bk-top { display: flex; align-items: flex-start; gap: 11px; }
+.bk-main { display: flex; align-items: flex-start; gap: 11px; flex: 1; min-width: 0;
+           background: transparent; border: 0; padding: 0; margin: 0; cursor: pointer;
+           font-family: inherit; color: inherit; text-align: start; }
+
+.tick { flex: 0 0 auto; width: var(--tap); height: var(--tap); border-radius: 50%;
+        cursor: pointer; border: 1.5px solid var(--glass-line); background: var(--glass-2);
+        display: grid; place-items: center; color: var(--ink-3); padding: 0;
+        transition: border-color .25s var(--ease), color .25s var(--ease),
+                    background .25s var(--ease), transform .25s var(--ease); }
+.tick:hover, .tick:focus-visible { border-color: var(--ok); color: var(--ok); transform: scale(1.05); }
+.tick svg { width: 20px; height: 20px; }
+.tick.still { cursor: default; }
+.tick.still:hover { border-color: var(--glass-line); color: var(--ink-3); transform: none; }
+.bk.done .tick { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.bk.done .who b { text-decoration: line-through; opacity: .6; }
+
+.who { flex: 1; min-width: 0; }
+.who b, .who .nm { display: block; font-size: 16px; font-weight: 700; line-height: 1.35; }
+.who .meta, .who .when { display: block; font-size: 12px; color: var(--ink-2); margin-top: 1px; }
+.money { text-align: left; flex: 0 0 auto; direction: ltr; }
+.money .t { display: block; font-family: var(--fd); font-size: 18px; font-weight: var(--fw-d);
+            font-variant-numeric: tabular-nums; line-height: 1.2; }
+.money .r { display: block; font-size: 11px; color: var(--accent);
+            font-variant-numeric: tabular-nums; }
+.money .r.paid { color: var(--ok); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+
+/* شارة الخدمة: أيقونتها وعددها، بدل رقمٍ مجرّد لا يقول أيّ خدمة */
+.svcb { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px;
+        padding: 4px 10px 4px 8px; border-radius: var(--r-pill); background: var(--chip);
+        border: 1px solid var(--glass-line); color: var(--ink-2); white-space: nowrap; }
+.svcb svg { width: 15px; height: 15px; color: var(--accent); flex: 0 0 auto; }
+/* «×٣» عددٌ يسبقه رمز الضرب: يُعزل عن اتجاه السطر وإلا انقلب إلى «٣×». */
+.svcb b { font-family: var(--fd); font-weight: var(--fw-d); font-size: 13px;
+          color: var(--ink); font-variant-numeric: tabular-nums;
+          direction: ltr; unicode-bidi: isolate; }
+
+/* أفعالٌ سريعة من البطاقة نفسها، فلا تُفتح التفاصيل لمكالمة */
+.qacts { display: flex; gap: 7px; margin-top: 11px; padding-top: 11px;
+         border-top: 1px solid var(--glass-line); }
+.qact { flex: 1; min-height: 38px; border-radius: var(--r-pill); cursor: pointer;
+        font-family: var(--ft); font-size: 12.5px; font-weight: 500;
+        border: 1px solid var(--glass-line); background: var(--glass-2); color: var(--ink);
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        text-decoration: none; transition: background .2s var(--ease), border-color .2s var(--ease); }
+.qact:hover { background: var(--glass); border-color: var(--accent); }
+.qact svg { width: 16px; height: 16px; color: var(--accent); }
+/* الموقع غير المضاف يظهر بإطارٍ مقطّع: موجودٌ دائمًا، معطّل المعنى لا الوصول */
+.qact.empty { border-style: dashed; color: var(--ink-3); background: transparent;
+              padding: 0; text-align: center; }
+.qact.empty svg { color: var(--ink-3); }
+
+/* سؤال العربون: يُسأل داخل البطاقة لا في نافذة النظام، فيبقى الاسم
+   والمبلغ أمام العين وهي تجيب. */
+.ask { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--glass-line); }
+.ask p { margin: 0 0 10px; font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+.ask p b { color: var(--ink); font-weight: 700; }
+.ask .row .btn { font-size: 13px; padding: 9px 12px; min-height: 40px; }
+
+/* ── شارات الحالة ──────────────────────────────────────── */
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px;
+        font-weight: 500; padding: 4px 10px; border-radius: var(--r-pill);
+        white-space: nowrap; background: var(--chip);
+        border: 1px solid var(--glass-line); color: var(--ink-2); }
+.pill.pending   { background: var(--warn-bg);   color: var(--warn);   border-color: transparent; }
+.pill.confirmed { background: var(--ok-bg);     color: var(--ok);     border-color: transparent; }
+.pill.done      { background: var(--ok-bg);     color: var(--ok);     border-color: transparent; }
 .pill.cancelled,
 .pill.rejected,
-.pill.no_show   { background: var(--danger-bg); color: var(--danger); }
-.pill.quiet     { background: transparent; border: 1px solid var(--line-2); color: var(--ink-3); font-weight: 500; }
+.pill.no_show   { background: var(--danger-bg); color: var(--danger); border-color: transparent; }
+.pill.quiet     { background: transparent; color: var(--ink-3); }
 
-/* ── Buttons ───────────────────────────────────────────────────────────── */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  min-height: var(--tap); padding: 11px 20px; border-radius: var(--r-btn);
-  border: 1px solid transparent; font-family: var(--ft); font-size: 15px;
-  font-weight: 500; cursor: pointer; transition: background .18s, border-color .18s, transform .12s;
-  text-decoration: none; width: 100%;
-}
+/* ── أزرار ─────────────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+       width: 100%; min-height: 42px; padding: 10px 18px; border-radius: var(--r-btn);
+       border: 1px solid var(--glass-line); background: var(--glass-2); color: var(--ink);
+       font-family: var(--ft); font-size: 13.5px; font-weight: 500; cursor: pointer;
+       text-decoration: none;
+       transition: background .2s var(--ease), border-color .2s var(--ease), transform .12s; }
+.btn:hover:not([disabled]) { background: var(--glass); }
 .btn:active { transform: scale(.985); }
 .btn[disabled] { opacity: .45; cursor: not-allowed; }
-/* الفعل الأساسي بلون الحبر لا بلون الهوية — كزرّ «تأكيد البيانات» عند العميلة. */
-.btn-primary { background: var(--ink); color: var(--cream); }
-.btn-primary:hover:not([disabled]) { background: var(--espresso); }
-.btn-soft    { background: var(--blush); color: var(--rose-deep); }
-.btn-soft:hover:not([disabled]) { background: var(--blush-2); }
-.btn-ghost   { background: transparent; color: var(--ink); border-color: var(--line-2); }
-.btn-ghost:hover:not([disabled]) { border-color: var(--rose); color: var(--rose-deep); }
-.btn-danger  { background: transparent; color: var(--danger); border-color: var(--danger-line); }
-.btn-danger:hover:not([disabled]) { background: var(--danger-bg); }
+.btn svg { color: var(--accent); }
+.btn-primary { background: var(--accent); border-color: transparent; color: #FFF; font-weight: 700; }
+.btn-primary:hover:not([disabled]) { background: var(--accent); filter: brightness(.94); }
+.btn-primary svg { color: #FFF; }
+.btn-ok      { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); font-weight: 700; }
+.btn-ok svg  { color: var(--ok); }
+.btn-soft    { background: var(--chip); }
+.btn-ghost   { background: var(--glass-2); }
+.btn-danger  { background: var(--danger-bg); border-color: var(--danger); color: var(--danger);
+               font-weight: 700; }
+.btn-danger svg { color: var(--danger); }
 .btn-row { display: flex; gap: 8px; }
 .btn-row .btn { flex: 1; }
+.btn.xs { padding: 7px 11px; font-size: 12.5px; min-height: 0; }
 
-/* Icon-only control. Always carries an aria-label in the markup. */
-.iconbtn {
-  width: var(--tap); height: var(--tap); border-radius: 50%;
-  background: var(--surface-2); border: 1px solid var(--line);
-  color: var(--ink-2); display: grid; place-items: center; cursor: pointer;
-  flex-shrink: 0; transition: background .18s, color .18s, border-color .18s;
-  text-decoration: none;
-}
-.iconbtn:hover { background: var(--blush); color: var(--rose-deep); border-color: var(--line-2); }
-.iconbtn.accent { background: var(--blush); color: var(--rose-deep); border-color: var(--line-2); }
+.iconbtn { width: 38px; height: 38px; border-radius: 50%; background: var(--glass-2);
+           border: 1px solid var(--glass-line); color: var(--ink-2); display: grid;
+           place-items: center; cursor: pointer; flex-shrink: 0; text-decoration: none;
+           transition: background .18s, color .18s, border-color .18s; }
+.iconbtn:hover { background: var(--glass); color: var(--accent); border-color: var(--accent); }
+.iconbtn.accent { color: var(--accent); }
 
-/* ── Forms ─────────────────────────────────────────────────────────────── */
-.field { margin-bottom: 16px; }
-.label { display: block; font-size: 11.5px; font-weight: 500; color: var(--ink-3);
-         letter-spacing: .02em; margin-bottom: 6px; }
-.label .opt { font-weight: 400; color: var(--ink-3); font-size: 12px; }
-
-/* 16px minimum: anything smaller makes iOS zoom the page on focus. */
+/* ── حقول ──────────────────────────────────────────────── */
+.field { margin-bottom: 12px; }
+.label { display: block; font-size: 12.5px; color: var(--ink-2); margin-bottom: 5px;
+         font-weight: 500; }
+.label .opt { color: var(--ink-3); font-weight: 400; }
+.label .req { color: var(--danger); }
 .input, select.input, textarea.input {
-  width: 100%; min-height: var(--tap); padding: 11px 14px;
-  background: rgba(255,255,255,.66); color: var(--ink);
-  border: 1px solid var(--line-2); border-radius: var(--r);
+  width: 100%; min-height: 44px; padding: 10px 13px; border-radius: var(--r-mid);
+  border: 1px solid var(--glass-line); background: var(--glass-2); color: var(--ink);
   font-family: var(--ft); font-size: 16px; outline: none;
-  transition: border-color .18s, box-shadow .18s;
+  transition: border-color .18s, background .18s;
   -webkit-appearance: none; appearance: none;
 }
-.input:focus { border-color: var(--rose); box-shadow: none; background: rgba(255,255,255,.9); }
+.input:focus { border-color: var(--accent); background: var(--chip); }
 .input::placeholder { color: var(--ink-3); }
 .input.ltr { direction: ltr; text-align: right; }
-textarea.input { min-height: 84px; resize: vertical; line-height: 1.6; }
+textarea.input { min-height: 78px; resize: vertical; line-height: 1.6; }
 select.input {
   background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%),
                     linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
@@ -362,145 +440,244 @@ select.input {
   background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
   padding-inline-start: 36px;
 }
-.hint { font-size: 12.5px; color: var(--ink-3); margin-top: 5px; }
+.hint { font-size: 12px; color: var(--ink-3); margin-top: 5px; line-height: 1.6; }
 .err  { font-size: 13px; color: var(--danger); margin-top: 6px; }
 
-/* Selectable tile (a service, a time, a weekday). Real buttons, so they are
-   reachable by keyboard — the old app used unfocusable divs. */
-.choice {
-  display: flex; align-items: center; gap: 11px; width: 100%;
-  padding: 13px 15px; border-radius: var(--r);
-  background: var(--surface); border: 1px solid var(--line-2);
-  color: var(--ink); font-family: var(--ft); font-size: 15px; text-align: start;
-  cursor: pointer; transition: border-color .18s, background .18s;
-}
-.choice:hover { border-color: var(--rose); }
-.choice[aria-pressed="true"] { border-color: var(--rose); background: var(--blush); }
+/* ── صفوف قوائم ────────────────────────────────────────── */
+.rowline { display: flex; align-items: center; gap: 11px; padding: 12px 0;
+           border-bottom: 1px solid var(--glass-line); }
+.rowline:last-child { border-bottom: 0; }
+.rowline .grow { flex: 1; min-width: 0; }
+.rowline .t { display: block; font-size: 14.5px; font-weight: 700; }
+.rowline .s { display: block; font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+
+.stepper { display: flex; align-items: center; border: 1px solid var(--glass-line);
+           border-radius: var(--r-pill); overflow: hidden; background: var(--glass-2);
+           flex: 0 0 auto; }
+.stepper button { width: 34px; height: 34px; border: 0; background: transparent;
+                  color: var(--ink); font-size: 17px; cursor: pointer;
+                  font-family: var(--fd); display: grid; place-items: center; }
+.stepper button:hover { color: var(--accent); }
+.stepper .val { min-width: 32px; text-align: center; font-family: var(--fd);
+                font-weight: var(--fw-d); font-size: 15px; font-variant-numeric: tabular-nums; }
+
+/* مفتاحٌ يُقلب: أوضح من مربّع اختيارٍ حين يكون الأثر فوريًّا. */
+.toggle { display: flex; align-items: center; gap: 11px; padding: 12px 0;
+          border-bottom: 1px solid var(--glass-line); }
+.toggle:last-child { border-bottom: 0; }
+.toggle .grow { flex: 1; min-width: 0; }
+.toggle .t { display: block; font-size: 14px; font-weight: 700; line-height: 1.4; }
+.toggle .s { display: block; font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+.sw { width: 46px; height: 27px; border-radius: var(--r-pill); background: var(--glass-2);
+      border: 1px solid var(--glass-line); position: relative; cursor: pointer;
+      flex: 0 0 auto; padding: 0; }
+.sw::after { content: ""; position: absolute; top: 2px; inset-inline-end: 2px;
+             width: 21px; height: 21px; border-radius: 50%; background: var(--ink-3);
+             transition: all .22s var(--ease); }
+.sw[aria-checked="true"] { background: var(--ok-bg); border-color: var(--ok); }
+.sw[aria-checked="true"]::after { inset-inline-end: calc(100% - 23px); background: var(--ok); }
+/* مربّع الاختيار الأصلي يبقى ليقرأه المتصفّح والبرمجة، ويُخفى بصريًّا
+   خلف المفتاح — فلا تتغيّر سطرٌ واحد ممّا يقرأ .checked. */
+.toggle input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+.toggle input:checked ~ .sw { background: var(--ok-bg); border-color: var(--ok); }
+.toggle input:checked ~ .sw::after { inset-inline-end: calc(100% - 23px); background: var(--ok); }
+.toggle input:focus-visible ~ .sw { outline: 2px solid var(--accent); outline-offset: 2px; }
+label.toggle { cursor: pointer; }
+
+/* ── لوحٌ يُختار ───────────────────────────────────────── */
+.choice { display: flex; align-items: center; gap: 11px; width: 100%; padding: 12px 14px;
+          border-radius: var(--r-mid); background: var(--glass-2);
+          border: 1px solid var(--glass-line); color: var(--ink); font-family: var(--ft);
+          font-size: 14.5px; text-align: start; cursor: pointer;
+          transition: border-color .18s, background .18s; }
+.choice:hover { border-color: var(--accent); }
+.choice[aria-pressed="true"] { border-color: var(--accent); background: var(--chip); }
 .choice .t { display: block; font-weight: 700; line-height: 1.45; }
-.choice .s { display: block; font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
+.choice .s { display: block; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
 .choice .grow { flex: 1; min-width: 0; }
 
-/* Time slots */
 .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
-.slot {
-  min-height: var(--tap); border-radius: var(--r); cursor: pointer;
-  background: var(--surface); border: 1px solid var(--line-2); color: var(--ink);
-  font-family: var(--fd); font-weight: 700; font-size: 15.5px;
-  font-variant-numeric: tabular-nums; transition: border-color .18s, background .18s;
-}
-.slot:hover { border-color: var(--rose); }
-.slot[aria-pressed="true"] { background: var(--rose-deep); border-color: var(--rose-deep); color: #FFF6F2; }
+.slot { min-height: 44px; border-radius: var(--r-mid); cursor: pointer;
+        background: var(--glass-2); border: 1px solid var(--glass-line); color: var(--ink);
+        font-family: var(--fd); font-weight: var(--fw-d); font-size: 15px;
+        font-variant-numeric: tabular-nums; transition: border-color .18s, background .18s; }
+.slot:hover { border-color: var(--accent); }
+.slot[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: #FFF; }
 
-/* Horizontal day strip */
 .daystrip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: none; }
 .daystrip::-webkit-scrollbar { display: none; }
-.day {
-  flex: 0 0 auto; width: 66px; padding: 10px 6px; border-radius: var(--r);
-  background: var(--surface); border: 1px solid var(--line-2); cursor: pointer;
-  text-align: center; font-family: var(--ft); color: var(--ink); transition: all .18s;
-}
-.day .dow  { display: block; font-size: 11.5px; color: var(--ink-3); line-height: 1.4; }
-.day .dnum { display: block; font-family: var(--fd); font-size: 20px; font-weight: 700; line-height: 1.2; }
-.day .free { display: block; font-size: 10.5px; color: var(--ok); font-weight: 700; line-height: 1.4;
-             unicode-bidi: isolate; }
-.day[aria-pressed="true"] { background: var(--rose-deep); border-color: var(--rose-deep); }
-.day[aria-pressed="true"] .dow,
-.day[aria-pressed="true"] .dnum,
-.day[aria-pressed="true"] .free { color: #FFF6F2; }
-.day[disabled] { opacity: .38; cursor: not-allowed; }
-.day[disabled] .free { color: var(--ink-3); font-weight: 400; }
+.daystrip .day { flex: 0 0 auto; width: 66px; padding: 10px 6px; border-radius: var(--r-mid);
+                 background: var(--glass-2); border: 1px solid var(--glass-line);
+                 cursor: pointer; text-align: center; font-family: var(--ft);
+                 color: var(--ink); transition: all .18s; }
+.daystrip .day .dow  { display: block; font-size: 11.5px; color: var(--ink-3); line-height: 1.4; }
+.daystrip .day .dnum { display: block; font-family: var(--fd); font-size: 20px;
+                       font-weight: var(--fw-d); line-height: 1.2; }
+.daystrip .day .free { display: block; font-size: 10.5px; color: var(--ok); font-weight: 700;
+                       line-height: 1.4; unicode-bidi: isolate; }
+.daystrip .day[aria-pressed="true"] { background: var(--accent); border-color: transparent; }
+.daystrip .day[aria-pressed="true"] .dow,
+.daystrip .day[aria-pressed="true"] .dnum,
+.daystrip .day[aria-pressed="true"] .free { color: #FFF; }
+.daystrip .day[disabled] { opacity: .38; cursor: not-allowed; }
+.daystrip .day[disabled] .free { color: var(--ink-3); font-weight: 400; }
 
-/* Counter (how many people want this service) */
-.stepper { display: flex; align-items: center; }
-.stepper button {
-  width: 36px; height: 36px; border: 1px solid var(--line-2); background: var(--surface-2);
-  color: var(--ink); font-size: 19px; font-family: var(--fd); font-weight: 700;
-  cursor: pointer; display: grid; place-items: center;
-}
-.stepper button:first-child { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
-.stepper button:last-child  { border-radius: var(--r-sm) 0 0 var(--r-sm); }
-.stepper button:hover { background: var(--blush); color: var(--rose-deep); }
-.stepper .val {
-  width: 42px; height: 36px; line-height: 36px; text-align: center;
-  background: var(--surface); border-block: 1px solid var(--line-2);
-  font-family: var(--fd); font-weight: 700; font-variant-numeric: tabular-nums;
-}
+/* ── التقويم الشهري ────────────────────────────────────── */
+.calhead { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+           margin-bottom: 10px; }
+.calhead b { font-family: var(--fd); font-size: 16px; font-weight: var(--fw-d); }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.cal .dow { text-align: center; font-size: 10.5px; color: var(--ink-3); padding-bottom: 5px; }
+.cal .cd { position: relative; aspect-ratio: 1; border-radius: 12px;
+           border: 1px solid transparent; background: var(--glass-2); cursor: pointer;
+           font-family: var(--fd); font-weight: var(--fw-d); font-size: 15px;
+           font-variant-numeric: tabular-nums; color: var(--ink);
+           display: flex; flex-direction: column; align-items: center; justify-content: center;
+           gap: 3px; transition: all .18s var(--ease); }
+.cal .cd.blank { border: 0; background: none; cursor: default; }
+.cal .cd:hover:not(.blank) { border-color: var(--accent); }
+.cal .cd[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: #FFF; }
+.cal .cd.today { border-color: var(--accent); }
+.cal .dots { display: flex; gap: 2px; height: 4px; }
+.cal .dots i { width: 4px; height: 4px; border-radius: 50%; display: block; }
+.cal .cd[aria-pressed="true"] .dots i { background: #FFF; }
+.cal .d-pending { background: var(--warn); }
+.cal .d-confirmed { background: var(--accent); }
+.cal .d-done { background: var(--ok); }
 
-/* ── Progress ──────────────────────────────────────────────────────────── */
-.steps { display: flex; gap: 6px; margin-bottom: 18px; }
-.steps i { flex: 1; height: 3px; border-radius: 2px; background: var(--line-2); transition: background .3s; }
-.steps i.on { background: var(--rose); }
+/* ── أشرطة الدخل ───────────────────────────────────────── */
+.bars { display: flex; flex-direction: column; gap: 12px; }
+.bars .bar .t { display: flex; justify-content: space-between; font-size: 12.5px;
+                margin-bottom: 5px; }
+.bars .bar .t b { font-family: var(--fd); font-weight: var(--fw-d);
+                  font-variant-numeric: tabular-nums; }
+.bars .bar .track { height: 7px; background: var(--glass-2); border-radius: var(--r-pill);
+                    overflow: hidden; }
+.bars .bar .fill { height: 100%; background: var(--accent); border-radius: var(--r-pill); }
+.bars .bar.muted .fill { background: var(--glass-line); }
+.bars .bar.ok  .fill { background: var(--ok); }
+.bars .bar.bad .fill { background: var(--danger); }
 
-/* ── Notices ───────────────────────────────────────────────────────────── */
-.note {
-  display: flex; gap: 10px; align-items: flex-start;
-  border-radius: var(--r); padding: 12px 14px; font-size: 14px;
-  background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line);
-}
-.note.ok     { background: var(--ok-bg);     color: var(--ok);     border-color: var(--ok-line); }
-.note.warn   { background: var(--warn-bg);   color: var(--warn);   border-color: var(--warn-line); }
-.note.danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-line); }
+/* ── ملاحظات ───────────────────────────────────────────── */
+.note { display: flex; gap: 9px; align-items: flex-start; border-radius: var(--r-mid);
+        padding: 12px 14px; font-size: 13px; line-height: 1.6; background: var(--chip);
+        border: 1px solid var(--glass-line); color: var(--ink-2); margin-bottom: 12px; }
+.note.ok     { background: var(--ok-bg);     color: var(--ok);     border-color: transparent; }
+.note.warn   { background: var(--warn-bg);   color: var(--warn);   border-color: transparent; }
+.note.danger { background: var(--danger-bg); color: var(--danger); border-color: transparent; }
+.note b { color: inherit; }
 
-.empty {
-  text-align: center; padding: 26px 18px; color: var(--ink-2);
-  background: var(--glass); border: 1px solid var(--glass-line);
-  border-radius: var(--r-lg); box-shadow: var(--glass-sh);
-  -webkit-backdrop-filter: blur(13px) saturate(1.45);
-  backdrop-filter: blur(13px) saturate(1.45);
-}
-.empty .badge { margin: 0 auto 10px; }
-.empty p { font-size: 14px; }
-
-/* ── Sheet (modal) ─────────────────────────────────────────────────────── */
-.sheet {
-  position: fixed; inset: 0; z-index: 90;
-  background: rgba(46, 42, 39, .5); backdrop-filter: blur(2px);
-  display: flex; align-items: flex-end; justify-content: center;
-  opacity: 0; pointer-events: none; transition: opacity .24s;
-}
+/* ── الورقة المنبثقة ───────────────────────────────────── */
+/* الحجاب خفيفٌ عمدًا: الغامق يسحب الدفء من الزجاج فوقه فتبدو الورقة
+   رماديّة على لوحةٍ كلّها كريميّة. الفصل يأتي من الطمس لا من السواد. */
+.sheet { position: fixed; inset: 0; z-index: 90; background: rgba(58,42,38,.26);
+         -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+         display: flex; align-items: flex-end; justify-content: center;
+         opacity: 0; pointer-events: none; transition: opacity .24s; }
 .sheet[open], .sheet.open { opacity: 1; pointer-events: auto; }
-.sheet-body {
-  background: var(--cream); width: 100%; max-width: var(--page);
-  max-height: 90vh; overflow-y: auto; border-radius: var(--r-xl) var(--r-xl) 0 0;
-  box-shadow: var(--sh-3); transform: translateY(100%);
-  transition: transform .28s cubic-bezier(.4, 0, .2, 1);
-  padding-bottom: max(18px, env(safe-area-inset-bottom));
-}
+.sheet-body { width: 100%; max-width: var(--page); max-height: 92vh; overflow-y: auto;
+              border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--sh-3);
+              transform: translateY(100%);
+              transition: transform .28s cubic-bezier(.4,0,.2,1);
+              padding-bottom: max(16px, env(safe-area-inset-bottom));
+              background-image: linear-gradient(var(--glass-2), var(--glass-2));
+              background-color: var(--glass); border: 1px solid var(--glass-line);
+              -webkit-backdrop-filter: blur(20px) saturate(1.6);
+              backdrop-filter: blur(20px) saturate(1.6); }
 .sheet.open .sheet-body { transform: translateY(0); }
-.sheet-head {
-  position: sticky; top: 0; z-index: 1; background: var(--cream);
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 18px 18px 12px; border-bottom: 1px solid var(--line);
-}
-.sheet-content { padding: 16px 18px; }
+.sheet-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center;
+              justify-content: space-between; gap: 11px; padding: 15px 17px;
+              border-bottom: 1px solid var(--glass-line);
+              background-image: linear-gradient(var(--glass-2), var(--glass-2));
+              background-color: var(--glass);
+              -webkit-backdrop-filter: blur(20px) saturate(1.6);
+              backdrop-filter: blur(20px) saturate(1.6); }
+.sheet-head h2 { flex: 1; font-size: 17px; font-weight: 700; }
+.sheet-content { padding: 16px 17px 18px; }
+/* داخل الورقة الأسطح تجلس على زجاجٍ لا على المشهد، فتأخذ الطبقة الثانية. */
+.sheet-content .card { background: var(--glass-2); }
+.sheet-content .arch { background-image: none; background-color: var(--glass-2); }
 
-/* ── Toast ─────────────────────────────────────────────────────────────── */
-.toast-stack {
-  position: fixed; z-index: 120; inset-block-end: max(16px, env(safe-area-inset-bottom));
-  inset-inline: 0; display: flex; flex-direction: column; align-items: center;
-  gap: 8px; pointer-events: none; padding: 0 16px;
-}
-.toast {
-  background: var(--ink); color: var(--cream); border-radius: var(--r-pill);
-  padding: 11px 20px; font-size: 14px; font-weight: 500; box-shadow: var(--sh-2);
-  display: flex; align-items: center; gap: 8px; max-width: 100%;
-  animation: toast-in .28s cubic-bezier(.4, 0, .2, 1);
-}
+/* ── الرسائل ───────────────────────────────────────────── */
+.msg { display: flex; gap: 11px; align-items: flex-start; padding: 13px 0;
+       border-bottom: 1px solid var(--glass-line); }
+.msg:last-child { border-bottom: 0; }
+.msg .grow { flex: 1; min-width: 0; }
+.msg b { display: block; font-size: 14.5px; font-weight: 700; }
+.msg p { margin: 3px 0 0; font-size: 12px; color: var(--ink-3); line-height: 1.6; }
+
+/* ── إشعارات عابرة ─────────────────────────────────────── */
+.toast-stack { position: fixed; z-index: 120;
+               inset-block-end: max(16px, env(safe-area-inset-bottom));
+               inset-inline: 0; display: flex; flex-direction: column; align-items: center;
+               gap: 8px; pointer-events: none; padding: 0 16px; }
+.toast { background: var(--ink); color: var(--sky-b); border-radius: var(--r-pill);
+         padding: 11px 20px; font-size: 14px; font-weight: 500; box-shadow: var(--sh-2);
+         display: flex; align-items: center; gap: 8px; max-width: 100%;
+         animation: toast-in .28s cubic-bezier(.4,0,.2,1); }
 .toast.ok     { background: var(--ok);     color: #FFF; }
 .toast.danger { background: var(--danger); color: #FFF; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
-/* ── Skeleton ──────────────────────────────────────────────────────────── */
-.skeleton {
-  background: linear-gradient(90deg, var(--surface-2) 25%, var(--blush) 50%, var(--surface-2) 75%);
-  background-size: 220% 100%; animation: shimmer 1.3s linear infinite;
-  border-radius: var(--r); height: 62px;
-}
+.skeleton { background: linear-gradient(90deg, var(--glass-2) 25%, var(--glass) 50%, var(--glass-2) 75%);
+            background-size: 220% 100%; animation: shimmer 1.3s linear infinite;
+            border-radius: var(--r-card); height: 76px; margin-bottom: 10px; }
 @keyframes shimmer { to { background-position: -220% 0; } }
 
-.sr-only {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+           overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ── متفرّقات ──────────────────────────────────────────── */
+.recent { display: flex; align-items: center; gap: 8px; background: var(--glass-2);
+          border: 1px solid var(--glass-line); border-radius: var(--r-mid);
+          padding: 11px 14px; margin-bottom: 14px; color: var(--ink);
+          text-decoration: none; font-size: 14px; font-weight: 500; }
+.recent:hover { border-color: var(--accent); }
+.recent .chev { margin-inline-start: auto; opacity: .5; transform: scaleX(-1); }
+
+.danger-zone { border-color: var(--danger) !important; background: var(--danger-bg) !important; }
+.danger-zone .label { color: var(--danger); }
+.danger-zone .hint b { color: var(--danger); }
+
+.chiprow { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.chiprow::-webkit-scrollbar { display: none; }
+.chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+        border: 1px solid var(--glass-line); background: var(--glass-2); color: var(--ink-2);
+        font-family: var(--ft); font-size: 12.5px; font-weight: 500; padding: 7px 13px;
+        min-height: 36px; border-radius: var(--r-pill); cursor: pointer;
+        transition: background .18s, border-color .18s, color .18s; }
+.chip:hover { border-color: var(--accent); }
+.chip i { font-style: normal; font-size: 11px; font-variant-numeric: tabular-nums;
+          color: var(--ink-3); background: var(--chip); border-radius: var(--r-pill);
+          padding: 1px 6px; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: #FFF; }
+.chip[aria-pressed="true"] i { background: rgba(255,255,255,.2); color: #FFF; }
+
+.steps { display: flex; gap: 6px; margin-bottom: 18px; }
+.steps i { flex: 1; height: 3px; border-radius: 2px; background: var(--glass-line);
+           transition: background .3s; }
+.steps i.on { background: var(--accent); }
+
+.priceline { display: flex; align-items: center; gap: 10px; padding: 0 0 10px; margin-top: -4px; }
+.priceline .label { margin: 0; flex: 1; }
+.priceline .input { width: 110px; min-height: 38px; padding: 7px 10px; text-align: center; }
+.priceline[hidden] { display: none; }
+
+.bkrow { flex-wrap: wrap; row-gap: 8px; }
+.bkacts { display: flex; gap: 6px; flex: 0 0 auto; }
+
+.linkbox { display: flex; align-items: center; gap: 8px; background: var(--glass-2);
+           border: 1px solid var(--glass-line); border-radius: var(--r-mid); padding: 8px 12px; }
+
+/* خطّ الزمن في الأجندة: نقطةٌ لكل موعد وخيطٌ بينها. */
+.tl { position: relative; }
+
+@media (max-width: 400px) {
+  .bkrow .grow { flex: 1 0 100%; }
+  .bkacts { flex: 1 0 100%; }
+  .bkacts .btn { flex: 1; }
+  .tab { font-size: 11.5px; padding: 8px 8px; }
+  .qact { font-size: 11.5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -508,84 +685,4 @@ select.input {
     animation-duration: .001ms !important; animation-iteration-count: 1 !important;
     transition-duration: .001ms !important;
   }
-}
-
-/* Returning visitor: a way back to the request already made. */
-.recent{
-  display:flex;align-items:center;gap:8px;
-  background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r);padding:11px 14px;margin-bottom:14px;
-  color:var(--ink);text-decoration:none;font-size:.9rem;font-weight:500;
-  transition:border-color .18s;
-}
-.recent:hover,.recent:focus-visible{border-color:var(--blush-deep)}
-.recent .chev{margin-inline-start:auto;opacity:.5;transform:scaleX(-1)}
-
-/* منطقة الحذف: تُميَّز بصريًا لئلا تُضغط بالخطأ وهي بين أزرار عادية. */
-.danger-zone{border-color:var(--danger-line);background:var(--danger-bg)}
-.danger-zone .label{color:var(--danger)}
-.danger-zone .hint b{color:var(--danger)}
-
-.pg-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-
-/* شرائح التصفية: صفّ أفقي ينزلق، والمختارة تُملأ بلون الهوية. */
-.chiprow{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
-.chiprow::-webkit-scrollbar{display:none}
-.chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
-  border:1px solid var(--line-2);background:rgba(255,255,255,.5);color:var(--ink-2);
-  font-family:var(--ft);font-size:13px;font-weight:500;padding:7px 13px;min-height:36px;
-  border-radius:var(--r-pill);cursor:pointer;transition:background .18s,border-color .18s,color .18s}
-.chip:hover{border-color:var(--rose)}
-.chip i{font-style:normal;font-size:11px;font-variant-numeric:tabular-nums;
-  color:var(--ink-3);background:var(--surface-2);border-radius:var(--r-pill);padding:1px 6px}
-.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--cream)}
-.chip[aria-pressed="true"] i{background:rgba(255,255,255,.16);color:var(--cream)}
-
-/* التقويم الشهري: شبكة سبعة أعمدة، ونقطة تحت كل يوم فيه حجز. */
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cal .dow{text-align:center;font-size:10.5px;color:var(--ink-3);padding-bottom:4px}
-.cal .cd{position:relative;min-height:46px;border:1px solid var(--line);
-  background:rgba(255,255,255,.5);border-radius:var(--r-sm);cursor:pointer;
-  font-family:var(--fd);font-size:14.5px;font-variant-numeric:tabular-nums;color:var(--ink);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  transition:border-color .18s,background .18s}
-.cal .cd.blank{border:0;background:none;cursor:default}
-.cal .cd:hover:not(.blank){border-color:var(--rose)}
-.cal .cd[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--cream)}
-.cal .cd.today{border-color:var(--rose)}
-.cal .dots{display:flex;gap:2px;height:5px}
-.cal .dots i{width:5px;height:5px;border-radius:50%;display:block}
-.cal .d-pending{background:var(--warn)}
-.cal .d-confirmed{background:var(--rose)}
-.cal .d-done{background:var(--ok)}
-.calhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-.calhead b{font-family:var(--fd);font-size:16px;font-weight:500}
-
-/* تقرير الدخل: شريط لكل خدمة بطول نسبته من الأعلى. */
-.bars{display:grid;gap:9px}
-.bar .t{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px}
-.bar .t b{font-family:var(--fd);font-weight:500;font-variant-numeric:tabular-nums}
-.bar .track{height:7px;background:var(--surface-2);border-radius:var(--r-pill);overflow:hidden}
-.bar .fill{height:100%;background:var(--rose);border-radius:var(--r-pill)}
-.bar.muted .fill{background:var(--line-2)}
-.bar.ok .fill{background:var(--ok)}
-.bar.bad .fill{background:var(--danger)}
-
-/* سطر السعر الخاص: يظهر تحت الخدمة متى اختيرت، ويختفي متى صفّرت. */
-.priceline{display:flex;align-items:center;gap:10px;padding:0 0 10px;margin-top:-4px}
-.priceline .label{margin:0;flex:1}
-.priceline .input{width:110px;min-height:38px;padding:7px 10px;text-align:center}
-.priceline[hidden]{display:none}
-
-/* النسخ الاحتياطية: صفٌّ يحمل ثلاثة أفعال قصيرة، تنزل تحت الاسم في الشاشات
-   الضيّقة بدل أن تضغطه. */
-.bkrow { flex-wrap: wrap; row-gap: 8px; }
-.bkacts { display: flex; gap: 6px; flex: 0 0 auto; }
-.btn.xs {
-  padding: 7px 11px; font-size: 13px; min-height: 0; border-radius: var(--r-btn);
-}
-@media (max-width: 400px) {
-  .bkrow .grow { flex: 1 0 100%; }
-  .bkacts { flex: 1 0 100%; }
-  .bkacts .btn { flex: 1; }
 }

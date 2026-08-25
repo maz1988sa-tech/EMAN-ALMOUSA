@@ -8,141 +8,21 @@
 <meta name="theme-color" content="#2b1c16">
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/fonts.css?v=31">
-<link rel="stylesheet" href="assets/theme.css?v=31">
+<link rel="stylesheet" href="assets/fonts.css?v=32">
+<link rel="stylesheet" href="assets/theme.css?v=32">
 <style>
-  .appbar { position: sticky; top: 0; z-index: 40;
-            background: var(--glass); border-bottom: 1px solid var(--glass-line);
-            -webkit-backdrop-filter: blur(16px) saturate(1.5);
-            backdrop-filter: blur(16px) saturate(1.5); }
-  .appbar .row { display: flex; align-items: center; justify-content: space-between;
-                 gap: 10px; padding: 12px 16px 10px; max-width: var(--page); margin: 0 auto; }
-  .appbar .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
-  .appbar .brandmark { height: 34px; width: 34px; display: block; flex: 0 0 auto;
-                       object-fit: contain; }
-  .appbar .sub { display: block; font: 500 9px/1 var(--fd); direction: ltr;
-                 letter-spacing: .3em; color: var(--rose); text-transform: uppercase;
-                 padding-inline-start: 11px; border-inline-start: 1px solid var(--line-2); }
-  .tabs { display: flex; gap: 4px; overflow-x: auto; padding: 0 16px 10px;
-          max-width: var(--page); margin: 0 auto; scrollbar-width: none; }
-  .tabs::-webkit-scrollbar { display: none; }
-  /* التبويب يُعلَّم بخطّ تحته كما تُعلَّم فصول صفحة العميلة، لا بحبّة ممتلئة. */
-  .tab { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; border: 0;
-         background: transparent; color: var(--ink-3); font-family: var(--ft);
-         font-size: 13.5px; font-weight: 500; padding: 8px 12px 9px; min-height: 38px;
-         border-bottom: 2px solid transparent; cursor: pointer;
-         transition: color .2s ease, border-color .2s ease; }
-  .tab[aria-current="page"] { color: var(--ink); font-weight: 500;
-                              border-bottom-color: var(--rose); }
-  .tab .dot { background: var(--danger); color: #FFF; border-radius: 999px;
-              font-size: 10.5px; font-weight: 700; padding: 1px 6px; min-width: 18px; }
-
-  /* شريط أقسام الإعدادات: أخفّ من التبويبات الرئيسية لأنه مستوى أدنى. */
-  .panebar { display: flex; gap: 6px; margin: 16px 0 2px; padding: 4px;
-             background: var(--surface-2); border: 1px solid var(--line); }
-  .panetab { flex: 1; border: 0; background: transparent; color: var(--ink-2);
-             font-family: var(--ft); font-size: 13px; font-weight: 500;
-             padding: 9px 8px; min-height: 40px; border-radius: var(--r-sm);
-             cursor: pointer; transition: background .18s, color .18s; }
-  .panetab[aria-current="true"] { background: var(--surface); color: var(--ink);
-                                  font-weight: 500; border: 1px solid var(--line-2); }
-
-  .bk { background: var(--glass); border: 1px solid var(--glass-line);
-        border-radius: var(--r-lg); box-shadow: var(--glass-sh);
-        -webkit-backdrop-filter: blur(13px) saturate(1.45);
-        backdrop-filter: blur(13px) saturate(1.45);
-        padding: 14px 15px; position: relative; overflow: hidden;
-        width: 100%; text-align: start; font-family: var(--ft); color: var(--ink);
-        transition: background .6s ease, border-color .6s ease; }
-  .bk-main { display: block; width: 100%; text-align: start; background: none; border: 0;
-             padding: 0; font-family: inherit; color: inherit; cursor: pointer; }
-
-  /* شارة الخدمة: أيقونتها وعددها. رقمٌ مجرّد لا يقول أيّ خدمة هي. */
-  .svcb { display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto;
-          border: 1px solid var(--glass-line); background: var(--surface-2);
-          color: var(--ink-2); font-size: 12px; padding: 4px 10px 4px 8px;
-          border-radius: var(--r-pill); white-space: nowrap; }
-  .svcb .ic { color: var(--rose); }
-  .svcb b { font-family: var(--fd); font-weight: 600; font-size: 12.5px; color: var(--ink);
-            font-variant-numeric: tabular-nums; }
-
-  /* أفعالٌ سريعة من البطاقة نفسها، فلا تُفتح التفاصيل لمكالمة. */
-  .greet { background: var(--glass); border: 1px solid var(--glass-line);
-           border-radius: var(--r-lg); box-shadow: var(--glass-sh);
-           -webkit-backdrop-filter: blur(13px) saturate(1.45);
-           backdrop-filter: blur(13px) saturate(1.45);
-           padding: 22px 22px 20px; margin-top: 16px; }
-  .greet .kick { display: flex; align-items: center; gap: 7px; font-size: 11px;
-                 letter-spacing: .18em; color: var(--rose); margin-bottom: 8px; }
-  .greet .kick::after { content: ""; width: 5px; height: 5px; border-radius: 50%;
-                        background: var(--rose); }
-  .greet h1 { font-family: var(--fd); font-weight: 600; font-size: clamp(26px, 7.2vw, 34px);
-              line-height: 1.25; margin: 0 0 7px; letter-spacing: -.01em; }
-  .greet p { margin: 0; color: var(--ink-2); font-size: 14.5px; line-height: 1.7; }
-  .greet p b { color: var(--ink); font-weight: 700; }
-
-  .qacts { display: flex; align-items: center; gap: 6px; margin-top: 10px; padding-top: 10px;
-           border-top: 1px solid var(--line); }
-  .qact { flex: 1; height: 38px; padding: 0; border-radius: var(--r-pill); cursor: pointer;
-          font-family: var(--ft); font-size: 12.5px; font-weight: 500;
-          border: 1px solid var(--glass-line); background: var(--glass-2); color: var(--ink);
-          display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-          text-decoration: none; transition: background .18s, border-color .18s; }
-  .qact:hover { background: var(--surface); border-color: var(--rose); }
-  .qact .ic { color: var(--rose); }
-  /* الموقع غير المضاف: موجودٌ دائمًا بإطارٍ مقطّع، فيُعرف نقصه من نظرة. */
-  .qact.empty { border-style: dashed; color: var(--ink-3); cursor: default; }
-  .qact.empty .ic { color: var(--ink-3); }
-  .bk::before { content: ""; position: absolute; inset-block: 0; inset-inline-start: 0;
-                width: 3px; background: var(--line-2); }
-  .bk.s-pending::before   { background: var(--warn); }
-  .bk.s-confirmed::before { background: var(--rose); }
-  .bk.s-done::before      { background: var(--ok); }
-  .bk.s-cancelled::before, .bk.s-rejected::before, .bk.s-no_show::before { background: var(--danger); }
-  .bk .head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .bk .who { flex: 1; min-width: 0; }
-  .bk .nm { display: block; font-family: var(--fd); font-weight: 700; font-size: 15.5px;
-            line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bk .when { display: block; font-size: 12px; color: var(--ink-3); unicode-bidi: isolate; }
-  .bk .chips { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 9px;
-               padding-top: 9px; border-top: 1px solid var(--line); }
-  .bk.dim { opacity: .62; }
-
-  .acts { display: flex; gap: 6px; flex-shrink: 0; }
-  .acts .iconbtn { width: 38px; height: 38px; }
-
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-  .stat .l { display: block; font-size: 11.5px; color: var(--ink-3); line-height: 1.5; }
-  .stat .v { display: block; font-family: var(--fd); font-size: 24px; font-weight: 700;
-             line-height: 1.25; font-variant-numeric: tabular-nums; }
-  .stat .s { display: block; font-size: 11px; color: var(--rose-deep); line-height: 1.5;
-             unicode-bidi: isolate; }
-
-  .list { display: grid; gap: 9px; }
-  .rowline { display: flex; align-items: center; gap: 10px; padding: 12px 0;
-             border-bottom: 1px solid var(--line); }
-  .rowline:last-child { border-bottom: 0; }
-  .rowline .grow { flex: 1; min-width: 0; }
-  .rowline .t { display: block; font-weight: 700; font-size: 14.5px; }
-  .rowline .s { display: block; font-size: 12px; color: var(--ink-3); unicode-bidi: isolate; }
-
+  /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
+     ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
   .tl { position: relative; padding-inline-start: 18px; }
   .tl::before { content: ""; position: absolute; inset-block: 6px; inset-inline-start: 4px;
-                width: 1px; background: var(--line-2); }
-  .tl .stop { position: relative; padding: 9px 0; }
-  .tl .stop::before { content: ""; position: absolute; inset-inline-start: -18px; top: 16px;
-                      width: 9px; height: 9px; border-radius: 50%; background: var(--rose);
-                      box-shadow: 0 0 0 3px var(--cream); }
-  .tl .gap { font-size: 11.5px; color: var(--ink-3); padding-inline-start: 2px; }
-
-  .login { max-width: 380px; margin: 8vh auto 0; }
-  .hide { display: none !important; }
-  .mt { margin-top: 16px; }
-  .mb { margin-bottom: 16px; }
-  .center { text-align: center; }
-  .muted { color: var(--ink-3); font-size: 13px; }
-  .split { display: flex; gap: 8px; align-items: flex-end; }
-  .split > * { flex: 1; }
+                width: 1px; background: var(--glass-line); }
+  .tl .stop { position: relative; padding: 7px 0; }
+  .tl .stop::before { content: ""; position: absolute; inset-inline-start: -18px; top: 22px;
+                      width: 9px; height: 9px; border-radius: 50%; background: var(--accent);
+                      box-shadow: 0 0 0 3px var(--glass); }
+  .tl .gap { display: block; height: auto; font-size: 11.5px; color: var(--ink-3);
+             padding-inline-start: 2px; }
+  .login { max-width: 380px; margin: 0 auto; }
 </style>
 </head>
 <body>
@@ -286,16 +166,20 @@
 
 <div id="app" class="hide">
   <header class="appbar">
-    <div class="row">
-      <div class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=31"
-             alt="EMAN AAL MOUSA" id="bizName" width="34" height="34">
-        <span class="sub">لوحة التحكم</span>
-      </div>
-      <div class="acts">
-        <button class="iconbtn" id="btnRefresh" aria-label="تحديث" data-icon="export"></button>
-        <button class="iconbtn" id="btnSignOut" aria-label="خروج" data-icon="back"></button>
-      </div>
+    <div class="bar">
+      <span class="brand">
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=32"
+             alt="" width="38" height="38">
+        <span class="name">
+          <b id="bizName">إيمان آل موسى</b>
+          <span class="sub">Makeup Artist</span>
+        </span>
+      </span>
+      <span class="clock num" id="clock" aria-hidden="true"></span>
+      <span class="acts">
+        <button class="iconbtn" id="btnRefresh" aria-label="تحديث" data-icon="refresh"></button>
+        <button class="iconbtn" id="btnSignOut" aria-label="خروج" data-icon="exit"></button>
+      </span>
     </div>
     <nav class="tabs" id="tabs" aria-label="أقسام اللوحة"></nav>
   </header>
@@ -318,7 +202,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=31';
+import { icon, hydrateIcons } from './assets/icons.js?v=32';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -326,7 +210,7 @@ import {
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
   receiptUrl, purgeOrphanReceipts, uuid, isOffline, NET_MSG, backups,
   fillTemplate, TEMPLATE_FIELDS,
-} from './assets/db.js?v=31';
+} from './assets/db.js?v=32';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -348,6 +232,17 @@ function paintScene() {
 }
 paintScene();
 setInterval(paintScene, 900000);
+
+/* الساعة في الشريط: تقول أيّ ضوءٍ نحن فيه بلا أن تُشرح. تُحدَّث كل دقيقة
+   فلا تتخلّف عن المشهد حين تنتقل اللوحة من الظهيرة إلى المغرب. */
+function tickClock() {
+  const el = document.getElementById('clock');
+  if (!el) return;
+  el.textContent = new Date().toLocaleTimeString('ar-SA-u-nu-arab',
+    { hour: 'numeric', minute: '2-digit' });
+}
+tickClock();
+setInterval(tickClock, 60000);
 
 const view = document.getElementById('view');
 const sheet = document.getElementById('sheet');
@@ -516,7 +411,7 @@ async function reload(announce = false) {
       admin.templates().catch(() => []),
     ]);
     Object.assign(S, { settings, services, bookings, rules, overrides, templates });
-    if (settings?.business_name) document.getElementById('bizName').alt = settings.business_name;
+    if (settings?.business_name) document.getElementById('bizName').textContent = settings.business_name;
     renderTabs();
     render();
     if (announce) toast('تم التحديث', 'ok');
@@ -540,10 +435,7 @@ function renderTabs() {
   const host = document.getElementById('tabs');
   const n = pendingCount();
   host.innerHTML = TABS.map((t) => `
-    <button class="tab" data-tab="${t.id}" ${S.tab === t.id ? 'aria-current="page"' : ''}>
-      ${icon(t.icon, 17)} ${t.label}
-      ${t.id === 'home' && n ? `<span class="dot num">${int(n)}</span>` : ''}
-    </button>`).join('');
+    <button class="tab" data-tab="${t.id}" ${S.tab === t.id ? 'aria-current="page"' : ''}>${t.label}${t.id === 'home' && n ? `<span class="dot num">${int(n)}</span>` : ''}</button>`).join('');
   host.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => {
     S.tab = b.dataset.tab; bkFlash = ''; renderTabs(); render(); window.scrollTo({ top: 0 });
   });
@@ -578,38 +470,61 @@ function renderSettingsTab() {
 
 /* ── Booking card ─────────────────────────────────────────────────────── */
 
+/* بطاقة الحجز كما في النموذج: زرّ الإنجاز أوّل ما تصله الإبهام، والاسم
+   والوقت في الوسط، والمبلغ في الطرف الآخر يُقرأ بلمحة. الخدمات شاراتٌ
+   تحته، والأفعال الثلاثة أسفلها. الحالة التي لا يصحّ إنجازها لا تعرض زرًّا
+   يوهم بأنّها تُنجَز، بل قرصًا ساكنًا يحمل أيقونة الخدمة. */
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" '
+  + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  + '<path d="M4 12.5 L9.5 18 L20 6.5"/></svg>';
+
 function bookingCard(b, { showDate = true } = {}) {
   const items = b.booking_items || [];
   const due = Number(b.price) - Number(b.deposit);
   const lead = items[0] || {};
   const dim = ['cancelled', 'rejected', 'no_show'].includes(b.status);
-  const end = addMinutes(b.start_time, b.duration_min).time;
+  const done = b.status === 'done';
+  const live = b.status === 'confirmed';
+
+  /* ثلاثة أجزاء لا أربعة: سطرٌ يلتفّ يفقد لمحةَ النظرة الواحدة. المدّة
+     تُذكر حين لا يُذكر التاريخ — وهي حالة قائمة اليوم، وأكثرها استعمالًا. */
+  const meta = [
+    showDate ? fmtDateRelative(b.the_date) : '',
+    fmtTime(b.start_time),
+    showDate ? '' : fmtDuration(b.duration_min),
+    (b.loc_text || '').split('،')[0].trim(),
+  ].filter(Boolean).join(' · ');
+
+  const tick = live || done
+    ? `<button class="tick" data-tick="${b.id}"
+               aria-label="${done ? 'موعد مكتمل' : 'وضع الموعد مكتملًا'}">${CHECK}</button>`
+    : `<span class="tick still" data-icon="${esc(lead.service_icon || 'sparkle')}"
+             data-icon-size="20" aria-hidden="true"></span>`;
 
   return `
-    <div class="bk s-${esc(b.status)} ${dim ? 'dim' : ''}">
-      <button class="bk-main" data-open="${b.id}">
-        <span class="head">
-          <span class="badge" data-icon="${esc(lead.service_icon || 'sparkle')}" data-icon-size="19"></span>
+    <div class="bk s-${esc(b.status)} ${dim ? 'dim' : ''} ${done ? 'done' : ''}" data-card="${b.id}">
+      <div class="bk-top">
+        ${tick}
+        <button class="bk-main" data-open="${b.id}">
           <span class="who">
-            <span class="nm">${esc(b.client_name)}</span>
-            <span class="when">${showDate ? `${fmtDateRelative(b.the_date)} · ` : ''}${fmtTime(b.start_time)} — ${fmtTime(end)}</span>
+            <b>${esc(b.client_name)}</b>
+            <span class="meta">${esc(meta)}</span>
           </span>
-        </span>
-        <span class="leader"><span class="k">الإجمالي</span><span class="d"></span>
-          <span class="v">${riyal(b.price)}</span></span>
-        ${Number(b.deposit) > 0 || due > 0 ? `
-          <span class="leader"><span class="k">${due > 0 ? 'المتبقي' : 'مسدّد'}</span><span class="d"></span>
-            <span class="v ${due > 0 ? 'due' : 'paid'}">${due > 0 ? riyal(due) : riyal(b.price)}</span></span>` : ''}
-        <span class="chips">
-          <span class="pill ${esc(b.status)}">${esc(statusLabel(b.status))}</span>
-          ${serviceBadges(items)}
-          <span class="pill quiet">${fmtDuration(b.duration_min)}</span>
-          ${b.cancel_requested && ['pending', 'confirmed'].includes(b.status)
-            ? '<span class="pill cancelled">طلبت الإلغاء</span>' : ''}
-          ${b.source === 'client' ? '<span class="pill quiet">من العميلة</span>' : ''}
-        </span>
-      </button>
+          <span class="money">
+            <span class="t">${money(b.price)}</span>
+            <span class="r ${due > 0 ? '' : 'paid'}">${due > 0 ? `متبقّي ${money(due)}` : 'مسدّد'}</span>
+          </span>
+        </button>
+      </div>
+      <div class="chips">
+        ${serviceBadges(items)}
+        <span class="pill ${esc(b.status)}">${esc(statusLabel(b.status))}</span>
+        ${b.cancel_requested && ['pending', 'confirmed'].includes(b.status)
+          ? '<span class="pill cancelled">طلبت الإلغاء</span>' : ''}
+        ${b.source === 'client' ? '<span class="pill quiet">من العميلة</span>' : ''}
+      </div>
       ${quickActs(b)}
+      <div class="ask" data-ask="${b.id}" hidden></div>
     </div>`;
 }
 
@@ -649,6 +564,45 @@ function bindCards(root = view) {
     const b = (S.bookings || []).find((x) => x.id === el.dataset.msg);
     if (b) openMsgMenu(b);
   });
+  root.querySelectorAll('[data-tick]').forEach((el) => el.onclick = (e) => {
+    e.stopPropagation();
+    const b = (S.bookings || []).find((x) => x.id === el.dataset.tick);
+    if (b) askFinish(b, el.closest('.bk'));
+  });
+}
+
+/* سؤال العربون داخل البطاقة لا في نافذة النظام: الاسم والمبلغ يبقيان أمام
+   العين وهي تجيب، والإجابة لا تُغادر السياق. والمسدَّد سلفًا يُنجَز بلا
+   سؤال — سؤالٌ بلا سببٍ يُعلّم على تجاهله. */
+async function askFinish(b, card) {
+  if (b.status === 'done') { toast('الموعد مكتمل أصلًا'); return; }
+  const rest = Number(b.price) - Number(b.deposit);
+  const box = card?.querySelector('[data-ask]');
+
+  const finish = async (collect) => {
+    try {
+      if (collect) await admin.update(b.id, { deposit: Number(b.price) });
+      await admin.setStatus(b.id, 'done');
+      toast(collect ? 'اكتمل الموعد ومُسدّد بالكامل' : 'اكتمل الموعد', 'ok');
+      reload();
+    } catch (err) {
+      console.error(err);
+      toast(isOffline(err) ? NET_MSG : 'تعذّر الحفظ', 'danger');
+    }
+  };
+
+  if (rest <= 0 || !box) { await finish(false); return; }
+
+  if (!box.hidden) { box.hidden = true; box.innerHTML = ''; return; }
+  box.innerHTML = `
+    <p>باقٍ على <b>${esc(b.client_name)}</b> مبلغ <b>${riyal(rest)}</b>. هل استلمتِه؟</p>
+    <div class="btn-row">
+      <button class="btn btn-ok" data-yes>نعم، استلمت</button>
+      <button class="btn" data-no>تمّ بدون استلام</button>
+    </div>`;
+  box.hidden = false;
+  box.querySelector('[data-yes]').onclick = () => finish(true);
+  box.querySelector('[data-no]').onclick  = () => finish(false);
 }
 
 /* ── Home ─────────────────────────────────────────────────────────────── */
@@ -698,8 +652,28 @@ function renderHome() {
   const outstanding = S.bookings.filter((b) => ['confirmed', 'done'].includes(b.status))
                                 .reduce((n, b) => n + (Number(b.price) - Number(b.deposit)), 0);
 
+  const leftToday  = todays.filter((b) => b.status !== 'done').length;
+  const dueToday    = todays.reduce((n, b) => n + Number(b.price || 0), 0);
+  const openToday   = todays.reduce((n, b) => n + (Number(b.price) - Number(b.deposit)), 0);
+
   view.innerHTML = `
     ${greetCard(todays, pending)}
+
+    <div class="stats">
+      <div class="stat">
+        <span class="k">مواعيد اليوم</span>
+        <span class="v">${int(todays.length)}</span>
+        <span class="s">${todays.length
+          ? (leftToday ? `${int(leftToday)} لم يكتمل` : 'اكتملت كلّها')
+          : 'يومٌ فارغ'}</span>
+      </div>
+      <div class="stat">
+        <span class="k">المتوقّع اليوم</span>
+        <span class="v">${money(dueToday)} <em>ر.س</em></span>
+        <span class="s">${openToday > 0 ? `${money(openToday)} لم تُحصّل` : 'لا متبقٍّ'}</span>
+      </div>
+    </div>
+
     ${pending.length ? `
       <div class="sec-head" style="margin-top:18px">
         <h2>طلبات بانتظارك</h2><span class="rule"></span>
@@ -717,16 +691,16 @@ function renderHome() {
     ${todays.length
       ? `<div class="list">${todays.map((b) => bookingCard(b, { showDate: false })).join('')}</div>
          ${todays.length > 1 || S.settings?.driver_phone ? `
-           <button class="btn btn-soft mt" id="shareDay">${icon('driver', 18)} إرسال خطة اليوم للسائق</button>` : ''}`
+           <button class="btn mt" id="shareDay">${icon('driver', 18)} إرسال خطة اليوم للسائق</button>` : ''}`
       : '<div class="empty"><div class="badge lg" data-icon="calendar"></div><p>لا مواعيد اليوم.</p></div>'}
 
     <div class="sec-head"><h2>نظرة سريعة</h2><span class="rule"></span></div>
-    <div class="grid2">
-      <div class="card stat"><span class="l">حجوزات هذا الشهر</span>
-        <span class="v num">${int(mine.length)}</span>
+    <div class="stats">
+      <div class="stat"><span class="k">حجوزات هذا الشهر</span>
+        <span class="v">${int(mine.length)}</span>
         <span class="s">${int(mine.filter((b) => b.status === 'done').length)} مكتمل</span></div>
-      <div class="card stat"><span class="l">المحصّل فعليًا</span>
-        <span class="v num">${money(collected)}</span>
+      <div class="stat"><span class="k">المحصّل فعليًا</span>
+        <span class="v">${money(collected)} <em>ر.س</em></span>
         <span class="s">${outstanding > 0 ? `${money(outstanding)} ر.س مستحقة` : 'لا مستحقات'}</span></div>
     </div>
 
@@ -736,7 +710,7 @@ function renderHome() {
 
     ${incomeReport(month)}
 
-    <button class="btn btn-ghost mt" id="btnNew">${icon('plus', 18)} إضافة حجز يدويًا</button>`;
+    <button class="btn btn-primary mt" id="btnNew">${icon('plus', 18)} إضافة حجز يدويًا</button>`;
 
   bindCards();
   const share = document.getElementById('shareDay');
@@ -837,19 +811,25 @@ function renderAgenda() {
   }).join('');
 
   view.innerHTML = `
-    <div class="sec-head" style="margin-top:18px"><h2>الأجندة</h2><span class="rule"></span></div>
-    ${monthGrid()}
-    <div class="split mb" style="margin-top:14px">
-      <div class="field" style="margin:0">
-        <label class="label" for="agDate">اليوم</label>
-        <input class="input" type="date" id="agDate" value="${d}">
+    <div class="sec-head"><h2>الأجندة</h2><span class="rule"></span></div>
+    <div class="card">
+      ${monthGrid()}
+      <div class="split" style="margin-top:14px">
+        <div class="field" style="margin:0">
+          <label class="label" for="agDate">اليوم</label>
+          <input class="input" type="date" id="agDate" value="${d}">
+        </div>
+        <div class="field" style="margin:0">
+          <label class="label">&nbsp;</label>
+          <button class="btn" id="agToday">اليوم</button>
+        </div>
       </div>
-      <button class="btn btn-ghost" id="agToday" style="flex:0 0 auto;width:auto">اليوم</button>
     </div>
-    <p class="muted mb">${fmtDate(d)}</p>
+    <div class="sec-head"><h2>${esc(fmtDate(d))}</h2><span class="rule"></span>
+      <span class="count">${list.length ? `${int(list.length)} موعد` : '—'}</span></div>
     ${list.length
       ? `<div class="tl">${stops}</div>
-         <button class="btn btn-soft mt" id="agShare">${icon('driver', 18)} إرسال خطة اليوم للسائق</button>`
+         <button class="btn mt" id="agShare">${icon('driver', 18)} إرسال خطة اليوم للسائق</button>`
       : '<div class="empty"><div class="badge lg" data-icon="calendar"></div><p>لا مواعيد في هذا اليوم.</p></div>'}`;
 
   bindCards();
@@ -1363,14 +1343,12 @@ function editService(s) {
     </div>
     <div class="field"><label class="label" for="s-desc">وصف مختصر <span class="opt">(اختياري)</span></label>
       <input class="input" id="s-desc" value="${esc(s.description || '')}"></div>
-    <label class="choice mb"><input type="checkbox" id="s-public" ${s.bookable_by_client ? 'checked' : ''}
-        style="width:20px;height:20px;accent-color:var(--rose-deep)">
+    <label class="toggle"><input type="checkbox" id="s-public" ${s.bookable_by_client ? 'checked' : ''}>
       <span class="grow"><span class="t">تظهر لصفحة العميلات</span>
-        <span class="s">أوقفيها لخدمة تحجزينها أنتِ فقط</span></span></label>
-    <label class="choice mb"><input type="checkbox" id="s-group" ${s.group_discount ? 'checked' : ''}
-        style="width:20px;height:20px;accent-color:var(--rose-deep)">
+        <span class="s">أوقفيها لخدمة تحجزينها أنتِ فقط</span></span><span class="sw"></span></label>
+    <label class="toggle mb"><input type="checkbox" id="s-group" ${s.group_discount ? 'checked' : ''}>
       <span class="grow"><span class="t">يشملها خصم المجموعة</span>
-        <span class="s">يُطبَّق تلقائيًا من شخصين فأكثر، بالمبلغ المحدَّد في الإعدادات</span></span></label>
+        <span class="s">يُطبَّق تلقائيًا من شخصين فأكثر، بالمبلغ المحدَّد في الإعدادات</span></span><span class="sw"></span></label>
     <div id="s-err"></div>
     <div class="btn-row">
       ${s.id ? '<button class="btn btn-danger" id="s-del">إخفاء</button>' : ''}
@@ -1430,10 +1408,9 @@ function renderSettings() {
 
     <div class="card mb">
       <p class="label">صفحة الحجز</p>
-      <label class="choice mb"><input type="checkbox" id="set-open" ${s.accepting_bookings ? 'checked' : ''}
-          style="width:20px;height:20px;accent-color:var(--rose-deep)">
+      <label class="toggle mb"><input type="checkbox" id="set-open" ${s.accepting_bookings ? 'checked' : ''}>
         <span class="grow"><span class="t">استقبال حجوزات جديدة</span>
-          <span class="s">أوقفيه لإغلاق الصفحة مؤقتًا</span></span></label>
+          <span class="s">أوقفيه لإغلاق الصفحة مؤقتًا</span></span><span class="sw"></span></label>
       <div class="field"><label class="label" for="set-name">الاسم المعروض</label>
         <input class="input" id="set-name" value="${esc(s.business_name || '')}"></div>
       <div class="field"><label class="label" for="set-tag">الوصف</label>
@@ -1487,10 +1464,10 @@ function renderSettings() {
         قبل رفع صورة التحويل.</p>
       <p class="hint">مبلغ العربون يُوضع بجانب كل خدمة في «الخدمات»، ويُجمع
         على عدد الأشخاص في الحجز.</p>
-      <label class="choice mb"><input type="checkbox" id="set-ocr" ${s.receipt_ocr_required ? 'checked' : ''}>
+      <label class="toggle mb"><input type="checkbox" id="set-ocr" ${s.receipt_ocr_required ? 'checked' : ''}>
         <span class="grow"><span class="t">افحصي صورة الإيصال قبل قبول الحجز</span>
         <span class="s">يقرأ النظام الصورة ويرفض الحجز إن لم يجد مبلغ العربون وكلمة تدلّ على تحويل.
-          يحتاج مفتاح قراءة مضبوطًا في الخادم.</span></span></label>
+          يحتاج مفتاح قراءة مضبوطًا في الخادم.</span></span><span class="sw"></span></label>
       <div class="field"><label class="label" for="set-bank">اسم البنك</label>
         <input class="input" id="set-bank" placeholder="مثال: مصرف الراجحي"
                value="${esc(s.bank_name || '')}"></div>
@@ -1832,34 +1809,41 @@ async function openBooking(id) {
   const track = `${location.origin}${location.pathname.replace(/admin\.html$/, 'index.html')}?t=${b.public_token}`;
 
   showSheet(b.client_name, `
-    <div class="card mb">
-      <div class="rowline" style="padding-top:0">
-        <span class="grow"><span class="t">${fmtDate(b.the_date)}</span>
-          <span class="s">${fmtTime(b.start_time)} — ${fmtTime(end)} · ${fmtDuration(b.duration_min)}</span></span>
+    <div class="arch">
+      <h3>${esc(b.client_name)}</h3>
+      <p>${esc(fmtDate(b.the_date))} · ${fmtTime(b.start_time)} – ${fmtTime(end)}</p>
+      <div class="chips" style="justify-content:center;margin-top:10px">
+        ${serviceBadges(items)}
         <span class="pill ${esc(b.status)}">${esc(statusLabel(b.status))}</span>
+        <span class="pill quiet">${fmtDuration(b.duration_min)}</span>
       </div>
-      <div class="rowline">
-        <span class="grow"><span class="t" dir="ltr" style="text-align:start">${esc(prettyPhone(b.client_phone))}</span>
-          <span class="s">رقم الطلب ${esc(b.ref)}</span></span>
-        <a class="iconbtn" href="${telHref(b.client_phone)}" aria-label="اتصال" data-icon="phone"></a>
-        <a class="iconbtn accent" href="${waHref(b.client_phone)}" target="_blank" rel="noopener"
-           aria-label="واتساب" data-icon="whatsapp"></a>
-      </div>
-      ${b.loc_text || b.loc_map ? `
-        <div class="rowline">
-          <span class="grow"><span class="t">${esc(b.loc_text || 'موقع على الخريطة')}</span>
-            <span class="s">الموقع</span></span>
-          ${b.loc_map ? `<a class="iconbtn" href="${esc(b.loc_map)}" target="_blank" rel="noopener"
-                            aria-label="فتح الخريطة" data-icon="pin"></a>` : ''}
-          ${b.loc_map && S.settings?.driver_phone ? `
-            <a class="iconbtn" href="${waHref(S.settings.driver_phone, templates.driverOne(b))}"
-               target="_blank" rel="noopener" aria-label="إرسال للسائق" data-icon="driver"></a>` : ''}
-        </div>` : ''}
-      ${b.client_notes ? `<div class="rowline"><span class="grow">
-          <span class="t">${esc(b.client_notes)}</span><span class="s">ملاحظات العميلة</span></span></div>` : ''}
-      ${b.cancel_requested ? `<div class="note warn" style="margin-top:10px">${icon('clock', 18)}
-        <span>العميلة طلبت إلغاء هذا الحجز.</span></div>` : ''}
     </div>
+
+    <div class="qacts" style="border-top:0;padding-top:0;margin:0 0 12px">
+      <a class="qact" href="${telHref(b.client_phone)}">${icon('phone', 15)}اتصال</a>
+      <a class="qact" href="${waHref(b.client_phone)}" target="_blank" rel="noopener">${icon('whatsapp', 15)}تواصل</a>
+      ${b.loc_map
+        ? `<a class="qact" href="${esc(b.loc_map)}" target="_blank" rel="noopener">${icon('pin', 15)}الموقع</a>`
+        : `<span class="qact empty">${icon('pin', 15)}بلا موقع</span>`}
+    </div>
+
+    <div class="card mb">
+      <div class="leader"><span class="k">رقم الجوال</span><span class="d"></span>
+        <span class="v" dir="ltr">${esc(prettyPhone(b.client_phone))}</span></div>
+      <div class="leader"><span class="k">رقم الطلب</span><span class="d"></span>
+        <span class="v" dir="ltr">${esc(b.ref)}</span></div>
+      ${b.loc_text ? `<div class="leader"><span class="k">الحي</span><span class="d"></span>
+        <span class="v" style="font-size:13.5px">${esc(b.loc_text)}</span></div>` : ''}
+    </div>
+
+    ${b.loc_map && S.settings?.driver_phone ? `
+      <a class="btn mb" href="${waHref(S.settings.driver_phone, templates.driverOne(b))}"
+         target="_blank" rel="noopener">${icon('driver', 17)} إرسال الموقع للسائق</a>` : ''}
+
+    ${b.client_notes ? `<div class="note">${icon('edit', 17)}
+      <span><b>ملاحظات العميلة:</b> ${esc(b.client_notes)}</span></div>` : ''}
+    ${b.cancel_requested ? `<div class="note warn">${icon('clock', 17)}
+      <span>العميلة طلبت إلغاء هذا الحجز.</span></div>` : ''}
 
     <div class="card mb">
       <p class="label">الخدمات</p>
