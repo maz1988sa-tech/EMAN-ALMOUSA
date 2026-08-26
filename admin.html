@@ -655,7 +655,7 @@ function greetCard(todays, pending) {
   const money = todays.reduce((n, b) => n + Number(b.price || 0), 0);
 
   const line = pending.length
-    ? `عندك <b>${int(pending.length)} ${pending.length === 1 ? 'طلب' : 'طلبات'}</b> بانتظار ردّك.`
+    ? `عندك <b class="live">${int(pending.length)} ${pending.length === 1 ? 'طلب' : 'طلبات'}</b> بانتظار ردّك.`
     : left
       ? `عندك <b>${int(left)} ${left === 1 ? 'موعد' : left <= 10 ? 'مواعيد' : 'موعدًا'}</b> اليوم بقيمة ${riyal(money)}.`
       : todays.length
