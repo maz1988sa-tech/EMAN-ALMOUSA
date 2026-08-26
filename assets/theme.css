@@ -46,7 +46,7 @@
   --chip:rgba(255,255,255,.46);
   --tint:rgba(255,255,255,.60);
   --c-done:#2E7A52; --c-open:#A8802F; --c-lost:#9C4636;
-  --danger-solid:#8E3A2C;
+  --danger-solid:#8E3A2C; --alert:#C9372A;
   --ok:#4C7A5A; --ok-bg:rgba(120,170,135,.24);
   --warn:#9A6524; --warn-bg:rgba(214,168,90,.24);
   --danger:#A44B3C; --danger-bg:rgba(196,110,95,.2);
@@ -61,7 +61,7 @@
   --chip:rgba(255,255,255,.48);
   --tint:rgba(255,255,255,.62);
   --c-done:#2E7A52; --c-open:#A8802F; --c-lost:#9C4636;
-  --danger-solid:#8E3A2C;
+  --danger-solid:#8E3A2C; --alert:#C9372A;
   --ok:#467052; --ok-bg:rgba(110,160,125,.24);
   --warn:#8C5F1E; --warn-bg:rgba(206,163,84,.26);
   --danger:#9C4636; --danger-bg:rgba(190,104,88,.2);
@@ -76,7 +76,7 @@
   --chip:rgba(255,246,238,.44);
   --tint:rgba(255,250,244,.58);
   --c-done:#2E7A52; --c-open:#A8802F; --c-lost:#9C4636;
-  --danger-solid:#8E3A2C;
+  --danger-solid:#8E3A2C; --alert:#C9372A;
   --ok:#3F6B4E; --ok-bg:rgba(120,165,132,.28);
   --warn:#8A5518; --warn-bg:rgba(212,164,80,.3);
   --danger:#93382A; --danger-bg:rgba(190,96,80,.26);
@@ -91,7 +91,7 @@
   --chip:rgba(255,250,255,.10);
   --tint:rgba(42,36,66,.58);
   --c-done:#45A876; --c-open:#CFA130; --c-lost:#D65F4A;
-  --danger-solid:#7E3226;
+  --danger-solid:#7E3226; --alert:#C9372A;
   --ok:#8FD0A6; --ok-bg:rgba(90,160,115,.22);
   --warn:#E0BE7C; --warn-bg:rgba(190,150,80,.22);
   --danger:#E39E90; --danger-bg:rgba(180,100,90,.24);
@@ -247,9 +247,22 @@ a  { color: var(--accent); }
        transition: background .2s var(--ease), color .2s var(--ease); }
 .tab svg { width: 15px; height: 15px; }
 .tab[aria-current="page"] { background: var(--accent); color: #FFF; }
-.tab .dot { background: var(--danger); color: #FFF; border-radius: var(--r-pill);
-            font-size: 10px; line-height: 1.6; padding: 0 5px; }
-.tab[aria-current="page"] .dot { background: rgba(255,255,255,.28); }
+/* عدّاد الطلبات: أحمرُ ينبض. هو الشيء الوحيد في الشريط الذي يطلب فعلًا،
+   وكان يذوب في التبويب المختار حين يصير أبيضَ شفّافًا فوق لون الهوية.
+   الحلقة البيضاء تفصله عن أرضيّته، والنبض يقول إنّ أحدًا ينتظر. */
+.tab .dot { background: var(--alert); color: #FFF; border-radius: var(--r-pill);
+            font-size: 10px; font-weight: 700; line-height: 1.7; padding: 0 5px;
+            min-width: 17px; text-align: center; font-variant-numeric: tabular-nums;
+            animation: dot-pulse 2s var(--ease) infinite; }
+.tab[aria-current="page"] .dot { background: var(--alert);
+            outline: 1.6px solid rgba(255,255,255,.78); }
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(1);
+             box-shadow: 0 0 0 0 color-mix(in srgb, var(--alert) 52%, transparent); }
+  60%      { transform: scale(1.12);
+             box-shadow: 0 0 0 7px color-mix(in srgb, var(--alert) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .tab .dot { animation: none; } }
 
 /* أقسام الإعدادات: الشريط نفسه بمقاسٍ أصغر. */
 .panebar { display: flex; gap: 2px; margin: 14px 0 4px; padding: 4px;
@@ -271,6 +284,20 @@ a  { color: var(--accent); }
                margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
 .greet .kick::after { content: ""; width: 5px; height: 5px; border-radius: 50%;
                       background: var(--accent); }
+
+/* بيت الغزل: شطرانِ يفصل بينهما نجمٌ صغير، واسمُ الشاعر همسًا تحتهما.
+   بخطّ العناوين لا بخطّ الواجهة — الشعر يُقرأ متمهّلًا لا يُمسَح بالعين. */
+.greet .bayt { margin-bottom: 12px; padding-bottom: 11px;
+               border-bottom: 1px solid var(--glass-line); }
+.greet .bayt span { display: block; font-family: var(--fd); font-weight: 400;
+                    font-size: 13.5px; line-height: 1.95; color: var(--ink-2);
+                    text-wrap: balance; }
+.greet .bayt i { display: block; width: 4px; height: 4px; margin: 3px 0 3px 0;
+                 border-radius: 50%; background: var(--accent); opacity: .5; }
+.greet .bayt b { display: block; margin-top: 6px; font-family: var(--ft);
+                 font-weight: 500; font-size: 10.5px; letter-spacing: .12em;
+                 color: var(--accent); }
+@media (max-width: 380px) { .greet .bayt span { font-size: 12.5px; } }
 .greet h1 { margin: 0 0 7px; }
 .greet p { color: var(--ink-2); font-size: 14.5px; line-height: 1.65; }
 .greet p b { color: var(--ink); font-weight: 700; }
