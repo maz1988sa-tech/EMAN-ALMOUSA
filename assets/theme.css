@@ -294,9 +294,19 @@ a  { color: var(--accent); }
                     text-wrap: balance; }
 .greet .bayt i { display: block; width: 4px; height: 4px; margin: 3px 0 3px 0;
                  border-radius: 50%; background: var(--accent); opacity: .5; }
-.greet .bayt b { display: block; margin-top: 6px; font-family: var(--ft);
-                 font-weight: 500; font-size: 10.5px; letter-spacing: .12em;
-                 color: var(--accent); }
+.greet .by-foot { display: flex; align-items: center; gap: 10px; margin-top: 7px; }
+.greet .bayt b { font-family: var(--ft); font-weight: 500; font-size: 10.5px;
+                 letter-spacing: .12em; color: var(--accent); }
+/* زرّ النسخ همسٌ لا نداء: البيت هو البطل، والزرّ خدمةٌ تُطلب لا تُعرض. */
+.greet .by-copy { margin-inline-start: auto; display: inline-flex; align-items: center;
+                  gap: 5px; padding: 4px 10px; border-radius: var(--r-pill);
+                  border: 1px solid var(--glass-line); background: var(--glass-2);
+                  color: var(--ink-3); font-family: var(--ft); font-size: 10.5px;
+                  font-weight: 500; cursor: pointer;
+                  transition: color .2s var(--ease), border-color .2s var(--ease); }
+.greet .by-copy svg { width: 14px; height: 14px; }
+.greet .by-copy:hover { color: var(--accent); border-color: var(--accent); }
+.greet .by-copy.done { color: var(--ok); border-color: var(--ok); }
 @media (max-width: 380px) { .greet .bayt span { font-size: 12.5px; } }
 .greet h1 { margin: 0 0 7px; }
 .greet p { color: var(--ink-2); font-size: 14.5px; line-height: 1.65; }

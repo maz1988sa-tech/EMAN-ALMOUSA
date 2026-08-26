@@ -802,11 +802,39 @@ function greetCard(todays, pending) {
     <div class="greet">
       <div class="bayt">
         <span>${esc(BAYT.v[0])}</span><i></i><span>${esc(BAYT.v[1])}</span>
-        <b>${esc(BAYT.p)}</b>
+        <div class="by-foot">
+          <b>${esc(BAYT.p)}</b>
+          <button class="by-copy" id="baytCopy" aria-label="نسخ البيت">${icon('copy', 15)}<span>نسخ</span></button>
+        </div>
       </div>
       <h1>${esc(g.h)}، ${esc(name)}</h1>
       <p>${line}</p>
     </div>`;
+}
+
+function baytForWhatsApp() {
+  const biz = S.settings?.business_name || 'إيمان آل موسى';
+  return `*${BAYT.v[0]}*\n*${BAYT.v[1]}*\n\n_${BAYT.p}_\n\n`
+       + `\u2726 ${biz}\nMAKEUP ARTIST`;
+}
+
+/* الحافظة تُرفض على اتصالٍ غير آمن وفي متصفّحاتٍ قديمة، فيبقى الطريق
+   القديم بديلًا صامتًا بدل أن يفشل الزرّ بلا خبر. */
+async function copyText(text) {
+  try {
+    if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); return true; }
+  } catch { /* نُكمل بالبديل */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select(); ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch { return false; }
 }
 
 function renderHome() {
@@ -892,6 +920,14 @@ function renderHome() {
   view.querySelectorAll('[data-iv]').forEach((b) => b.onclick = () => {
     setIncomeView(b.dataset.iv); render(); hydrateIcons(view);
   });
+  const bc = document.getElementById('baytCopy');
+  if (bc) bc.onclick = async () => {
+    const done = await copyText(baytForWhatsApp());
+    if (!done) { toast('تعذّر النسخ — انسخيه يدويًّا', 'danger'); return; }
+    bc.classList.add('done');
+    toast('نُسخ البيت — الصقيه في واتساب', 'ok');
+    setTimeout(() => bc.classList.remove('done'), 1800);
+  };
 }
 
 /* تقرير الدخل: ثلاث حالاتٍ تُكمل بعضها — ما اكتمل، وما زال قادمًا، وما
