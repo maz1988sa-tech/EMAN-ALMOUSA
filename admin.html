@@ -679,62 +679,64 @@ function renderHome() {
 
   const month = t.slice(0, 7);
   const mine = S.bookings.filter((b) => b.the_date.startsWith(month) && !['cancelled', 'rejected'].includes(b.status));
-  const collected = S.bookings.filter((b) => !['cancelled', 'rejected'].includes(b.status))
-                              .reduce((n, b) => n + Number(b.deposit), 0);
-  const outstanding = S.bookings.filter((b) => ['confirmed', 'done'].includes(b.status))
-                                .reduce((n, b) => n + (Number(b.price) - Number(b.deposit)), 0);
+  /* الرقمان تحت «نظرة سريعة» عن الشهر نفسه: كان المحصَّل يُجمع من كل
+     التاريخ بينما جاره يعدّ حجوزات الشهر، فيقرأ الاثنان كأنّهما مدّةٌ
+     واحدة وهما ليسا كذلك. */
+  const collected = mine.reduce((n, b) => n + Number(b.deposit), 0);
+  const outstanding = mine.filter((b) => ['confirmed', 'done'].includes(b.status))
+                          .reduce((n, b) => n + (Number(b.price) - Number(b.deposit)), 0);
 
   const leftToday  = todays.filter((b) => b.status !== 'done').length;
   const dueToday    = todays.reduce((n, b) => n + Number(b.price || 0), 0);
   const openToday   = todays.reduce((n, b) => n + (Number(b.price) - Number(b.deposit)), 0);
 
+  /* الشاشة الأولى لا تحمل إلا ما فيه خبر. القسم الفارغ ليس معلومةً
+     ناقصة بل ضوضاء: أربع بطاقاتٍ تقول «صفر» تدفع ما يهمّ خارج الشاشة،
+     وتُعلّم العين أن تتخطّى ما فوق الطيّة. والتحيّة تقول حال اليوم
+     بجملةٍ واحدة، فلا يحتاج الفراغ بطاقةً تعلنه. */
+  const hasMonth = mine.length > 0;
+
   view.innerHTML = `
     ${greetCard(todays, pending)}
 
-    <div class="stats">
-      <div class="stat">
-        <span class="k">مواعيد اليوم</span>
-        <span class="v">${int(todays.length)}</span>
-        <span class="s">${todays.length
-          ? (leftToday ? `${int(leftToday)} لم يكتمل` : 'اكتملت كلّها')
-          : 'يومٌ فارغ'}</span>
-      </div>
-      <div class="stat">
-        <span class="k">المتوقّع اليوم</span>
-        <span class="v">${money(dueToday)} <em>ر.س</em></span>
-        <span class="s">${openToday > 0 ? `${money(openToday)} لم تُحصّل` : 'لا متبقٍّ'}</span>
-      </div>
-    </div>
+    ${todays.length ? `
+      <div class="stats">
+        <div class="stat">
+          <span class="k">مواعيد اليوم</span>
+          <span class="v">${int(todays.length)}</span>
+          <span class="s">${leftToday ? `${int(leftToday)} لم يكتمل` : 'اكتملت كلّها'}</span>
+        </div>
+        <div class="stat">
+          <span class="k">المتوقّع اليوم</span>
+          <span class="v">${money(dueToday)} <em>ر.س</em></span>
+          <span class="s">${openToday > 0 ? `${money(openToday)} لم تُحصّل` : 'لا متبقٍّ'}</span>
+        </div>
+      </div>` : ''}
 
     ${pending.length ? `
-      <div class="sec-head" style="margin-top:18px">
+      <div class="sec-head">
         <h2>طلبات بانتظارك</h2><span class="rule"></span>
         <span class="count">${int(pending.length)}</span>
       </div>
-      <div class="list">${pending.map((b) => bookingCard(b)).join('')}</div>` : `
-      <div class="arch" style="margin-top:18px">
-        <div class="badge lg on-surface" data-icon="check" data-icon-size="24" style="margin:0 auto 10px"></div>
-        <h2>لا طلبات معلّقة</h2>
-        <p class="muted" style="margin-top:4px">كل شيء تحت السيطرة.</p>
-      </div>`}
+      <div class="list">${pending.map((b) => bookingCard(b)).join('')}</div>` : ''}
 
-    <div class="sec-head"><h2>اليوم</h2><span class="rule"></span>
-      <span class="count">${fmtDate(t, { withDow: true, short: true })}</span></div>
-    ${todays.length
-      ? `<div class="list">${todays.map((b) => bookingCard(b, { showDate: false })).join('')}</div>
-         ${todays.length > 1 || S.settings?.driver_phone ? `
-           <button class="btn mt" id="shareDay">${icon('driver', 18)} إرسال خطة اليوم للسائق</button>` : ''}`
-      : '<div class="empty"><div class="badge lg" data-icon="calendar"></div><p>لا مواعيد اليوم.</p></div>'}
+    ${todays.length ? `
+      <div class="sec-head"><h2>اليوم</h2><span class="rule"></span>
+        <span class="count">${fmtDate(t, { withDow: true, short: true })}</span></div>
+      <div class="list">${todays.map((b) => bookingCard(b, { showDate: false })).join('')}</div>
+      ${todays.length > 1 || S.settings?.driver_phone ? `
+        <button class="btn mt" id="shareDay">${icon('driver', 18)} إرسال خطة اليوم للسائق</button>` : ''}` : ''}
 
-    <div class="sec-head"><h2>نظرة سريعة</h2><span class="rule"></span></div>
-    <div class="stats">
-      <div class="stat"><span class="k">حجوزات هذا الشهر</span>
-        <span class="v">${int(mine.length)}</span>
-        <span class="s">${int(mine.filter((b) => b.status === 'done').length)} مكتمل</span></div>
-      <div class="stat"><span class="k">المحصّل فعليًا</span>
-        <span class="v">${money(collected)} <em>ر.س</em></span>
-        <span class="s">${outstanding > 0 ? `${money(outstanding)} ر.س مستحقة` : 'لا مستحقات'}</span></div>
-    </div>
+    ${hasMonth ? `
+      <div class="sec-head"><h2>نظرة سريعة</h2><span class="rule"></span></div>
+      <div class="stats">
+        <div class="stat"><span class="k">حجوزات هذا الشهر</span>
+          <span class="v">${int(mine.length)}</span>
+          <span class="s">${int(mine.filter((b) => b.status === 'done').length)} مكتمل</span></div>
+        <div class="stat"><span class="k">المحصّل هذا الشهر</span>
+          <span class="v">${money(collected)} <em>ر.س</em></span>
+          <span class="s">${outstanding > 0 ? `${money(outstanding)} ر.س مستحقة` : 'لا مستحقات'}</span></div>
+      </div>` : ''}
 
     ${upcoming.length ? `
       <div class="sec-head"><h2>القادمة</h2><span class="rule"></span></div>
@@ -800,6 +802,9 @@ function incomeReport(month) {
   }));
   const svcRows = [...per.entries()].sort((a, b) => b[1].v - a[1].v);
   const svcTop = Math.max(...svcRows.map(([, v]) => v.v), 1);
+
+  // الشهر الخالي لا يحتاج تقريرًا: القاعدة نفسها التي تُخفي بطاقات اليوم.
+  if (!inMonth.length) return '';
 
   const view = incomeView();
 
