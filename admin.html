@@ -267,6 +267,14 @@ const STATUS_FILTERS = [
   { id: 'off',       label: 'ملغاة',    test: (b) => ['cancelled','rejected','no_show'].includes(b.status) },
   { id: 'all',       label: 'الكل',     test: () => true },
 ];
+/* المصدر فِلترٌ ثالث مستقلّ عن الحالة والفترة: «أرِني ما جاءني من
+   الرابط هذا الشهر» سؤالٌ يجمع الثلاثة، فلا يصحّ دمجه في أحدها. */
+const SOURCE_FILTERS = [
+  { id: 'all',    label: 'كل المصادر', test: () => true },
+  { id: 'client', label: 'من الرابط',  test: (b) => b.source === 'client' },
+  { id: 'admin',  label: 'يدوي',       test: (b) => b.source !== 'client' },
+];
+
 const PERIOD_FILTERS = [
   { id: 'all',   label: 'كل الفترات' },
   { id: 'week',  label: 'هذا الأسبوع' },
@@ -296,6 +304,7 @@ const S = {
   q: '',
   fStatus: 'upcoming',
   fPeriod: 'all',
+  fSource: 'all',
   fFrom: '',
   fTo: '',
   unsubscribe: null,
@@ -326,9 +335,11 @@ function matchesQuery(b, q) {
 }
 function filtered() {
   const f = STATUS_FILTERS.find((x) => x.id === S.fStatus) || STATUS_FILTERS[0];
+  const src = SOURCE_FILTERS.find((x) => x.id === S.fSource) || SOURCE_FILTERS[0];
   const [from, to] = periodBounds();
   return S.bookings
     .filter((b) => f.test(b))
+    .filter((b) => src.test(b))
     .filter((b) => (!from || b.the_date >= from) && (!to || b.the_date <= to))
     .filter((b) => matchesQuery(b, S.q))
     .sort((a, b) => (b.the_date + b.start_time).localeCompare(a.the_date + a.start_time));
@@ -472,6 +483,20 @@ function renderSettingsTab() {
 
 /* ── Booking card ─────────────────────────────────────────────────────── */
 
+/* من أين جاء الحجز؟ سؤالٌ يُسأل كل يوم: الحجز الآتي من الرابط دفعت
+   صاحبته عربونًا ومرّ بفحص الأوقات، واليدويّ أدخلته إيمان بنفسها. كانت
+   الإجابة غيابَ شارة — والغياب لا يُرى، فلا يُفرَّق بين «يدويّ» و«لم
+   أنتبه». صارت شارةً حاضرة في الحالين بأيقونتها. */
+const SOURCES = {
+  client: { icon: 'link', label: 'من الرابط' },
+  admin:  { icon: 'edit', label: 'يدوي' },
+};
+function sourcePill(b) {
+  const s = SOURCES[b.source] || SOURCES.admin;
+  return `<span class="pill src ${esc(b.source === 'client' ? 'client' : 'admin')}">`
+       + `${icon(s.icon, 13)}${s.label}</span>`;
+}
+
 /* بطاقة الحجز كما في النموذج: زرّ الإنجاز أوّل ما تصله الإبهام، والاسم
    والوقت في الوسط، والمبلغ في الطرف الآخر يُقرأ بلمحة. الخدمات شاراتٌ
    تحته، والأفعال الثلاثة أسفلها. الحالة التي لا يصحّ إنجازها لا تعرض زرًّا
@@ -523,7 +548,7 @@ function bookingCard(b, { showDate = true } = {}) {
         <span class="pill ${esc(b.status)}">${esc(statusLabel(b.status))}</span>
         ${b.cancel_requested && ['pending', 'confirmed'].includes(b.status)
           ? '<span class="pill cancelled">طلبت الإلغاء</span>' : ''}
-        ${b.source === 'client' ? '<span class="pill quiet">من العميلة</span>' : ''}
+        ${sourcePill(b)}
       </div>
       ${quickActs(b)}
       <div class="ask" data-ask="${b.id}" hidden></div>
@@ -955,12 +980,15 @@ function renderAgenda() {
 
 function renderBrowse() {
   const rows = filtered();
-  const counts = Object.fromEntries(STATUS_FILTERS.map((f) => {
-    const [from, to] = periodBounds();
-    return [f.id, S.bookings.filter((b) => f.test(b))
-      .filter((b) => (!from || b.the_date >= from) && (!to || b.the_date <= to))
-      .filter((b) => matchesQuery(b, S.q)).length];
-  }));
+  const [pFrom, pTo] = periodBounds();
+  const inWindow = (b) => (!pFrom || b.the_date >= pFrom) && (!pTo || b.the_date <= pTo);
+  const curSrc = SOURCE_FILTERS.find((x) => x.id === S.fSource) || SOURCE_FILTERS[0];
+  const curSt  = STATUS_FILTERS.find((x) => x.id === S.fStatus) || STATUS_FILTERS[0];
+
+  const counts = Object.fromEntries(STATUS_FILTERS.map((f) => [f.id,
+    S.bookings.filter((b) => f.test(b) && curSrc.test(b) && inWindow(b) && matchesQuery(b, S.q)).length]));
+  const srcCounts = Object.fromEntries(SOURCE_FILTERS.map((f) => [f.id,
+    S.bookings.filter((b) => f.test(b) && curSt.test(b) && inWindow(b) && matchesQuery(b, S.q)).length]));
   const sum = rows.reduce((n, b) => n + Number(b.price), 0);
 
   view.innerHTML = `
@@ -980,6 +1008,12 @@ function renderBrowse() {
       ${PERIOD_FILTERS.map((f) => `
         <button class="chip" data-pr="${f.id}" ${f.id === S.fPeriod ? 'aria-pressed="true"' : ''}>
           ${esc(f.label)}</button>`).join('')}
+    </div>
+    <div class="chiprow mb">
+      ${SOURCE_FILTERS.map((f) => `
+        <button class="chip" data-sr="${f.id}" ${f.id === S.fSource ? 'aria-pressed="true"' : ''}>
+          ${f.id === 'all' ? '' : icon(SOURCES[f.id].icon, 14)}${esc(f.label)}
+          <i>${int(srcCounts[f.id])}</i></button>`).join('')}
     </div>
     ${S.fPeriod === 'range' ? `
       <div class="split mb">
@@ -1012,6 +1046,9 @@ function renderBrowse() {
   view.querySelectorAll('[data-st]').forEach((b) => b.onclick = () => {
     S.fStatus = b.dataset.st; render(); hydrateIcons(view);
   });
+  view.querySelectorAll('[data-sr]').forEach((b) => b.onclick = () => {
+    S.fSource = b.dataset.sr; render(); hydrateIcons(view);
+  });
   view.querySelectorAll('[data-pr]').forEach((b) => b.onclick = () => {
     S.fPeriod = b.dataset.pr; render(); hydrateIcons(view);
   });
@@ -1033,6 +1070,7 @@ function exportRows(rows) {
     { label: 'الوقت',     get: (b) => fmtTime(b.start_time) },
     { label: 'المدة',     get: (b) => b.duration_min },
     { label: 'الحالة',    get: (b) => statusLabel(b.status) },
+    { label: 'المصدر',    get: (b) => (SOURCES[b.source] || SOURCES.admin).label },
     { label: 'الإجمالي',  get: (b) => b.price },
     { label: 'المدفوع',   get: (b) => b.deposit },
     { label: 'المتبقي',   get: (b) => Number(b.price) - Number(b.deposit) },
@@ -2062,6 +2100,7 @@ async function openBooking(id) {
         ${serviceBadges(items)}
         <span class="pill ${esc(b.status)}">${esc(statusLabel(b.status))}</span>
         <span class="pill quiet">${fmtDuration(b.duration_min)}</span>
+        ${sourcePill(b)}
       </div>
     </div>
 
