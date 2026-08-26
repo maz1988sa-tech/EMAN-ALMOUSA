@@ -491,10 +491,15 @@ const SOURCES = {
   client: { icon: 'link', label: 'من الرابط' },
   admin:  { icon: 'edit', label: 'يدوي' },
 };
-function sourcePill(b) {
-  const s = SOURCES[b.source] || SOURCES.admin;
-  return `<span class="pill src ${esc(b.source === 'client' ? 'client' : 'admin')}">`
-       + `${icon(s.icon, 13)}${s.label}</span>`;
+/* علامةٌ صغيرة بجانب الاسم لا شارةٌ في صفّ الشارات: المصدر صفةٌ للحجز
+   نفسه كصاحبته، لا حالةٌ تتغيّر كالتأكيد والإلغاء. وشكل الأيقونة هو
+   الفارق — سلسلةٌ أو قلم — فلا يُحمَّل اللون وحده معنًى، والصفّ نفسه
+   في فلتر «الحجوزات» يعلّم أيّهما أيّ. */
+function sourceMark(b) {
+  const kind = b.source === 'client' ? 'client' : 'admin';
+  const s = SOURCES[kind];
+  return `<i class="srcmark ${kind}" title="${esc(s.label)}" aria-label="${esc(s.label)}"`
+       + ` role="img">${icon(s.icon, 14)}</i>`;
 }
 
 /* بطاقة الحجز كما في النموذج: زرّ الإنجاز أوّل ما تصله الإبهام، والاسم
@@ -534,7 +539,7 @@ function bookingCard(b, { showDate = true } = {}) {
         ${tick}
         <button class="bk-main" data-open="${b.id}">
           <span class="who">
-            <b>${esc(b.client_name)}</b>
+            <b><span class="nm">${esc(b.client_name)}</span>${sourceMark(b)}</b>
             <span class="meta">${esc(meta)}</span>
           </span>
           <span class="money">
@@ -548,7 +553,6 @@ function bookingCard(b, { showDate = true } = {}) {
         <span class="pill ${esc(b.status)}">${esc(statusLabel(b.status))}</span>
         ${b.cancel_requested && ['pending', 'confirmed'].includes(b.status)
           ? '<span class="pill cancelled">طلبت الإلغاء</span>' : ''}
-        ${sourcePill(b)}
       </div>
       ${quickActs(b)}
       <div class="ask" data-ask="${b.id}" hidden></div>
@@ -2094,13 +2098,12 @@ async function openBooking(id) {
 
   showSheet(b.client_name, `
     <div class="arch">
-      <h3>${esc(b.client_name)}</h3>
+      <h3>${esc(b.client_name)}${sourceMark(b)}</h3>
       <p>${esc(fmtDate(b.the_date))} · ${fmtTime(b.start_time)} – ${fmtTime(end)}</p>
       <div class="chips" style="justify-content:center;margin-top:10px">
         ${serviceBadges(items)}
         <span class="pill ${esc(b.status)}">${esc(statusLabel(b.status))}</span>
         <span class="pill quiet">${fmtDuration(b.duration_min)}</span>
-        ${sourcePill(b)}
       </div>
     </div>
 

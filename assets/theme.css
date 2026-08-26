@@ -342,10 +342,13 @@ a  { color: var(--accent); }
 .tick.still { cursor: default; }
 .tick.still:hover { border-color: var(--glass-line); color: var(--ink-3); transform: none; }
 .bk.done .tick { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
-.bk.done .who b { text-decoration: line-through; opacity: .6; }
+.bk.done .who b .nm { text-decoration: line-through; opacity: .6; }
 
 .who { flex: 1; min-width: 0; }
-.who b, .who .nm { display: block; font-size: 16px; font-weight: 700; line-height: 1.35; }
+/* الاسم سطرٌ قائم بذاته، وعلامة المصدر تجلس في آخره — فلا يصحّ أن يكون
+   الاسم نفسه كتلةً تشغل السطر كلّه فتدفع العلامة إلى سطرٍ تحته. */
+.who b { display: block; font-size: 16px; font-weight: 700; line-height: 1.35; }
+.who .nm { display: inline; font-size: inherit; font-weight: inherit; }
 .who .meta, .who .when { display: block; font-size: 12px; color: var(--ink-2); margin-top: 1px; }
 .money { text-align: left; flex: 0 0 auto; direction: ltr; }
 .money .t { display: block; font-family: var(--fd); font-size: 18px; font-weight: var(--fw-d);
@@ -412,14 +415,14 @@ a  { color: var(--accent); }
 .pill.rejected,
 .pill.no_show   { background: var(--danger-bg); color: var(--danger); border-color: transparent; }
 .pill.quiet     { background: transparent; color: var(--ink-3); }
-/* شارة المصدر: أيقونةٌ ونصّ. الرابط بلون الهوية واليدويّ محايد — الفرق
-   يُقرأ من الأيقونة أوّلًا، فلا يُحمَّل اللون وحده معنًى. */
-.pill.src svg { width: 13px; height: 13px; flex: 0 0 auto; }
-.pill.src.client { background: var(--chip); color: var(--accent); border-color: var(--glass-line); }
-.pill.src.client svg { color: var(--accent); }
-.pill.src.admin  { background: transparent; color: var(--ink-3);
-                   border-color: color-mix(in srgb, var(--ink-3) 30%, transparent); }
-.pill.src.admin svg { color: var(--ink-3); }
+/* علامة المصدر بجانب الاسم: أيقونةٌ وحدها. الفرق في الشكل — سلسلةٌ أو
+   قلم — لا في اللون، واللون تشديدٌ لا معنًى قائمٌ بذاته. */
+.srcmark { display: inline-flex; align-items: center; margin-inline-start: 6px;
+           vertical-align: -2px; text-decoration: none; }
+.srcmark svg { width: 14px; height: 14px; display: block; }
+.srcmark.client { color: var(--accent); }
+.srcmark.admin  { color: var(--ink-3); opacity: .75; }
+h3 .srcmark svg { width: 16px; height: 16px; }
 .chip svg { flex: 0 0 auto; }
 .chip[aria-pressed="true"] svg { color: #FFF; }
 
