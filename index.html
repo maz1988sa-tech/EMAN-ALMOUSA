@@ -281,7 +281,7 @@
             <div class="field"><label for="locTxt">الحي والمدينة<i class="req" aria-hidden="true"></i></label><input id="locTxt" type="text" required aria-required="true" placeholder="مثال: حي النخيل، الرياض"></div>
             <div class="field map" id="locField">
               <div>
-                <label for="loc">الموقع <span class="opt">رابط من خرائط قوقل — اختياري</span></label>
+                <label for="loc">الموقع <span class="opt" id="locOpt">رابط من خرائط قوقل — اختياري</span><i class="req" id="locReq" aria-hidden="true" hidden></i></label>
                 <input id="loc" type="url" inputmode="url" dir="ltr" placeholder="https://maps.app.goo.gl/…">
               </div>
               <a class="mapbtn" href="https://maps.google.com" target="_blank" rel="noopener">
@@ -947,10 +947,19 @@ const REQUIRED = [
 ];
 function gate() {
   const v = loc.value.trim();
-  const mapOk = !v || MAPS_RE.test(v);
-  locField.classList.toggle('bad', !!v && !mapOk);
-  locField.classList.toggle('ok', !!v && mapOk);
-  locErr.classList.toggle('on', !!v && !mapOk);
+  /* الإلزام قرارُ صاحبة العمل من الإعدادات. حين يكون مفعّلًا فالفراغ خطأٌ
+     كالرابط الخاطئ، لكنّ الإطار الأحمر لا يظهر على حقلٍ فارغ إلا بعد أن
+     تغادره العميلة — لا نلوّنه أحمر وهي لم تصل إليه بعد. */
+  const needMap = !!state.settings?.require_loc_map;
+  const shapeOk = !v || MAPS_RE.test(v);
+  const mapOk = shapeOk && (!needMap || !!v);
+  const showBad = (!!v && !shapeOk) || (needMap && !v && loc.dataset.touched === '1');
+  locField.classList.toggle('bad', showBad);
+  locField.classList.toggle('ok', !!v && shapeOk);
+  locErr.classList.toggle('on', showBad);
+  locErr.textContent = (needMap && !v)
+    ? 'رابط الموقع مطلوب — افتحي خرائط قوقل، شاركي الموقع، والصقي الرابط هنا.'
+    : 'يُقبل رابط خرائط قوقل فقط — مثل maps.app.goo.gl/… أو google.com/maps/…';
   let reqOk = true;
   REQUIRED.forEach((r) => {
     const good = r.ok(r.in.value);
@@ -971,7 +980,10 @@ function gate() {
         || (!c.iban_hit && !c.keywords?.length));
   sendBtn.disabled = !state.receiptPath || state.busy || scanBad;
 }
-[loc, phone, nameIn, district].forEach((e) => { e.addEventListener('input', gate); e.addEventListener('blur', gate); });
+[loc, phone, nameIn, district].forEach((e) => {
+  e.addEventListener('input', gate);
+  e.addEventListener('blur', () => { e.dataset.touched = '1'; gate(); });
+});
 phone.addEventListener('input', unifyPhone);
 REQUIRED.forEach((r) => r.in.addEventListener('blur', () => { r.touched = true; gate(); }));
 
@@ -1390,6 +1402,14 @@ async function renderTracking(token) {
       const wa = state.settings.whatsapp_phone;
       if (wa) el('waCard').href = waHref(wa);
       if (state.settings.tagline) el('bizLine').textContent = state.settings.tagline;
+      /* الحقل يقول عن نفسه: نقطةٌ حمراء ونصٌّ «إلزامي» متى كان كذلك، فلا
+         تكتشف العميلة الإلزام عند الضغط على زرٍّ لا يستجيب. */
+      if (state.settings.require_loc_map) {
+        el('locOpt').textContent = 'رابط من خرائط قوقل — إلزامي';
+        el('locReq').hidden = false;
+        loc.setAttribute('required', '');
+        loc.setAttribute('aria-required', 'true');
+      }
     }
     // الروابط تأتي من الإعدادات لتتغيّر من لوحة التحكم لا بإعادة نشر الموقع.
     // البطاقة التي لا رابط لها تُخفى بدل أن تبقى زرًّا لا يفعل شيئًا.

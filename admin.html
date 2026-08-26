@@ -1701,9 +1701,13 @@ function renderSettings() {
 
     <div class="card mb">
       <p class="label">صفحة الحجز</p>
-      <label class="toggle mb"><input type="checkbox" id="set-open" ${s.accepting_bookings ? 'checked' : ''}>
+      <label class="toggle"><input type="checkbox" id="set-open" ${s.accepting_bookings ? 'checked' : ''}>
         <span class="grow"><span class="t">استقبال حجوزات جديدة</span>
           <span class="s">أوقفيه لإغلاق الصفحة مؤقتًا</span></span><span class="sw"></span></label>
+      <label class="toggle mb"><input type="checkbox" id="set-reqmap" ${s.require_loc_map ? 'checked' : ''}>
+        <span class="grow"><span class="t">رابط الموقع إلزامي</span>
+          <span class="s">مفعّل: لا يُرسَل الحجز بلا رابط من خرائط قوقل ·
+            مطفأ: الرابط اختياري كما هو الآن</span></span><span class="sw"></span></label>
       <div class="field"><label class="label" for="set-name">الاسم المعروض</label>
         <input class="input" id="set-name" value="${esc(s.business_name || '')}"></div>
       <div class="field"><label class="label" for="set-tag">الوصف</label>
@@ -1876,6 +1880,7 @@ function renderSettings() {
     try {
       await admin.saveSettings({
         accepting_bookings: document.getElementById('set-open').checked,
+        require_loc_map: document.getElementById('set-reqmap').checked,
         business_name: document.getElementById('set-name').value.trim(),
         tagline: document.getElementById('set-tag').value.trim() || null,
         travel_buffer_min: Number(document.getElementById('set-buffer').value),
