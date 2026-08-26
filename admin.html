@@ -246,6 +246,104 @@ function tickClock() {
 tickClock();
 setInterval(tickClock, 60000);
 
+/* ── فراشة ───────────────────────────────────────────────────────────
+   طلبها صاحب العمل، وهي أليقُ بمشهدٍ فيه طيرٌ وشجرةٌ تتمايل ويراعاتُ ليل.
+   تحطّ على الحافّة العليا لبطاقةٍ حقيقيّة — تُقرأ مواضعُها من الصفحة لا
+   من قائمةٍ مكتوبة، فتصحّ مهما تغيّر التخطيط. وتُقلع متى مرّرت الصفحة:
+   إزعاجُها جزءٌ من كونها حيّة.
+
+   ولا تفعل شيئًا سوى ذلك: لا تلتقط لمسًا، ولا تُنطَق لقارئ الشاشة، ولا
+   تعمل متى طُلب تقليل الحركة أو غابت النافذة أو فُتحت ورقة. */
+function startButterfly() {
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  if (reduced.matches) return;
+
+  const el = document.createElement('div');
+  el.className = 'bfly';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = `
+    <svg viewBox="0 0 44 36" fill="none">
+      <g class="w wl">
+        <path d="M22 18C14 2 2 4 4.4 13.6 6.2 21 15 21.6 22 18Z"/>
+        <path d="M22 18c-7 8-16.6 11.4-17.8 5.6C3.2 18.8 14 15.8 22 18Z"/>
+      </g>
+      <g class="w wr">
+        <path d="M22 18C30 2 42 4 39.6 13.6 37.8 21 29 21.6 22 18Z"/>
+        <path d="M22 18c7 8 16.6 11.4 17.8 5.6C40.8 18.8 30 15.8 22 18Z"/>
+      </g>
+      <ellipse class="bd" cx="22" cy="18" rx="1.5" ry="6.6"/>
+      <path class="an" d="M22 11.6C21.2 7.6 19.4 5.6 17.4 4.6M22 11.6c.8-4 2.6-6 4.6-7"/>
+    </svg>`;
+  document.body.appendChild(el);
+
+  const W = 26, H = 21;
+  let x = innerWidth * 0.72, y = innerHeight * 0.34, hop = null, idle = null;
+
+  /* المواضع تُقرأ من الصفحة نفسها: الحافّة العليا لكل سطحٍ ظاهر وعريض
+     بما يكفي. البطاقة التي خرجت عن الشاشة ليست موضعًا. */
+  function perches() {
+    const out = [];
+    document.querySelectorAll('.bk, .card, .stat, .greet, .arch, .empty:not(.qact)')
+      .forEach((e) => {
+        const r = e.getBoundingClientRect();
+        if (r.width < 90 || r.top < 96 || r.top > innerHeight - 120) return;
+        out.push({ x: r.left + r.width * (0.18 + Math.random() * 0.64) - W / 2,
+                   y: r.top - H + 3 });
+      });
+    return out;
+  }
+
+  function land() {
+    if (document.hidden || document.body.classList.contains('sheeting')) {
+      idle = setTimeout(land, 2600); return;
+    }
+    const list = perches();
+    // بلا سطحٍ ظاهر: ترفرف في الهواء قليلًا ثمّ تعيد المحاولة.
+    const to = list.length
+      ? list[Math.floor(Math.random() * list.length)]
+      : { x: innerWidth * (0.2 + Math.random() * 0.6), y: innerHeight * (0.3 + Math.random() * 0.3) };
+
+    const dist = Math.hypot(to.x - x, to.y - y);
+    const dur = Math.min(2600, Math.max(900, dist * 3.4));
+    const lift = Math.min(120, 40 + dist * 0.22);
+    const midX = (x + to.x) / 2 + (Math.random() * 70 - 35);
+    const midY = Math.min(y, to.y) - lift;
+    const tilt = to.x > x ? 12 : -12;
+
+    el.classList.remove('resting');
+    el.classList.add('flying');
+    const a = el.animate([
+      { transform: `translate(${x}px, ${y}px) rotate(0deg)` },
+      { transform: `translate(${midX}px, ${midY}px) rotate(${tilt}deg)`, offset: 0.5 },
+      { transform: `translate(${to.x}px, ${to.y}px) rotate(0deg)` },
+    ], { duration: dur, easing: 'cubic-bezier(.36,.05,.28,1)', fill: 'forwards' });
+
+    x = to.x; y = to.y;
+    a.onfinish = () => {
+      el.classList.remove('flying');
+      el.classList.add('resting');
+      idle = setTimeout(land, 4200 + Math.random() * 6500);
+    };
+  }
+
+  // التمرير يُقلعها: ما حطّت عليه لم يعد في مكانه.
+  addEventListener('scroll', () => {
+    if (!el.classList.contains('resting')) return;
+    clearTimeout(hop);
+    hop = setTimeout(() => { clearTimeout(idle); land(); }, 260);
+  }, { passive: true });
+
+  addEventListener('resize', () => { clearTimeout(idle); idle = setTimeout(land, 400); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { clearTimeout(idle); idle = setTimeout(land, 900); }
+  });
+  reduced.addEventListener?.('change', (e) => { if (e.matches) el.remove(); });
+
+  el.style.transform = `translate(${x}px, ${y}px)`;
+  el.classList.add('resting');
+  idle = setTimeout(land, 1800);
+}
+
 const view = document.getElementById('view');
 const sheet = document.getElementById('sheet');
 
@@ -427,6 +525,7 @@ async function reload(announce = false) {
     if (settings?.business_name) document.getElementById('bizName').textContent = settings.business_name;
     renderTabs();
     render();
+    if (!reload._bfly) { reload._bfly = true; setTimeout(startButterfly, 1200); }
     if (announce) toast('تم التحديث', 'ok');
 
     // الرفع يسبق الحجز، فمن تركت الصفحة بعد الرفع تخلّف ملفًا بلا حجز.

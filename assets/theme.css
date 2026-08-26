@@ -349,6 +349,9 @@ a  { color: var(--accent); }
                     background .25s var(--ease), transform .25s var(--ease); }
 .tick:hover, .tick:focus-visible { border-color: var(--ok); color: var(--ok); transform: scale(1.05); }
 .tick svg { width: 20px; height: 20px; }
+/* أيقونة الخدمة داخل القرص الساكن أكبر من علامة الإنجاز: حبرُها ضيّقٌ
+   طويل (١٢٫٨ من ٢٤ عرضًا) فتُقرأ أصغر ممّا هي وسط دائرةٍ بـ٤٦. */
+.tick.still svg { width: 26px; height: 26px; }
 .tick.still { cursor: default; }
 .tick.still:hover { border-color: var(--glass-line); color: var(--ink-3); transform: none; }
 .bk.done .tick { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
@@ -894,3 +897,36 @@ input[type="range"].input::-moz-range-track {
 input[type="range"].input::-moz-range-thumb {
   width: 18px; height: 18px; border-radius: 50%; background: var(--accent);
   border: 2px solid #FFF; }
+
+
+/* ══ فراشة ═════════════════════════════════════════════════════════
+   ساكنُ المشهد الوحيد الذي يغادره: تطير من الخلفيّة إلى حافّة بطاقة
+   فتحطّ عليها كأنّها جدار، ثمّ تمضي. لا تلتقط لمسًا ولا تحجب نصًّا،
+   وتسكن متى طُلب تقليل الحركة أو غابت النافذة أو فُتحت ورقة.
+   ══════════════════════════════════════════════════════════════════ */
+/* left/top لا inset-inline-start: الإحداثيّات تُحسب بالبكسل من يسار
+   الشاشة، والمرسى المنطقيّ يقلبها إلى اليمين في صفحةٍ عربيّة فتطير
+   الفراشة خارج الشاشة. */
+.bfly { position: fixed; top: 0; left: 0; z-index: 25;
+        width: 26px; height: 21px; pointer-events: none; will-change: transform;
+        color: var(--accent); opacity: .9; }
+.bfly svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.bfly .w { transform-origin: 50% 50%; fill: currentColor; }
+.bfly .wl { opacity: .92; }
+.bfly .wr { opacity: .74; }
+.bfly .bd { fill: var(--ink); opacity: .55; }
+.bfly .an { stroke: var(--ink); stroke-width: 1.1; fill: none; opacity: .45;
+            stroke-linecap: round; }
+
+/* الرفرفة سريعة في الطيران، وبطيئةٌ كالتنفّس على الحافّة. */
+@keyframes bfly-flap  { 0%,100%{transform:scaleX(1)} 50%{transform:scaleX(.18)} }
+@keyframes bfly-still { 0%,100%{transform:scaleX(1)} 50%{transform:scaleX(.72)} }
+.bfly.flying .w { animation: bfly-flap .16s ease-in-out infinite; }
+.bfly.resting .w { animation: bfly-still 3.4s ease-in-out infinite; }
+.bfly.resting .wr { animation-delay: .25s; }
+
+[data-time="night"] .bfly { color: var(--gold); opacity: .75; }
+[data-time="night"] .bfly .bd,
+[data-time="night"] .bfly .an { fill: #F5E4C6; stroke: #F5E4C6; }
+
+@media (prefers-reduced-motion: reduce) { .bfly { display: none; } }
