@@ -854,9 +854,8 @@ function greetCard(todays, pending) {
 }
 
 function baytForWhatsApp() {
-  const biz = S.settings?.business_name || 'إيمان آل موسى';
-  return `*${BAYT.v[0]}*\n*${BAYT.v[1]}*\n\n_${BAYT.p}_\n\n`
-       + `\u2726 ${biz}\nMAKEUP ARTIST`;
+  // البيت والشاعر فقط: هي تُرسله من حسابها، فاسمها ومهنتها معروفان لمن يقرأ.
+  return `*${BAYT.v[0]}*\n*${BAYT.v[1]}*\n\n_${BAYT.p}_`;
 }
 
 /* الحافظة تُرفض على اتصالٍ غير آمن وفي متصفّحاتٍ قديمة، فيبقى الطريق
