@@ -2,13 +2,15 @@
 // surfaces can be rendered and screenshotted without a live project.
 // It answers the same call shapes assets/db.js uses.
 (function () {
-  const svc = (id, name, icon, price, dur, desc) =>
-    ({ id, name, icon, price, duration_min: dur, description: desc, sort: 0, active: true, bookable_by_client: true });
+  const svc = (id, name, icon, price, dur, desc, grp = true) =>
+    ({ id, name, icon, price, duration_min: dur, description: desc, sort: 0, active: true,
+       bookable_by_client: true, group_discount: grp, deposit_amount: 0 });
+  const dep = (s, amount) => ({ ...s, deposit_amount: amount });
 
   const SERVICES = [
-    svc('s1', 'ميك اب عروس', 'bride', 1500, 60, 'مكياج زفاف كامل مع التثبيت'),
-    svc('s2', 'ميك اب سهرة', 'evening', 600, 45, 'مكياج مناسبات وسهرات'),
-    svc('s3', 'تسريحة شعر', 'mirror', 400, 40, 'تسريحة مناسبات'),
+    dep(svc('s1', 'ميك اب عروس', 'bride', 1500, 60, 'مكياج زفاف كامل مع التثبيت', false), 375),
+    dep(svc('s2', 'ميك اب سهرة', 'evening', 600, 45, 'مكياج مناسبات وسهرات'), 150),
+    dep(svc('s3', 'تسريحة شعر', 'mirror', 400, 40, 'تسريحة مناسبات'), 100),
   ];
 
   const pad = n => String(n).padStart(2, '0');
@@ -61,11 +63,28 @@
     { id:'o1', the_date: day(9), kind:'closed', start_time:null, end_time:null, note:'إجازة' },
   ];
 
+  const TEMPLATES = [
+    { id:'t1', title:'تأكيد الموعد', pinned:true, sort:1, active:true, builtin:true,
+      body:'أهلاً {الاسم} 🌸\nتم تأكيد موعدك مع {الاسم التجاري}:\n\n📅 {التاريخ}\n🕐 {الوقت}\n💄 {الخدمة}\n💰 الإجمالي: {الإجمالي}\n\nلمتابعة حجزك:\n{رابط الحجز}\n\nبانتظارك 💗',
+      created_at:new Date().toISOString() },
+    { id:'t2', title:'تذكير قبل الموعد', pinned:false, sort:2, active:true, builtin:true,
+      body:'تذكير بموعدك غدًا مع {الاسم التجاري} 🌸\n\n📅 {التاريخ}\n🕐 {الوقت}\n📍 {الموقع}\n\nالمتبقي: {المتبقي}\n\nنراكِ غدًا 💗',
+      created_at:new Date().toISOString() },
+    { id:'t3', title:'طلب العربون', pinned:false, sort:3, active:true, builtin:false,
+      body:'أهلاً {الاسم} 🌸\nلتثبيت موعد {التاريخ} الساعة {الوقت} يلزم عربون {العربون} من إجمالي {الإجمالي}.\n\nشاكرين لكِ 💗',
+      created_at:new Date().toISOString() },
+  ];
+
   const SETTINGS = {
     id:1, business_name:'إيمان آل موسى', tagline:'ميك اب عرائس ومناسبات', timezone:'Asia/Riyadh',
     travel_buffer_min:40, slot_step_min:30, min_lead_hours:4, max_advance_days:120,
     driver_phone:'966500000000', whatsapp_phone:'966501112222', accepting_bookings:true,
     closed_message:'الحجز مغلق مؤقتًا، تواصلي معنا عبر واتساب.',
+    require_loc_map:false, group_discount:true, group_discount_amount:100,
+    deposit_rate:0.25, iban:'SA0380000000608010167519', bank_name:'الراجحي',
+    beneficiary_name:'إيمان آل موسى', receipt_ocr_required:false,
+    instagram_url:'https://instagram.com/example',
+    tiktok_url:'https://tiktok.com/@example',
   };
 
   const ok = (data) => Promise.resolve({ data, error: null });
@@ -73,7 +92,8 @@
   function table(name) {
     const rows = { services: SERVICES, bookings: BOOKINGS, availability_rules: RULES,
                    date_overrides: OVERRIDES, settings: [SETTINGS], public_settings: [SETTINGS],
-                   booking_items: [], activity_log: [] }[name] || [];
+                   booking_items: [], activity_log: [],
+                   message_templates: TEMPLATES }[name] || [];
     const q = {
       _rows: rows.slice(),
       select() { return q; }, eq() { return q; }, in() { return q; }, gte() { return q; },
@@ -93,7 +113,38 @@
     createClient() {
       return {
         from: table,
-        rpc(fn, args) {
+        rpc(name, args) {
+          const fn = name;
+          (window.__RPC = window.__RPC || []).push({ name, args });
+          if (fn === 'admin_create_booking' || fn === 'admin_replace_items') {
+            if (fn === 'admin_create_booking') {
+              const bk = args.p_booking || {};
+              return ok([{ id:'b-new', ref:'IA-NEW01', public_token:'tok-new',
+                           ...bk, booking_items: args.p_items || [] }]);
+            }
+            return ok([{ id: args.p_booking_id, booking_items: args.p_items || [] }]);
+          }
+          if (fn === 'admin_purge_bookings') {
+            const from = args.p_from, to = args.p_to;
+            const hit = BOOKINGS.filter(b => (!from || b.the_date >= from) && (!to || b.the_date <= to));
+            const files = hit.slice(0, 2).map((b, i) => `pending/r${i + 1}.jpg`);
+            if (args.p_dry === false) hit.forEach(b => {
+              const i = BOOKINGS.indexOf(b); if (i >= 0) BOOKINGS.splice(i, 1);
+            });
+            return ok([{ affected: hit.length, receipts: files }]);
+          }
+          if (fn === 'orphan_receipts') return ok([]);
+          if (fn === 'admin_snapshot') {
+            return ok({ taken_at: new Date().toISOString(),
+                        counts: { bookings: BOOKINGS.length, services: SERVICES.length,
+                                  rules: RULES.length, overrides: OVERRIDES.length,
+                                  templates: TEMPLATES.length },
+                        bookings: BOOKINGS.map((b, i) => ({ ...b,
+                          receipt_path: i < 2 ? `pending/r${i + 1}.jpg` : null })),
+                        services: SERVICES, availability_rules: RULES,
+                        date_overrides: OVERRIDES, message_templates: TEMPLATES,
+                        settings: SETTINGS });
+          }
           if (fn === 'available_slots') {
             const dur = args.p_duration_min || 45;
             return ok(SLOTS.filter((_, i) => dur <= 60 || i % 2 === 0).map(slot => ({ slot })));
@@ -124,6 +175,64 @@
           signInWithPassword: () => Promise.resolve({ data: { session: {} }, error: null }),
           signOut: () => Promise.resolve({}),
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe(){} } } }),
+        },
+        // تخزينٌ صوريّ: يقبل الرفع ويعيد مسارًا، فيمشي مسار الإيصال والنسخ
+        // الاحتياطيّة في التطوير كما يمشي على القاعدة الحقيقيّة.
+        storage: {
+          from(bucket) {
+            const files = (window.__FILES = window.__FILES || {});
+            files[bucket] = files[bucket] || {};
+            return {
+              upload(path, body) {
+                // عطبٌ يُطلب صراحةً: يسقط الرفع كما يسقط على شبكةٍ رديئة.
+                if (window.__UPLOAD_FAILS__) {
+                  return Promise.resolve({ data: null, error: { message: 'upload failed' } });
+                }
+                files[bucket][path] = body;
+                (window.__UP = window.__UP || []).push({ bucket, path });
+                if (bucket === 'receipts') (window.__UPLOADED__ = window.__UPLOADED__ || []).push(path);
+                return Promise.resolve({ data: { path }, error: null });
+              },
+              copy(from, to, opts) {
+                const dest = (opts && opts.destinationBucket) || bucket;
+                files[dest] = files[dest] || {};
+                files[dest][to] = files[bucket][from] || new Blob(['x']);
+                (window.__COPIES = window.__COPIES || []).push({ bucket: dest, from, to });
+                return Promise.resolve({ data: { path: to }, error: null });
+              },
+              remove(paths) {
+                [].concat(paths).forEach((p) => delete files[bucket][p]);
+                return Promise.resolve({ data: null, error: null });
+              },
+              list(dir) {
+                return Promise.resolve({ data: Object.keys(files[bucket])
+                  .filter((k) => !dir || k.startsWith(dir))
+                  .map((k) => ({ name: k.split('/').pop(), id: k,
+                                 created_at: new Date().toISOString(),
+                                 metadata: { size: 1024 } })), error: null });
+              },
+              download(path) {
+                return Promise.resolve({ data: files[bucket][path] || new Blob(['{}']), error: null });
+              },
+              getPublicUrl(path) {
+                return { data: { publicUrl: `https://mock.local/${bucket}/${path}` } };
+              },
+              createSignedUrl(path) {
+                return Promise.resolve({ data: { signedUrl: `https://mock.local/${bucket}/${path}?s=1` },
+                                         error: null });
+              },
+            };
+          },
+        },
+        functions: {
+          // قراءة الإيصال: يردّ ما يضعه الاختبار في window.__ocrReply، وإلّا
+          // تعذّرت القراءة — وهو ما لا يمنع الحجز على القاعدة الحقيقيّة.
+          invoke(name, opts) {
+            (window.__FN = window.__FN || []).push({ name, opts });
+            const r = window.__ocrReply;
+            if (r) return Promise.resolve({ data: r, error: null });
+            return Promise.resolve({ data: null, error: { message: 'no function in mock' } });
+          },
         },
         channel() { return { on() { return this; }, subscribe() { return this; } }; },
         removeChannel() {},
