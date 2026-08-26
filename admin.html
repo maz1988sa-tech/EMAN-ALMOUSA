@@ -800,12 +800,11 @@ function greetCard(todays, pending) {
 
   return `
     <div class="greet">
+      <button class="by-copy" id="baytCopy" aria-label="نسخ البيت لواتساب"
+              title="نسخ البيت لواتساب">${icon('copy', 15)}</button>
       <div class="bayt">
         <span>${esc(BAYT.v[0])}</span><i></i><span>${esc(BAYT.v[1])}</span>
-        <div class="by-foot">
-          <b>${esc(BAYT.p)}</b>
-          <button class="by-copy" id="baytCopy" aria-label="نسخ البيت">${icon('copy', 15)}<span>نسخ</span></button>
-        </div>
+        <b>${esc(BAYT.p)}</b>
       </div>
       <h1>${esc(g.h)}، ${esc(name)}</h1>
       <p>${line}</p>
