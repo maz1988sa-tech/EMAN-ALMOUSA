@@ -312,20 +312,20 @@ function startButterfly() {
   };
 }
 
-/* ── فرد أم مجموعة ─────────────────────────────────────────────────── */
+/* ── حجزٌ واحد أم عدّة حجوزات ──────────────────────────────────────── */
 function openBookingKind() {
   showSheet('حجز جديد', `
-    <p class="muted mb">كم عميلة في هذا الحجز؟</p>
+    <p class="muted mb">كم حجزًا تُدخلين الآن؟</p>
     <div class="kindrow">
       <button class="kind" id="k-one" type="button">
         ${icon('user', 22)}
-        <b>عميلة واحدة</b>
+        <b>حجزًا واحدًا</b>
         <span>الورقة المعتادة</span>
       </button>
       <button class="kind" id="k-many" type="button">
         ${icon('users', 22)}
-        <b>مجموعة</b>
-        <span>عدّة عميلات · مناسبة واحدة</span>
+        <b>عدّة حجوزات</b>
+        <span>قائمة عميلات دفعةً واحدة</span>
       </button>
     </div>`);
   hydrateIcons(sheet);
@@ -2744,13 +2744,15 @@ function confirmThen(question, fn) {
   document.getElementById('c-yes').onclick = fn;
 }
 
-/* ── حجز المجموعة ────────────────────────────────────────────────────
-   مناسبةٌ واحدة وعدّة عميلات. كانت الورقة تُفتح وتُغلق لكلِّ واحدة: أربع
-   دوراتٍ كاملة تُعاد فيها التاريخ والحيّ ورابط الخريطة. والأسوأ أنّ الشبكة
-   قد تنقطع بين الثانية والثالثة، فتبقى مناسبةٌ نصفها محجوز ونصفها لا.
+/* ── إدخال عدّة حجوزات دفعةً واحدة ───────────────────────────────────
+   ليست مناسبةً واحدة ولا مجموعةً مترابطة: قائمةُ عميلاتٍ تنتظر الإدخال،
+   قد تختلف تواريخهنّ وأماكنهنّ وخدماتهنّ. كانت الورقة تُفتح وتُغلق لكلِّ
+   واحدة — أربع دوراتٍ كاملة لأربع عميلات — والأسوأ أنّ الشبكة قد تنقطع
+   بين الثانية والثالثة فيُحفَظ نصفُ القائمة ويضيع نصفُها بلا أثر.
 
-   البطاقة هنا هي بطاقة الحجز الفردي بحقولها كلّها — بما فيها العربون — لكلِّ
-   عميلة. والورقة لا تُغلَق بينهنّ، والحفظ نداءٌ ذرّيٌّ واحد. */
+   البطاقة هنا هي بطاقة الحجز الفردي بحقولها كلّها — بما فيها العربون —
+   لكلِّ عميلة، تبدأ خاليةً كما لو فُتحت وحدها. والورقة لا تُغلَق بينهنّ،
+   والحفظ نداءٌ ذرّيٌّ واحد: تتمّ القائمة كلُّها أو لا يُكتب منها شيء. */
 function openGroupBooking() {
   const svcs = S.services.filter((s) => s.active);
   if (!svcs.length) return toast('أضيفي خدمة أولًا');
@@ -2758,15 +2760,13 @@ function openGroupBooking() {
   const per = () => Number(S.settings?.group_discount_amount || 0);
   const idem = uuid();
 
-  const fresh = (prev) => ({
+  /* تبدأ خاليةً كأنّها ورقةٌ مستقلّة: العميلات لا يجمعهنّ شيء بالضرورة،
+     ونسخُ عنوانِ سابقةٍ بلا طلبٍ يُخفي خطأً لا يُلحَظ حتى يصل السائق. */
+  const fresh = () => ({
     nm: '', ph: '',
     qty: Object.fromEntries(svcs.map((sv) => [sv.id, 0])),
     price: {},
-    date: prev ? prev.date : today(),
-    // الوقت مقترَحٌ عند انتهاء التي قبلها: لا تُجمّل اثنتين معًا.
-    time: prev ? addMinutes(prev.time, Math.max(mins(prev), 0)).time : '16:00',
-    loc:  prev ? prev.loc : '',
-    map:  prev ? prev.map : '',
+    date: today(), time: '16:00', loc: '', map: '',
     dep: 0, open: true,
   });
 
@@ -2783,15 +2783,10 @@ function openGroupBooking() {
   };
   const net = (p) => Math.max(gross(p) - disc(p), 0);
 
-  let people = [fresh(null)];
-  let label = '';
+  let people = [fresh()];
 
-  showSheet('حجز مجموعة', `
-    <div class="field">
-      <label class="label" for="g-label">اسم المناسبة <span class="opt">(اختياري)</span></label>
-      <input class="input" id="g-label" placeholder="مثال: زفاف رانيا">
-      <p class="hint">يجمع حجوزات المجموعة في الأجندة تحت عنوانٍ واحد.</p>
-    </div>
+  showSheet('عدّة حجوزات', `
+    <p class="muted mb">بطاقةٌ لكلِّ عميلة، بحقول الحجز المعتادة. أضيفيهنّ جميعًا ثمّ احفظي مرّةً واحدة.</p>
     <div id="g-list"></div>
     <button class="btn btn-ghost mb" id="g-add">${icon('plus', 18)} إضافة عميلة أخرى</button>
     <div class="card mb gsum" id="g-sum"></div>
@@ -2799,7 +2794,6 @@ function openGroupBooking() {
     <button class="btn btn-primary" id="g-save">حفظ</button>`);
 
   const g = (id) => document.getElementById(id);
-  g('g-label').oninput = () => { label = g('g-label').value.trim(); };
 
   function card(p, i) {
     const t = net(p), n = heads(p), rest = Math.max(t - p.dep, 0), d = disc(p);
@@ -2875,7 +2869,11 @@ function openGroupBooking() {
             <div class="input" id="gp-rest-${i}" style="display:flex;align-items:center">${
               n ? `${money(rest)} ر.س` : '—'}</div></div>
         </div>
-        ${people.length > 1 ? `<button class="rmp" type="button" data-grm="${i}">حذف هذه العميلة</button>` : ''}
+        <div class="pfoot">
+          ${i > 0 ? `<button class="rmp copy" type="button" data-gcp="${i}">${
+            icon('copy', 14)} نسخ تاريخ وموقع السابقة</button>` : ''}
+          ${people.length > 1 ? `<button class="rmp" type="button" data-grm="${i}">حذف هذه العميلة</button>` : ''}
+        </div>
       </div></div>`;
   }
 
@@ -2884,9 +2882,9 @@ function openGroupBooking() {
     const sum = people.reduce((a, p) => a + net(p), 0);
     const deps = people.reduce((a, p) => a + Number(p.dep || 0), 0);
     g('g-sum').innerHTML = `
-      <div class="leader"><span class="k">العميلات</span>
+      <div class="leader"><span class="k">عدد الحجوزات</span>
         <span class="d"></span><span class="v">${int(people.length)}</span></div>
-      <div class="leader"><span class="k">مجموع الحجوزات</span>
+      <div class="leader"><span class="k">مجموع المبالغ</span>
         <span class="d"></span><span class="v num">${money(sum)} ر.س</span></div>
       <div class="leader"><span class="k">مجموع العرابين</span>
         <span class="d"></span><span class="v num">${money(deps)} ر.س</span></div>
@@ -2919,6 +2917,12 @@ function openGroupBooking() {
       people[Number(i)][k] = (k === 'dep') ? Math.max(0, Number(el.value) || 0) : el.value;
       liveTotals();
     });
+    sheet.querySelectorAll('[data-gcp]').forEach((b) => b.onclick = () => {
+      const i = Number(b.dataset.gcp), prev = people[i - 1];
+      Object.assign(people[i], { date: prev.date, time: prev.time, loc: prev.loc, map: prev.map });
+      draw();
+      toast('نُسخ تاريخ وموقع السابقة', 'ok');
+    });
     sheet.querySelectorAll('[data-grm]').forEach((b) => b.onclick = () => {
       people.splice(Number(b.dataset.grm), 1);
       if (!people.some((p) => p.open)) people[people.length - 1].open = true;
@@ -2947,9 +2951,8 @@ function openGroupBooking() {
   }
 
   g('g-add').onclick = () => {
-    const prev = people[people.length - 1];
     people.forEach((p) => { p.open = false; });
-    people.push(fresh(prev));
+    people.push(fresh());
     draw();
     sheet.querySelector('.sheet-body')?.scrollTo({
       top: sheet.querySelector('.sheet-body').scrollHeight, behavior: 'smooth' });
@@ -2994,7 +2997,7 @@ function openGroupBooking() {
           group_discount: sv.group_discount, deposit_amount: sv.deposit_amount || 0,
         }))),
       }));
-      const rows = await admin.createGroup(payload, label || null, idem);
+      const rows = await admin.createGroup(payload, null, idem);
       closeSheet(sheet);
       toast(rows.length === 1 ? 'حُفظ الحجز' : `حُفظت ${int(rows.length)} حجوزات`, 'ok');
       reload();

@@ -1059,8 +1059,13 @@ body.sheeting .bfly { opacity: 0; pointer-events: none; transform: scale(.9); }
              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .phead .pv { font-family: var(--fd); font-size: 14px; font-variant-numeric: tabular-nums; }
 .pbody { padding: 0 12px 12px; }
+.pfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+          flex-wrap: wrap; padding-top: 2px; }
 .pcard .rmp { border: 0; background: none; color: var(--danger); cursor: pointer;
               font-family: var(--ft); font-size: 12.5px; padding: 6px 0; }
+.pcard .rmp.copy { color: var(--ink-2); display: inline-flex; align-items: center; gap: 5px; }
+.pcard .rmp.copy svg { width: 14px; height: 14px; }
+.pcard .rmp.copy:hover { color: var(--accent); }
 /* مجموع الورقة يبقى في آخرها ولا يطفو: كان لاصقًا بأسفل الشاشة فيغطّي
    حقول البطاقة وهي تكتب. تراه حين تصل إليه، لا فوق ما تكتبه. */
 .gsum { position: static; }
