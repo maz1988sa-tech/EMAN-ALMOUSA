@@ -254,6 +254,38 @@ setInterval(tickClock, 60000);
 
    ولا تفعل شيئًا سوى ذلك: لا تلتقط لمسًا، ولا تُنطَق لقارئ الشاشة، ولا
    تعمل متى طُلب تقليل الحركة أو غابت النافذة أو فُتحت ورقة. */
+/* رسمة الفراشة — مصدرٌ واحد يخدم الزرّ في الركن والشعار في التحيّة،
+   فلا تفترق الرسمتان إذا عُدّلت إحداهما. */
+function butterflySVG(gid) {
+  return `
+    <svg viewBox="0 0 48 42" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0"   stop-color="var(--accent)"/>
+          <stop offset=".55" stop-color="var(--accent)"/>
+          <stop offset="1"   stop-color="var(--gold)"/>
+        </linearGradient>
+      </defs>
+      <g class="w wl">
+        <path d="M24 19C24 10.5 19.4 2.6 12.6 2.6 5.4 2.6 2.6 10.6 6.2 15.8 9 19.8 17 22.4 24 21Z" fill="url(#${gid})"/>
+        <path class="lo" d="M24 21.5C18.5 22.5 12.5 25.5 11.8 30.5 11.1 35.5 16 38 19.5 34.5 22 32 23.6 27.5 24 21.5Z" fill="url(#${gid})"/>
+        <path class="vn" d="M8.4 6.6C11.8 8.6 15.4 11.6 18 15.4"/>
+        <path class="vn" d="M14.6 28.6C16.4 29.8 18.2 31.6 19.2 33.4"/>
+      </g>
+      <g class="w wr">
+        <path d="M24 19C24 10.5 28.6 2.6 35.4 2.6 42.6 2.6 45.4 10.6 41.8 15.8 39 19.8 31 22.4 24 21Z" fill="url(#${gid})"/>
+        <path class="lo" d="M24 21.5c5.5 1 11.5 4 12.2 9 .7 5-4.2 7.5-7.7 4-2.5-2.5-4.1-7-4.5-13Z" fill="url(#${gid})"/>
+        <path class="vn" d="M39.6 6.6C36.2 8.6 32.6 11.6 30 15.4"/>
+        <path class="vn" d="M33.4 28.6C31.6 29.8 29.8 31.6 28.8 33.4"/>
+      </g>
+      <path class="bd" d="M24 11.4c1.5 0 2 2.6 1.8 7.6-.2 6-.9 11.4-1.8 13-.9-1.6-1.6-7-1.8-13-.2-5 .3-7.6 1.8-7.6Z"/>
+      <circle class="bd" cx="24" cy="10.2" r="2.1"/>
+      <path class="an" d="M23.3 9C21.4 6 19 4.2 16.4 3.4M24.7 9c1.9-3 4.3-4.8 6.9-5.6"/>
+      <circle class="bd" cx="16.1" cy="3.2" r="1.15"/>
+      <circle class="bd" cx="31.9" cy="3.2" r="1.15"/>
+    </svg>`;
+}
+
 /* ── الفراشة ─────────────────────────────────────────────────────────
    كانت تطير وتحطّ حيثما اتّفق. جميلٌ أوّل مرّة، ومُربِكٌ حين صارت زرًّا:
    زرٌّ يتنقّل لا يُحفظ مكانه في اليد. الآن تثبت في ركنٍ واحد، تتنفّس
@@ -267,33 +299,8 @@ function startButterfly() {
   el.type = 'button';
   el.setAttribute('aria-label', 'إضافة حجز');
   el.title = 'إضافة حجز';
-  el.innerHTML = `
-    <svg viewBox="0 0 48 42" fill="none" aria-hidden="true">
-      <defs>
-        <linearGradient id="bflyG" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0"   stop-color="var(--accent)"/>
-          <stop offset=".55" stop-color="var(--accent)"/>
-          <stop offset="1"   stop-color="var(--gold)"/>
-        </linearGradient>
-      </defs>
-      <g class="w wl">
-        <path d="M24 19C24 10.5 19.4 2.6 12.6 2.6 5.4 2.6 2.6 10.6 6.2 15.8 9 19.8 17 22.4 24 21Z"/>
-        <path class="lo" d="M24 21.5C18.5 22.5 12.5 25.5 11.8 30.5 11.1 35.5 16 38 19.5 34.5 22 32 23.6 27.5 24 21.5Z"/>
-        <path class="vn" d="M8.4 6.6C11.8 8.6 15.4 11.6 18 15.4"/>
-        <path class="vn" d="M14.6 28.6C16.4 29.8 18.2 31.6 19.2 33.4"/>
-      </g>
-      <g class="w wr">
-        <path d="M24 19C24 10.5 28.6 2.6 35.4 2.6 42.6 2.6 45.4 10.6 41.8 15.8 39 19.8 31 22.4 24 21Z"/>
-        <path class="lo" d="M24 21.5c5.5 1 11.5 4 12.2 9 .7 5-4.2 7.5-7.7 4-2.5-2.5-4.1-7-4.5-13Z"/>
-        <path class="vn" d="M39.6 6.6C36.2 8.6 32.6 11.6 30 15.4"/>
-        <path class="vn" d="M33.4 28.6C31.6 29.8 29.8 31.6 28.8 33.4"/>
-      </g>
-      <path class="bd" d="M24 11.4c1.5 0 2 2.6 1.8 7.6-.2 6-.9 11.4-1.8 13-.9-1.6-1.6-7-1.8-13-.2-5 .3-7.6 1.8-7.6Z"/>
-      <circle class="bd" cx="24" cy="10.2" r="2.1"/>
-      <path class="an" d="M23.3 9C21.4 6 19 4.2 16.4 3.4M24.7 9c1.9-3 4.3-4.8 6.9-5.6"/>
-      <circle class="bd" cx="16.1" cy="3.2" r="1.15"/>
-      <circle class="bd" cx="31.9" cy="3.2" r="1.15"/>
-    </svg>`;
+  el.innerHTML = butterflySVG('bflyG');
+
   document.body.appendChild(el);
 
   el.onclick = () => {
@@ -830,7 +837,7 @@ function greetCard(todays, pending) {
         <span>${esc(BAYT.v[0])}</span><i></i><span>${esc(BAYT.v[1])}</span>
         <b>${esc(BAYT.p)}</b>
       </div>
-      <h1>${esc(g.h)}، ${esc(name)}</h1>
+      <h1>${esc(g.h)}، ${esc(name)}<i class="bmark">${butterflySVG('bmarkG')}</i></h1>
       <p>${line}</p>
     </div>`;
 }
