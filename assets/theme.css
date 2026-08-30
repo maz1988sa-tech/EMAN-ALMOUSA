@@ -949,26 +949,91 @@ input[type="range"].input::-moz-range-thumb {
 /* left/top لا inset-inline-start: الإحداثيّات تُحسب بالبكسل من يسار
    الشاشة، والمرسى المنطقيّ يقلبها إلى اليمين في صفحةٍ عربيّة فتطير
    الفراشة خارج الشاشة. */
-.bfly { position: fixed; top: 0; left: 0; z-index: 25;
-        width: 26px; height: 21px; pointer-events: none; will-change: transform;
-        color: var(--accent); opacity: .9; }
-.bfly svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.bfly .w { transform-origin: 50% 50%; fill: currentColor; }
-.bfly .wl { opacity: .92; }
-.bfly .wr { opacity: .74; }
-.bfly .bd { fill: var(--ink); opacity: .55; }
-.bfly .an { stroke: var(--ink); stroke-width: 1.1; fill: none; opacity: .45;
+/* ── الفراشة زرًّا ────────────────────────────────────────────────────
+   ركنٌ واحد لا يتغيّر: زرٌّ يتنقّل لا يُحفظ مكانه في اليد. وأسفل الشاشة
+   لأنّ أعلاها أبعد نقطةٍ عن الإبهام على جوّالٍ كبير. */
+.bfly { position: fixed; z-index: 40; padding: 0; cursor: pointer;
+        inset-block-end: calc(18px + env(safe-area-inset-bottom, 0px));
+        inset-inline-start: 18px;
+        width: 58px; height: 58px; border-radius: 50%;
+        display: grid; place-items: center;
+        background-image: linear-gradient(var(--tint), var(--tint));
+        background-color: var(--glass);
+        border: 1px solid var(--glass-line);
+        backdrop-filter: blur(14px) saturate(1.05);
+        -webkit-backdrop-filter: blur(14px) saturate(1.05);
+        box-shadow: var(--glass-sh);
+        transition: transform .22s var(--ease), box-shadow .22s var(--ease); }
+.bfly:hover  { transform: scale(1.06); }
+.bfly:active { transform: scale(.94); }
+.bfly:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; }
+.bfly svg { display: block; width: 36px; height: 31px; overflow: visible; }
+
+.bfly .w path      { fill: url(#bflyG); stroke: var(--glass-line); stroke-width: .85;
+                     stroke-linejoin: round; }
+.bfly .w path.lo   { opacity: .88; }
+.bfly .w path.vn   { fill: none; stroke: var(--glass-line); stroke-width: .8;
+                     opacity: .4; stroke-linecap: round; }
+.bfly .bd { fill: var(--ink); opacity: .72; }
+.bfly .an { fill: none; stroke: var(--ink); stroke-width: 1.15; opacity: .5;
             stroke-linecap: round; }
 
-/* الرفرفة سريعة في الطيران، وبطيئةٌ كالتنفّس على الحافّة. */
-@keyframes bfly-flap  { 0%,100%{transform:scaleX(1)} 50%{transform:scaleX(.18)} }
-@keyframes bfly-still { 0%,100%{transform:scaleX(1)} 50%{transform:scaleX(.72)} }
-.bfly.flying .w { animation: bfly-flap .16s ease-in-out infinite; }
-.bfly.resting .w { animation: bfly-still 3.4s ease-in-out infinite; }
-.bfly.resting .wr { animation-delay: .25s; }
+/* تتنفّس بجناحيها: انطباقٌ وانفراج، لا رفرفةً دائمة تشدّ العين. */
+.bfly .w { transform-box: fill-box; transform-origin: var(--ox) 50%;
+           animation: bfly-breathe 3.6s var(--ease) infinite; }
+.bfly .wl { --ox: 100%; }
+.bfly .wr { --ox: 0%; animation-delay: .18s; }
+@keyframes bfly-breathe {
+  0%, 100% { transform: scaleX(1)   rotate(0deg); }
+  46%      { transform: scaleX(.34) rotate(-1.5deg); }
+  54%      { transform: scaleX(.34) rotate(-1.5deg); }
+}
+/* وعند اللمس ترفرف رفرفةً سريعة ثمّ تهدأ، فتُحسّ اللمسة. */
+.bfly.flutter .w { animation: bfly-flap .13s linear 9; }
+@keyframes bfly-flap { 0%,100% { transform: scaleX(1); } 50% { transform: scaleX(.16); } }
 
-[data-time="night"] .bfly { color: var(--gold); opacity: .75; }
 [data-time="night"] .bfly .bd,
 [data-time="night"] .bfly .an { fill: #F5E4C6; stroke: #F5E4C6; }
 
-@media (prefers-reduced-motion: reduce) { .bfly { display: none; } }
+/* الورقة المفتوحة تُخفيها: زرٌّ فوق ورقةٍ مفتوحة لا معنى له. */
+body.sheeting .bfly { opacity: 0; pointer-events: none; transform: scale(.9); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bfly .w { animation: none; }
+  .bfly:hover, .bfly:active { transform: none; }
+}
+
+/* ── فرد أم مجموعة ───────────────────────────────────────────────── */
+.kindrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kind { display: flex; flex-direction: column; align-items: center; gap: 4px;
+        padding: 18px 10px; border-radius: var(--r); cursor: pointer;
+        background-image: linear-gradient(var(--tint), var(--tint));
+        background-color: var(--glass-2);
+        border: 1px solid var(--glass-line); color: var(--ink);
+        font-family: var(--ft); text-align: center; }
+.kind svg { width: 22px; height: 22px; color: var(--accent); }
+.kind b { font-family: var(--fd); font-weight: var(--fw-d); font-size: 14px; }
+.kind span { font-size: 11.5px; color: var(--ink-2); line-height: 1.5; }
+.kind:hover, .kind:focus-visible { border-color: var(--accent); }
+
+/* ── بطاقة عميلةٍ داخل ورقة المجموعة ─────────────────────────────── */
+.pcard { border: 1px solid var(--glass-line); border-radius: var(--r);
+         background-image: linear-gradient(var(--tint), var(--tint));
+         background-color: var(--glass-2); overflow: hidden; margin-bottom: 10px; }
+.pcard.open { border-color: var(--accent); }
+.phead { display: flex; align-items: center; gap: 9px; width: 100%;
+         padding: 11px 12px; border: 0; background: none; cursor: pointer;
+         font-family: var(--ft); text-align: start; color: var(--ink); }
+.phead .pnum { width: 24px; height: 24px; border-radius: 50%; flex: none;
+               background: var(--accent); color: #FFF; display: grid;
+               place-items: center; font-family: var(--fd); font-size: 12px; }
+.phead .pw { flex: 1; min-width: 0; }
+.phead .pt { display: block; font-family: var(--fd); font-weight: var(--fw-d);
+             font-size: 14px; line-height: 1.45; }
+.phead .ps { display: block; font-size: 11.5px; color: var(--ink-2); line-height: 1.5;
+             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phead .pv { font-family: var(--fd); font-size: 14px; font-variant-numeric: tabular-nums; }
+.pbody { padding: 0 12px 12px; }
+.pcard .rmp { border: 0; background: none; color: var(--danger); cursor: pointer;
+              font-family: var(--ft); font-size: 12.5px; padding: 6px 0; }
+.gsum { position: sticky; inset-block-end: 0; }

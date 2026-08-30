@@ -598,6 +598,17 @@ export const admin = {
     });
   },
 
+  /** مجموعةٌ كاملة في نداءٍ ذرّي واحد: تتمّ أو لا تُبقي أثرًا. */
+  async createGroup(people, label = null, idem = uuid()) {
+    return retrying(async () => {
+      const { data, error } = await sb.rpc('admin_create_group', {
+        p_people: people, p_label: label, p_idem: idem,
+      });
+      if (error) throw error;
+      return data || [];
+    });
+  },
+
   async replaceItems(bookingId, items, discountPerPerson = null) {
     return retrying(async () => {
       const { data, error } = await sb.rpc('admin_replace_items', {

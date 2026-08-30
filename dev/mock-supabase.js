@@ -121,6 +121,16 @@
         rpc(name, args) {
           const fn = name;
           (window.__RPC = window.__RPC || []).push({ name, args });
+          if (fn === 'admin_create_group') {
+            const gid = 'grp-' + Math.random().toString(36).slice(2, 8);
+            return ok((args.p_people || []).map((p, i) => ({
+              id: 'gb' + i, ref: 'IA-GRP' + (i + 1), public_token: 'tok-g' + i,
+              group_id: gid, group_label: args.p_label || null,
+              status: 'confirmed', source: 'admin',
+              price: (p.items || []).reduce((n, it) => n + Number(it.price || 0), 0),
+              booking_items: p.items || [], ...p,
+            })));
+          }
           if (fn === 'admin_create_booking' || fn === 'admin_replace_items') {
             if (fn === 'admin_create_booking') {
               const bk = args.p_booking || {};

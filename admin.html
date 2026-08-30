@@ -254,95 +254,78 @@ setInterval(tickClock, 60000);
 
    ولا تفعل شيئًا سوى ذلك: لا تلتقط لمسًا، ولا تُنطَق لقارئ الشاشة، ولا
    تعمل متى طُلب تقليل الحركة أو غابت النافذة أو فُتحت ورقة. */
+/* ── الفراشة ─────────────────────────────────────────────────────────
+   كانت تطير وتحطّ حيثما اتّفق. جميلٌ أوّل مرّة، ومُربِكٌ حين صارت زرًّا:
+   زرٌّ يتنقّل لا يُحفظ مكانه في اليد. الآن تثبت في ركنٍ واحد، تتنفّس
+   بجناحيها، وتفتح ورقة الإضافة — بدل النزول إلى آخر صفحة الحجوزات. */
 function startButterfly() {
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  if (reduced.matches) return;
+  if (document.getElementById('addFab')) return;
 
-  const el = document.createElement('div');
+  const el = document.createElement('button');
   el.className = 'bfly';
-  el.setAttribute('aria-hidden', 'true');
+  el.id = 'addFab';
+  el.type = 'button';
+  el.setAttribute('aria-label', 'إضافة حجز');
+  el.title = 'إضافة حجز';
   el.innerHTML = `
-    <svg viewBox="0 0 44 36" fill="none">
+    <svg viewBox="0 0 48 42" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="bflyG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0"   stop-color="var(--accent)"/>
+          <stop offset=".55" stop-color="var(--accent)"/>
+          <stop offset="1"   stop-color="var(--gold)"/>
+        </linearGradient>
+      </defs>
       <g class="w wl">
-        <path d="M22 18C14 2 2 4 4.4 13.6 6.2 21 15 21.6 22 18Z"/>
-        <path d="M22 18c-7 8-16.6 11.4-17.8 5.6C3.2 18.8 14 15.8 22 18Z"/>
+        <path d="M24 19C24 10.5 19.4 2.6 12.6 2.6 5.4 2.6 2.6 10.6 6.2 15.8 9 19.8 17 22.4 24 21Z"/>
+        <path class="lo" d="M24 21.5C18.5 22.5 12.5 25.5 11.8 30.5 11.1 35.5 16 38 19.5 34.5 22 32 23.6 27.5 24 21.5Z"/>
+        <path class="vn" d="M8.4 6.6C11.8 8.6 15.4 11.6 18 15.4"/>
+        <path class="vn" d="M14.6 28.6C16.4 29.8 18.2 31.6 19.2 33.4"/>
       </g>
       <g class="w wr">
-        <path d="M22 18C30 2 42 4 39.6 13.6 37.8 21 29 21.6 22 18Z"/>
-        <path d="M22 18c7 8 16.6 11.4 17.8 5.6C40.8 18.8 30 15.8 22 18Z"/>
+        <path d="M24 19C24 10.5 28.6 2.6 35.4 2.6 42.6 2.6 45.4 10.6 41.8 15.8 39 19.8 31 22.4 24 21Z"/>
+        <path class="lo" d="M24 21.5c5.5 1 11.5 4 12.2 9 .7 5-4.2 7.5-7.7 4-2.5-2.5-4.1-7-4.5-13Z"/>
+        <path class="vn" d="M39.6 6.6C36.2 8.6 32.6 11.6 30 15.4"/>
+        <path class="vn" d="M33.4 28.6C31.6 29.8 29.8 31.6 28.8 33.4"/>
       </g>
-      <ellipse class="bd" cx="22" cy="18" rx="1.5" ry="6.6"/>
-      <path class="an" d="M22 11.6C21.2 7.6 19.4 5.6 17.4 4.6M22 11.6c.8-4 2.6-6 4.6-7"/>
+      <path class="bd" d="M24 11.4c1.5 0 2 2.6 1.8 7.6-.2 6-.9 11.4-1.8 13-.9-1.6-1.6-7-1.8-13-.2-5 .3-7.6 1.8-7.6Z"/>
+      <circle class="bd" cx="24" cy="10.2" r="2.1"/>
+      <path class="an" d="M23.3 9C21.4 6 19 4.2 16.4 3.4M24.7 9c1.9-3 4.3-4.8 6.9-5.6"/>
+      <circle class="bd" cx="16.1" cy="3.2" r="1.15"/>
+      <circle class="bd" cx="31.9" cy="3.2" r="1.15"/>
     </svg>`;
   document.body.appendChild(el);
 
-  const W = 26, H = 21;
-  let x = innerWidth * 0.72, y = innerHeight * 0.34, hop = null, idle = null;
-
-  /* المواضع تُقرأ من الصفحة نفسها: الحافّة العليا لكل سطحٍ ظاهر وعريض
-     بما يكفي. البطاقة التي خرجت عن الشاشة ليست موضعًا. */
-  function perches() {
-    const out = [];
-    document.querySelectorAll('.bk, .card, .stat, .greet, .arch, .empty:not(.qact)')
-      .forEach((e) => {
-        const r = e.getBoundingClientRect();
-        if (r.width < 90 || r.top < 96 || r.top > innerHeight - 120) return;
-        out.push({ x: r.left + r.width * (0.18 + Math.random() * 0.64) - W / 2,
-                   y: r.top - H + 3 });
-      });
-    return out;
-  }
-
-  function land() {
-    if (document.hidden || document.body.classList.contains('sheeting')) {
-      idle = setTimeout(land, 2600); return;
-    }
-    const list = perches();
-    // بلا سطحٍ ظاهر: ترفرف في الهواء قليلًا ثمّ تعيد المحاولة.
-    const to = list.length
-      ? list[Math.floor(Math.random() * list.length)]
-      : { x: innerWidth * (0.2 + Math.random() * 0.6), y: innerHeight * (0.3 + Math.random() * 0.3) };
-
-    const dist = Math.hypot(to.x - x, to.y - y);
-    const dur = Math.min(2600, Math.max(900, dist * 3.4));
-    const lift = Math.min(120, 40 + dist * 0.22);
-    const midX = (x + to.x) / 2 + (Math.random() * 70 - 35);
-    const midY = Math.min(y, to.y) - lift;
-    const tilt = to.x > x ? 12 : -12;
-
-    el.classList.remove('resting');
-    el.classList.add('flying');
-    const a = el.animate([
-      { transform: `translate(${x}px, ${y}px) rotate(0deg)` },
-      { transform: `translate(${midX}px, ${midY}px) rotate(${tilt}deg)`, offset: 0.5 },
-      { transform: `translate(${to.x}px, ${to.y}px) rotate(0deg)` },
-    ], { duration: dur, easing: 'cubic-bezier(.36,.05,.28,1)', fill: 'forwards' });
-
-    x = to.x; y = to.y;
-    a.onfinish = () => {
-      el.classList.remove('flying');
-      el.classList.add('resting');
-      idle = setTimeout(land, 4200 + Math.random() * 6500);
-    };
-  }
-
-  // التمرير يُقلعها: ما حطّت عليه لم يعد في مكانه.
-  addEventListener('scroll', () => {
-    if (!el.classList.contains('resting')) return;
-    clearTimeout(hop);
-    hop = setTimeout(() => { clearTimeout(idle); land(); }, 260);
-  }, { passive: true });
-
-  addEventListener('resize', () => { clearTimeout(idle); idle = setTimeout(land, 400); });
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) { clearTimeout(idle); idle = setTimeout(land, 900); }
-  });
-  reduced.addEventListener?.('change', (e) => { if (e.matches) el.remove(); });
-
-  el.style.transform = `translate(${x}px, ${y}px)`;
-  el.classList.add('resting');
-  idle = setTimeout(land, 1800);
+  el.onclick = () => {
+    el.classList.remove('flutter');
+    void el.offsetWidth;              // إعادة تشغيل الحركة
+    el.classList.add('flutter');
+    setTimeout(() => el.classList.remove('flutter'), 1300);
+    openBookingKind();
+  };
 }
+
+/* ── فرد أم مجموعة ─────────────────────────────────────────────────── */
+function openBookingKind() {
+  showSheet('حجز جديد', `
+    <p class="muted mb">كم عميلة في هذا الحجز؟</p>
+    <div class="kindrow">
+      <button class="kind" id="k-one" type="button">
+        ${icon('user', 22)}
+        <b>عميلة واحدة</b>
+        <span>الورقة المعتادة</span>
+      </button>
+      <button class="kind" id="k-many" type="button">
+        ${icon('users', 22)}
+        <b>مجموعة</b>
+        <span>عدّة عميلات · مناسبة واحدة</span>
+      </button>
+    </div>`);
+  hydrateIcons(sheet);
+  document.getElementById('k-one').onclick  = () => openNewBooking();
+  document.getElementById('k-many').onclick = () => openGroupBooking();
+}
+
 
 const view = document.getElementById('view');
 const sheet = document.getElementById('sheet');
@@ -525,7 +508,7 @@ async function reload(announce = false) {
     if (settings?.business_name) document.getElementById('bizName').textContent = settings.business_name;
     renderTabs();
     render();
-    if (!reload._bfly) { reload._bfly = true; setTimeout(startButterfly, 1200); }
+    if (!reload._bfly) { reload._bfly = true; startButterfly(); }
     if (announce) toast('تم التحديث', 'ok');
 
     // الرفع يسبق الحجز، فمن تركت الصفحة بعد الرفع تخلّف ملفًا بلا حجز.
@@ -955,7 +938,7 @@ function renderHome() {
   bindCards();
   const share = document.getElementById('shareDay');
   if (share) share.onclick = () => shareDayPlan(t);
-  document.getElementById('btnNew').onclick = () => openNewBooking();
+  document.getElementById('btnNew').onclick = () => openBookingKind();
   view.querySelectorAll('[data-iv]').forEach((b) => b.onclick = () => {
     setIncomeView(b.dataset.iv); render(); hydrateIcons(view);
   });
@@ -2752,6 +2735,270 @@ function confirmThen(question, fn) {
   hydrateIcons(content);
   document.getElementById('c-no').onclick = () => { content.innerHTML = prev; hydrateIcons(content); };
   document.getElementById('c-yes').onclick = fn;
+}
+
+/* ── حجز المجموعة ────────────────────────────────────────────────────
+   مناسبةٌ واحدة وعدّة عميلات. كانت الورقة تُفتح وتُغلق لكلِّ واحدة: أربع
+   دوراتٍ كاملة تُعاد فيها التاريخ والحيّ ورابط الخريطة. والأسوأ أنّ الشبكة
+   قد تنقطع بين الثانية والثالثة، فتبقى مناسبةٌ نصفها محجوز ونصفها لا.
+
+   البطاقة هنا هي بطاقة الحجز الفردي بحقولها كلّها — بما فيها العربون — لكلِّ
+   عميلة. والورقة لا تُغلَق بينهنّ، والحفظ نداءٌ ذرّيٌّ واحد. */
+function openGroupBooking() {
+  const svcs = S.services.filter((s) => s.active);
+  if (!svcs.length) return toast('أضيفي خدمة أولًا');
+
+  const per = () => Number(S.settings?.group_discount_amount || 0);
+  const idem = uuid();
+
+  const fresh = (prev) => ({
+    nm: '', ph: '',
+    qty: Object.fromEntries(svcs.map((sv) => [sv.id, 0])),
+    price: {},
+    date: prev ? prev.date : today(),
+    // الوقت مقترَحٌ عند انتهاء التي قبلها: لا تُجمّل اثنتين معًا.
+    time: prev ? addMinutes(prev.time, Math.max(mins(prev), 0)).time : '16:00',
+    loc:  prev ? prev.loc : '',
+    map:  prev ? prev.map : '',
+    dep: 0, open: true,
+  });
+
+  const priceOf = (p, sv) => {
+    const v = Number(p.price[sv.id]);
+    return isFinite(v) && v >= 0 ? v : Number(sv.price);
+  };
+  const heads = (p) => svcs.reduce((n, sv) => n + p.qty[sv.id], 0);
+  const mins  = (p) => svcs.reduce((n, sv) => n + sv.duration_min * p.qty[sv.id], 0);
+  const gross = (p) => svcs.reduce((n, sv) => n + priceOf(p, sv) * p.qty[sv.id], 0);
+  const disc  = (p) => {
+    const g = svcs.reduce((n, sv) => n + (sv.group_discount ? p.qty[sv.id] : 0), 0);
+    return (per() > 0 && g >= 2) ? Math.min(per() * g, gross(p)) : 0;
+  };
+  const net = (p) => Math.max(gross(p) - disc(p), 0);
+
+  let people = [fresh(null)];
+  let label = '';
+
+  showSheet('حجز مجموعة', `
+    <div class="field">
+      <label class="label" for="g-label">اسم المناسبة <span class="opt">(اختياري)</span></label>
+      <input class="input" id="g-label" placeholder="مثال: زفاف رانيا">
+      <p class="hint">يجمع حجوزات المجموعة في الأجندة تحت عنوانٍ واحد.</p>
+    </div>
+    <div id="g-list"></div>
+    <button class="btn btn-ghost mb" id="g-add">${icon('plus', 18)} إضافة عميلة أخرى</button>
+    <div class="card mb gsum" id="g-sum"></div>
+    <div id="g-err"></div>
+    <button class="btn btn-primary" id="g-save">حفظ</button>`);
+
+  const g = (id) => document.getElementById(id);
+  g('g-label').oninput = () => { label = g('g-label').value.trim(); };
+
+  function card(p, i) {
+    const t = net(p), n = heads(p), rest = Math.max(t - p.dep, 0), d = disc(p);
+    if (!p.open) {
+      return `<div class="pcard">
+        <button class="phead" type="button" data-po="${i}">
+          <span class="pnum">${int(i + 1)}</span>
+          <span class="pw"><span class="pt">${esc(p.nm) || 'بلا اسم'}</span>
+            <span class="ps">${n ? `${int(n)} خدمة · ` : ''}${fmtTime(p.time)}${
+              p.dep ? ` · عربون ${money(p.dep)}` : ''}</span></span>
+          <span class="pv">${n ? money(t) : '—'}</span>
+        </button></div>`;
+    }
+    return `<div class="pcard open">
+      <button class="phead" type="button" data-po="${i}">
+        <span class="pnum">${int(i + 1)}</span>
+        <span class="pw"><span class="pt">${esc(p.nm) || `العميلة ${int(i + 1)}`}</span>
+          <span class="ps">اضغطي لطيّ البطاقة</span></span>
+        <span class="pv">${n ? money(t) : '—'}</span>
+      </button>
+      <div class="pbody">
+        <div class="field"><label class="label" for="gp-nm-${i}">اسم العميلة</label>
+          <input class="input" id="gp-nm-${i}" data-gf="${i}:nm" value="${esc(p.nm)}"
+                 placeholder="الاسم الكامل"></div>
+        <div class="field"><label class="label" for="gp-ph-${i}">رقم الجوال</label>
+          <input class="input ltr" id="gp-ph-${i}" data-gf="${i}:ph" type="tel"
+                 inputmode="numeric" value="${esc(p.ph)}" placeholder="05xxxxxxxx"></div>
+
+        <p class="label">الخدمات والأشخاص</p>
+        <div class="list">
+          ${svcs.map((sv) => `
+            <div class="rowline">
+              <span class="grow"><span class="t">${esc(sv.name)}</span>
+                <span class="s">${money(sv.price)} ر.س · ${int(sv.duration_min)}د</span></span>
+              <span class="stepper">
+                <button type="button" data-gq="${i}:${esc(sv.id)}:-1" aria-label="إنقاص">−</button>
+                <span class="val">${int(p.qty[sv.id])}</span>
+                <button type="button" data-gq="${i}:${esc(sv.id)}:1" aria-label="زيادة">+</button>
+              </span>
+            </div>
+            ${p.qty[sv.id] ? `
+            <div class="priceline">
+              <label class="label" for="gpp-${i}-${esc(sv.id)}">سعر خاص لكل شخص</label>
+              <input class="input ltr" id="gpp-${i}-${esc(sv.id)}" type="number" min="0"
+                     inputmode="numeric" data-gp="${i}:${esc(sv.id)}"
+                     value="${priceOf(p, sv)}">
+            </div>` : ''}`).join('')}
+        </div>
+        <div class="leader" style="margin-top:8px"><span class="k">الإجمالي</span>
+          <span class="d"></span><span class="v">${n ? `${money(t)} ر.س` : '—'}</span></div>
+        ${d ? `<p class="hint" style="color:var(--c-lost)">خصم المجموعة −${money(d)} ر.س</p>` : ''}
+        <p class="hint">${n ? `${int(n)} شخص · ${fmtDuration(Math.max(mins(p), 15))} · ينتهي ${
+          fmtTime(addMinutes(p.time, Math.max(mins(p), 15)).time)}`
+          : 'اختاري خدمة واحدة على الأقل.'}</p>
+
+        <div class="split mb" style="margin-top:10px">
+          <div class="field" style="margin:0"><label class="label" for="gp-d-${i}">التاريخ</label>
+            <input class="input" type="date" id="gp-d-${i}" data-gf="${i}:date" value="${p.date}"></div>
+          <div class="field" style="margin:0"><label class="label" for="gp-t-${i}">الوقت</label>
+            <input class="input" type="time" id="gp-t-${i}" data-gf="${i}:time" value="${p.time}"></div>
+        </div>
+        <div class="field"><label class="label" for="gp-l-${i}">الحي والمدينة <span class="opt">(اختياري)</span></label>
+          <input class="input" id="gp-l-${i}" data-gf="${i}:loc" value="${esc(p.loc)}"></div>
+        <div class="field"><label class="label" for="gp-m-${i}">رابط خرائط قوقل <span class="opt">(اختياري)</span></label>
+          <input class="input ltr" id="gp-m-${i}" dir="ltr" data-gf="${i}:map" value="${esc(p.map)}"
+                 placeholder="https://maps.app.goo.gl/..."></div>
+
+        <div class="split mb">
+          <div class="field" style="margin:0"><label class="label" for="gp-dep-${i}">العربون المستلَم</label>
+            <input class="input ltr" id="gp-dep-${i}" type="number" min="0" step="50"
+                   inputmode="numeric" data-gf="${i}:dep" value="${p.dep || ''}" placeholder="0"></div>
+          <div class="field" style="margin:0"><label class="label">المتبقّي</label>
+            <div class="input" id="gp-rest-${i}" style="display:flex;align-items:center">${
+              n ? `${money(rest)} ر.س` : '—'}</div></div>
+        </div>
+        ${people.length > 1 ? `<button class="rmp" type="button" data-grm="${i}">حذف هذه العميلة</button>` : ''}
+      </div></div>`;
+  }
+
+  function draw() {
+    g('g-list').innerHTML = people.map((p, i) => card(p, i)).join('');
+    const sum = people.reduce((a, p) => a + net(p), 0);
+    const deps = people.reduce((a, p) => a + Number(p.dep || 0), 0);
+    g('g-sum').innerHTML = `
+      <div class="leader"><span class="k">العميلات</span>
+        <span class="d"></span><span class="v">${int(people.length)}</span></div>
+      <div class="leader"><span class="k">مجموع الحجوزات</span>
+        <span class="d"></span><span class="v num">${money(sum)} ر.س</span></div>
+      <div class="leader"><span class="k">مجموع العرابين</span>
+        <span class="d"></span><span class="v num">${money(deps)} ر.س</span></div>
+      <div class="leader"><span class="k">المتبقّي</span>
+        <span class="d"></span><span class="v num">${money(Math.max(sum - deps, 0))} ر.س</span></div>`;
+    g('g-save').textContent = people.length === 1
+      ? 'حفظ الحجز' : `حفظ — يُنشئ ${int(people.length)} حجوزات`;
+    wire();
+  }
+
+  function wire() {
+    sheet.querySelectorAll('[data-po]').forEach((b) => b.onclick = () => {
+      const i = Number(b.dataset.po);
+      people.forEach((p, j) => { p.open = (j === i) ? !p.open : false; });
+      draw();
+    });
+    sheet.querySelectorAll('[data-gq]').forEach((b) => b.onclick = () => {
+      const [i, id, d] = b.dataset.gq.split(':');
+      const p = people[Number(i)];
+      p.qty[id] = Math.max(0, Math.min(12, p.qty[id] + Number(d)));
+      draw();
+    });
+    sheet.querySelectorAll('[data-gp]').forEach((el) => el.oninput = () => {
+      const [i, id] = el.dataset.gp.split(':');
+      people[Number(i)].price[id] = Math.max(0, Number(el.value) || 0);
+      liveTotals();
+    });
+    sheet.querySelectorAll('[data-gf]').forEach((el) => el.oninput = () => {
+      const [i, k] = el.dataset.gf.split(':');
+      people[Number(i)][k] = (k === 'dep') ? Math.max(0, Number(el.value) || 0) : el.value;
+      liveTotals();
+    });
+    sheet.querySelectorAll('[data-grm]').forEach((b) => b.onclick = () => {
+      people.splice(Number(b.dataset.grm), 1);
+      if (!people.some((p) => p.open)) people[people.length - 1].open = true;
+      draw();
+    });
+  }
+
+  /* الكتابة لا تُعيد رسم البطاقة — وإلّا قفز مؤشّر الكتابة إلى آخر الحقل.
+     فتُحدَّث الأرقام وحدها في مكانها: متبقّي البطاقة، ومجاميع الورقة. */
+  function liveTotals() {
+    people.forEach((p, i) => {
+      const n = heads(p);
+      const rest = g(`gp-rest-${i}`);
+      if (rest) rest.textContent = n ? `${money(Math.max(net(p) - p.dep, 0))} ر.س` : '—';
+      const head = sheet.querySelector(`[data-po="${i}"] .pv`);
+      if (head) head.textContent = n ? money(net(p)) : '—';
+    });
+    const sum = people.reduce((a, p) => a + net(p), 0);
+    const deps = people.reduce((a, p) => a + Number(p.dep || 0), 0);
+    const v = g('g-sum').querySelectorAll('.v');
+    if (v.length === 4) {
+      v[1].textContent = `${money(sum)} ر.س`;
+      v[2].textContent = `${money(deps)} ر.س`;
+      v[3].textContent = `${money(Math.max(sum - deps, 0))} ر.س`;
+    }
+  }
+
+  g('g-add').onclick = () => {
+    const prev = people[people.length - 1];
+    people.forEach((p) => { p.open = false; });
+    people.push(fresh(prev));
+    draw();
+    sheet.querySelector('.sheet-body')?.scrollTo({
+      top: sheet.querySelector('.sheet-body').scrollHeight, behavior: 'smooth' });
+  };
+
+  g('g-save').onclick = async () => {
+    const err = g('g-err');
+    for (let i = 0; i < people.length; i += 1) {
+      const p = people[i];
+      const who = `العميلة ${int(i + 1)}`;
+      if (p.nm.trim().length < 2) { return fail(i, `${who}: اكتبي الاسم.`); }
+      if (!normalisePhone(p.ph)) { return fail(i, `${who}: رقم الجوال غير صحيح.`); }
+      if (!p.date || !p.time) { return fail(i, `${who}: اختاري التاريخ والوقت.`); }
+      if (!heads(p)) { return fail(i, `${who}: اختاري خدمة واحدة على الأقل.`); }
+      if (p.map && !/^https:\/\/\S+$/i.test(p.map)) {
+        return fail(i, `${who}: رابط الخريطة يجب أن يبدأ بـ https://`);
+      }
+    }
+    function fail(i, msg) {
+      people.forEach((p, j) => { p.open = (j === i); });
+      draw();
+      err.innerHTML = note(msg);
+      err.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    err.innerHTML = '';
+    const btn = g('g-save'); btn.disabled = true; btn.textContent = 'جارٍ الحفظ…';
+    try {
+      const payload = people.map((p) => ({
+        client_name: p.nm.trim(),
+        client_phone: normalisePhone(p.ph),
+        the_date: p.date, start_time: p.time,
+        duration_min: Math.max(mins(p), 15),
+        status: 'confirmed',
+        loc_text: p.loc.trim() || null,
+        loc_map: p.map.trim() || null,
+        discount_per_person: per(),
+        deposit: Math.max(0, Number(p.dep) || 0),
+        confirmed_at: new Date().toISOString(),
+        items: svcs.flatMap((sv) => Array.from({ length: p.qty[sv.id] }, () => ({
+          service_id: sv.id, service_name: sv.name, service_icon: sv.icon,
+          price: priceOf(p, sv), duration_min: sv.duration_min,
+          group_discount: sv.group_discount, deposit_amount: sv.deposit_amount || 0,
+        }))),
+      }));
+      const rows = await admin.createGroup(payload, label || null, idem);
+      closeSheet(sheet);
+      toast(rows.length === 1 ? 'حُفظ الحجز' : `حُفظت ${int(rows.length)} حجوزات`, 'ok');
+      reload();
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = people.length === 1 ? 'حفظ الحجز' : `حفظ — يُنشئ ${int(people.length)} حجوزات`;
+      err.innerHTML = note(isOffline(e) ? NET_MSG : e.message);
+    }
+  };
+
+  draw();
 }
 
 /* ── Manual booking (walk-in / phone) ─────────────────────────────────── */
