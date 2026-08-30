@@ -1059,6 +1059,13 @@ body.sheeting .bfly { opacity: 0; pointer-events: none; transform: scale(.9); }
              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .phead .pv { font-family: var(--fd); font-size: 14px; font-variant-numeric: tabular-nums; }
 .pbody { padding: 0 12px 12px; }
+/* سطر الفاتورة: الخدمة مرّةً واحدة، والعدد وسعرُ الوحدة همسًا تحتها. */
+.qty { font-style: normal; font-size: 12px; color: var(--ink-3);
+       font-variant-numeric: tabular-nums; margin-inline-start: 6px;
+       white-space: nowrap; }
+.who-list { display: block; font-style: normal; font-size: 11.5px;
+            color: var(--ink-3); line-height: 1.6; margin-top: 1px; }
+
 .pfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px;
           flex-wrap: wrap; padding-top: 2px; }
 .pcard .rmp { border: 0; background: none; color: var(--danger); cursor: pointer;

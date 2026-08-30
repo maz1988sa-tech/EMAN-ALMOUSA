@@ -390,7 +390,7 @@ import {
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositFor, verifyReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
-  mediaUrl,
+  mediaUrl, groupItems,
 } from './assets/db.js?v=32';
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -1360,7 +1360,9 @@ async function renderTracking(token) {
         ${b.loc_text ? `<div class="row"><span>الموقع</span><b>${esc(b.loc_text)}</b></div>` : ''}
       </div>
       <div class="t-rows">
-        ${items.map((i) => `<div class="row"><span>${esc(i.service_name)}${i.person_name ? ` — ${esc(i.person_name)}` : ''}</span><b>${money(i.price)}<i class="rs"></i></b></div>`).join('')}
+        ${groupItems(items).map((g) => `<div class="row"><span>${esc(g.name)}${
+          g.n > 1 ? ` <em class="qty">${g.n} × ${money(g.unit)}</em>` : ''}${
+          g.people.length ? ` <em class="who-list">${esc(g.people.join(' · '))}</em>` : ''}</span><b>${money(g.total)}<i class="rs"></i></b></div>`).join('')}
         ${Number(b.discount) > 0 ? `
           <div class="row"><span>المجموع قبل الخصم</span><b>${money(b.items_total)}<i class="rs"></i></b></div>
           <div class="row"><span>خصم المجموعة</span><b>−${money(b.discount)}<i class="rs"></i></b></div>` : ''}

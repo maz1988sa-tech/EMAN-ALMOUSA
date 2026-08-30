@@ -209,7 +209,7 @@ import {
   today, addDays, parseDate, weekday, daysBetween, addMinutes, prettyPhone, telHref, waHref, isoDate,
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
   receiptUrl, purgeOrphanReceipts, uuid, isOffline, NET_MSG, backups,
-  fillTemplate, TEMPLATE_FIELDS,
+  fillTemplate, TEMPLATE_FIELDS, groupItems,
   uploadServiceMedia, removeServiceMedia, mediaUrl,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
 } from './assets/db.js?v=32';
@@ -1287,7 +1287,8 @@ function exportRows(rows) {
     { label: 'الإجمالي',  get: (b) => b.price },
     { label: 'المدفوع',   get: (b) => b.deposit },
     { label: 'المتبقي',   get: (b) => Number(b.price) - Number(b.deposit) },
-    { label: 'الخدمات',   get: (b) => (b.booking_items || []).map((i) => i.service_name).join(' + ') },
+    { label: 'الخدمات',   get: (b) => groupItems(b.booking_items || [])
+        .map((g) => g.n > 1 ? `${g.name} ×${g.n}` : g.name).join(' + ') },
     { label: 'الموقع',    get: (b) => b.loc_text || '' },
   ]));
   toast('نُزّل الملف', 'ok');
@@ -2326,7 +2327,8 @@ function renderSettings() {
       { label: 'التاريخ',    get: (b) => b.the_date },
       { label: 'الوقت',      get: (b) => fmtTime(b.start_time) },
       { label: 'المدة',      get: (b) => b.duration_min },
-      { label: 'الخدمات',    get: (b) => (b.booking_items || []).map((i) => i.service_name).join(' + ') },
+      { label: 'الخدمات',    get: (b) => groupItems(b.booking_items || [])
+          .map((g) => g.n > 1 ? `${g.name} ×${g.n}` : g.name).join(' + ') },
       { label: 'الموقع',     get: (b) => b.loc_text || '' },
       { label: 'الإجمالي',   get: (b) => b.price },
       { label: 'المدفوع',    get: (b) => b.deposit },
@@ -2394,10 +2396,11 @@ async function openBooking(id) {
 
     <div class="card mb">
       <p class="label">الخدمات</p>
-      ${items.map((i) => `
-        <div class="leader"><span class="k">${esc(i.person_name || i.service_name)}${
-          i.person_name ? ` · ${esc(i.service_name)}` : ''}</span>
-          <span class="d"></span><span class="v">${riyal(i.price)}</span></div>`).join('')}
+      ${groupItems(items).map((g) => `
+        <div class="leader"><span class="k">${esc(g.name)}${
+          g.n > 1 ? ` <em class="qty">${int(g.n)} × ${money(g.unit)}</em>` : ''}${
+          g.people.length ? `<span class="who-list">${esc(g.people.join(' · '))}</span>` : ''}</span>
+          <span class="d"></span><span class="v">${riyal(g.total)}</span></div>`).join('')}
       ${b.price_override != null ? `
         <div class="leader"><span class="k">قبل التعديل</span><span class="d"></span>
           <span class="v" style="text-decoration:line-through;color:var(--ink-3)">${riyal(b.items_total)}</span></div>` : ''}

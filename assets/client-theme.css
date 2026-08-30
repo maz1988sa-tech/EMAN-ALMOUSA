@@ -559,6 +559,11 @@ button{border:0;background:none;cursor:pointer}
 .err-line[hidden]{display:none}
 
 /* شاشة المتابعة (?t=) */
+/* سطر الفاتورة: الخدمة مرّةً واحدة، وعددُها وسعرُ الوحدة همسًا بجانبها. */
+.summary .row .qty{font-style:normal;font-size:10.5px;color:var(--muted);
+  font-variant-numeric:tabular-nums;margin-inline-start:5px;white-space:nowrap}
+.summary .row .who-list{display:block;font-style:normal;font-size:10px;
+  color:var(--muted);line-height:1.6;margin-top:1px}
 .track-screen{background:var(--paper);color:var(--ink)}
 .track-screen .pad{overflow-y:auto}
 .track-wrap{display:grid;gap:12px}

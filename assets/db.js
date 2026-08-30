@@ -48,6 +48,31 @@ export const today    = () => isoDate(new Date());
 export const addDays  = (s, n) => { const d = parseDate(s); d.setDate(d.getDate() + n); return isoDate(d); };
 export const weekday  = (s) => parseDate(s).getDay();
 // عدد أيام نطاقٍ مغلق الطرفين: من السابع إلى السابع يومٌ واحد لا صفر.
+/* بنودُ الحجز مصفوفةُ أشخاص: أربع سهراتٍ أربعةُ صفوف. وهي صحيحةٌ في
+   القاعدة — كلُّ شخصٍ بندٌ له اسمُه وسعرُه — لكنّها تُقرأ فاتورةً طويلة
+   مكرَّرة. هنا تُجمَع كما تُكتب الفواتير: سطرٌ للخدمة، وعددٌ، ومجموع.
+
+   والمفتاح اسمُ الخدمة وسعرُ الوحدة معًا: سعرٌ خاصٌّ لشخصٍ يفتح سطرًا
+   مستقلًّا، وإلّا كذب الضربُ على من يقرؤه. */
+export function groupItems(items) {
+  const out = [];
+  const at = new Map();
+  for (const it of items || []) {
+    const name = it.service_name || 'خدمة';
+    const unit = Number(it.price || 0);
+    const key = `${name}\u0000${unit}`;
+    let g = at.get(key);
+    if (!g) {
+      g = { name, unit, n: 0, total: 0, icon: it.service_icon || null, people: [] };
+      at.set(key, g); out.push(g);
+    }
+    g.n += 1;
+    g.total += unit;
+    if (it.person_name) g.people.push(it.person_name);
+  }
+  return out;
+}
+
 export const daysBetween = (a, b) => {
   if (!a || !b) return 0;
   const ms = parseDate(b) - parseDate(a);
