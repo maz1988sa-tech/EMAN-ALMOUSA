@@ -1061,4 +1061,6 @@ body.sheeting .bfly { opacity: 0; pointer-events: none; transform: scale(.9); }
 .pbody { padding: 0 12px 12px; }
 .pcard .rmp { border: 0; background: none; color: var(--danger); cursor: pointer;
               font-family: var(--ft); font-size: 12.5px; padding: 6px 0; }
-.gsum { position: sticky; inset-block-end: 0; }
+/* مجموع الورقة يبقى في آخرها ولا يطفو: كان لاصقًا بأسفل الشاشة فيغطّي
+   حقول البطاقة وهي تكتب. تراه حين تصل إليه، لا فوق ما تكتبه. */
+.gsum { position: static; }
