@@ -20,18 +20,18 @@
   const SLOTS = ['16:00:00','16:30:00','17:00:00','17:30:00','18:00:00','19:30:00','20:00:00','20:30:00'];
 
   const BOOKINGS = [
-    { id:'b1', ref:'IA-7K3QP', public_token:'tok-1', client_name:'نورة العتيبي', client_phone:'966501234567',
+    { id:'b1', ref:'EA-20260800', public_token:'tok-1', client_name:'نورة العتيبي', client_phone:'966501234567',
       the_date: day(0), start_time:'16:00:00', duration_min:60, status:'confirmed', price:1500, deposit:500,
       items_total:1500, price_override:null, loc_text:'حي النخيل، الرياض', loc_map:'https://maps.app.goo.gl/x',
       client_notes:'بشرة حساسة', admin_notes:null, source:'client', cancel_requested:false,
       created_at:new Date().toISOString(),
       booking_items:[{id:'i1',service_name:'ميك اب عروس',service_icon:'bride',person_name:null,price:1500,duration_min:60,sort:1}] },
-    { id:'b2', ref:'IA-M2XR8', public_token:'tok-2', client_name:'ريم القحطاني', client_phone:'966555554444',
+    { id:'b2', ref:'EA-20260801', public_token:'tok-2', client_name:'ريم القحطاني', client_phone:'966555554444',
       the_date: day(0), start_time:'19:30:00', duration_min:45, status:'done', price:600, deposit:600,
       items_total:600, price_override:null, loc_text:'الملقا', loc_map:null, client_notes:null,
       admin_notes:null, source:'admin', cancel_requested:false, created_at:new Date().toISOString(),
       booking_items:[{id:'i2',service_name:'ميك اب سهرة',service_icon:'evening',person_name:null,price:600,duration_min:45,sort:1}] },
-    { id:'b3', ref:'IA-QQ4LZ', public_token:'tok-3', client_name:'سارة الدوسري', client_phone:'966533221100',
+    { id:'b3', ref:'EA-20260802', public_token:'tok-3', client_name:'سارة الدوسري', client_phone:'966533221100',
       the_date: day(2), start_time:'17:00:00', duration_min:150, status:'pending', price:2700, deposit:0,
       items_total:2700, price_override:null, loc_text:'حي الياسمين', loc_map:'https://maps.app.goo.gl/y',
       client_notes:'مجموعة صديقات', admin_notes:null, source:'client', cancel_requested:false,
@@ -40,12 +40,12 @@
         {id:'i3',service_name:'ميك اب عروس',service_icon:'bride',person_name:'سارة',price:1500,duration_min:60,sort:1},
         {id:'i4',service_name:'ميك اب سهرة',service_icon:'evening',person_name:'لمى',price:600,duration_min:45,sort:2},
         {id:'i5',service_name:'ميك اب سهرة',service_icon:'evening',person_name:'هند',price:600,duration_min:45,sort:3}] },
-    { id:'b4', ref:'IA-8VN2C', public_token:'tok-4', client_name:'مها الشمري', client_phone:'966544332211',
+    { id:'b4', ref:'EA-20260803', public_token:'tok-4', client_name:'مها الشمري', client_phone:'966544332211',
       the_date: day(4), start_time:'18:00:00', duration_min:60, status:'confirmed', price:1500, deposit:400,
       items_total:1500, price_override:null, loc_text:'حي الورود', loc_map:null, client_notes:null,
       admin_notes:null, source:'client', cancel_requested:true, created_at:new Date().toISOString(),
       booking_items:[{id:'i6',service_name:'ميك اب عروس',service_icon:'bride',person_name:null,price:1500,duration_min:60,sort:1}] },
-    { id:'b5', ref:'IA-3RTY6', public_token:'tok-5', client_name:'أمل الغامدي', client_phone:'966512340000',
+    { id:'b5', ref:'EA-20260804', public_token:'tok-5', client_name:'أمل الغامدي', client_phone:'966512340000',
       the_date: day(-6), start_time:'17:30:00', duration_min:45, status:'done', price:600, deposit:600,
       items_total:600, price_override:null, loc_text:null, loc_map:null, client_notes:null,
       admin_notes:null, source:'admin', cancel_requested:false, created_at:new Date().toISOString(),
@@ -124,7 +124,7 @@
           if (fn === 'admin_create_group') {
             const gid = 'grp-' + Math.random().toString(36).slice(2, 8);
             return ok((args.p_people || []).map((p, i) => ({
-              id: 'gb' + i, ref: 'IA-GRP' + (i + 1), public_token: 'tok-g' + i,
+              id: 'gb' + i, ref: 'EA-20260' + String(810 + i), public_token: 'tok-g' + i,
               group_id: gid, group_label: args.p_label || null,
               status: 'confirmed', source: 'admin',
               price: (p.items || []).reduce((n, it) => n + Number(it.price || 0), 0),
@@ -134,7 +134,7 @@
           if (fn === 'admin_create_booking' || fn === 'admin_replace_items') {
             if (fn === 'admin_create_booking') {
               const bk = args.p_booking || {};
-              return ok([{ id:'b-new', ref:'IA-NEW01', public_token:'tok-new',
+              return ok([{ id:'b-new', ref:'EA-20260806', public_token:'tok-new',
                            ...bk, booking_items: args.p_items || [] }]);
             }
             return ok([{ id: args.p_booking_id, booking_items: args.p_items || [] }]);
@@ -174,7 +174,7 @@
             return ok(out);
           }
           if (fn === 'create_booking') {
-            return ok([{ ref:'IA-DEMO1', public_token:'tok-demo', the_date:args.p_date,
+            return ok([{ ref:'EA-20260805', public_token:'tok-demo', the_date:args.p_date,
                          start_time:args.p_time, price:1500 }]);
           }
           if (fn === 'get_booking_by_token') {

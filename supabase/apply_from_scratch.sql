@@ -280,25 +280,31 @@ as $$
   select public.local_now()::date;
 $$;
 
--- Short, human-speakable reference: IA-7K3QP
+-- رقم الطلب يقول متى كان: EA-20260900
+--   EA اختصار Eman Almousa · 2026 السنة · 09 الشهر · 00 ترتيبه في الشهر
+create table if not exists public.ref_counters (
+  period text primary key,
+  n      integer not null default 0
+);
+alter table public.ref_counters enable row level security;
+
 create or replace function public.gen_booking_ref()
 returns text
 language plpgsql volatile
+security definer
 set search_path = public, pg_temp
 as $$
 declare
-  alphabet constant text := '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-  candidate text;
-  i integer;
+  v_period text := to_char(public.local_now(), 'YYYYMM');
+  v_n      integer;
 begin
-  loop
-    candidate := 'IA-';
-    for i in 1..5 loop
-      candidate := candidate || substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1);
-    end loop;
-    exit when not exists (select 1 from public.bookings where ref = candidate);
-  end loop;
-  return candidate;
+  insert into public.ref_counters (period, n) values (v_period, 0)
+  on conflict (period) do update set n = public.ref_counters.n + 1
+  returning n into v_n;
+
+  -- lpad يقصّ ما طال عن طوله: المئة تصير «10» فتصطدم بالحادي عشر.
+  return 'EA-' || v_period
+       || case when v_n < 100 then lpad(v_n::text, 2, '0') else v_n::text end;
 end;
 $$;
 
