@@ -206,7 +206,7 @@ import { icon, hydrateIcons } from './assets/icons.js?v=32';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
-  today, addDays, parseDate, weekday, addMinutes, prettyPhone, telHref, waHref, isoDate,
+  today, addDays, parseDate, weekday, daysBetween, addMinutes, prettyPhone, telHref, waHref, isoDate,
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
   receiptUrl, purgeOrphanReceipts, uuid, isOffline, NET_MSG, backups,
   fillTemplate, TEMPLATE_FIELDS,
@@ -1389,7 +1389,8 @@ function renderHours() {
   const byDay = WEEKDAYS.map((d) => ({
     ...d, rules: S.rules.filter((r) => r.weekday === d.value),
   }));
-  const future = S.overrides.filter((o) => o.the_date >= today())
+  // تبقى الفترة معروضة إلى آخر أيامها: إجازةٌ بدأت أمس ما زالت قائمة.
+  const future = S.overrides.filter((o) => (o.end_date || o.the_date) >= today())
                             .sort((a, b) => a.the_date.localeCompare(b.the_date));
 
   view.innerHTML = `
@@ -1417,19 +1418,19 @@ function renderHours() {
         </div>`).join('')}
     </div>
 
-    <div class="sec-head"><h2>أيام استثنائية</h2><span class="rule"></span></div>
-    <p class="muted mb">إجازة، أو ساعات مختلفة ليوم واحد. تتقدّم على الجدول الأسبوعي.</p>
+    <div class="sec-head"><h2>فترات استثنائية</h2><span class="rule"></span></div>
+    <p class="muted mb">إجازة، أو ساعات مختلفة — ليومٍ أو لفترةٍ كاملة. تتقدّم على الجدول الأسبوعي.</p>
     <div class="card mb">
       ${future.length ? future.map((o) => `
         <div class="rowline">
           <span class="badge" data-icon="${o.kind === 'closed' ? 'close' : 'clock'}" data-icon-size="17"
                 style="width:34px;height:34px"></span>
-          <span class="grow"><span class="t">${fmtDate(o.the_date, { short: true })}</span>
-            <span class="s">${o.kind === 'closed' ? 'إجازة' : `${fmtTime(o.start_time)} — ${fmtTime(o.end_time)}`}${o.note && o.note !== 'إجازة' ? ` · ${esc(o.note)}` : ''}</span></span>
+          <span class="grow"><span class="t">${overrideSpan(o)}</span>
+            <span class="s">${o.kind === 'closed' ? 'إجازة' : `${fmtTime(o.start_time)} — ${fmtTime(o.end_time)}`}${overrideDays(o)}${o.note && o.note !== 'إجازة' ? ` · ${esc(o.note)}` : ''}</span></span>
           <button class="iconbtn" data-delov="${o.id}" aria-label="حذف" data-icon="trash"></button>
         </div>`).join('') : '<p class="muted center" style="padding:12px 0">لا أيام استثنائية.</p>'}
     </div>
-    <button class="btn btn-ghost" id="addOverride">${icon('plus', 18)} إضافة يوم استثنائي</button>`;
+    <button class="btn btn-ghost" id="addOverride">${icon('plus', 18)} إضافة فترة استثنائية</button>`;
 
   view.querySelectorAll('[data-addrule]').forEach((b) =>
     b.onclick = () => editRule({ weekday: Number(b.dataset.addrule), start_time: '16:00', end_time: '22:00', active: true }));
@@ -1440,6 +1441,18 @@ function renderHours() {
   view.querySelectorAll('[data-delov]').forEach((b) =>
     b.onclick = async () => { await admin.deleteOverride(b.dataset.delov); toast('حُذف اليوم', 'ok'); reload(); });
   document.getElementById('addOverride').onclick = () => editOverride();
+}
+
+/* عنوان الفترة: يومٌ واحد يُكتب وحده، والنطاق بطرفيه. */
+function overrideSpan(o) {
+  const end = o.end_date || o.the_date;
+  if (end === o.the_date) return fmtDate(o.the_date, { short: true });
+  return `${fmtDate(o.the_date, { short: true, withDow: false })} — ${fmtDate(end, { short: true, withDow: false })}`;
+}
+function overrideDays(o) {
+  const n = daysBetween(o.the_date, o.end_date || o.the_date);
+  if (n <= 1) return '';
+  return ` · ${n === 2 ? 'يومان' : `${int(n)} ${n <= 10 ? 'أيام' : 'يومًا'}`}`;
 }
 
 function editRule(rule) {
@@ -1483,11 +1496,18 @@ function editRule(rule) {
 }
 
 function editOverride() {
-  showSheet('يوم استثنائي', `
-    <div class="field">
-      <label class="label" for="o-date">التاريخ</label>
-      <input class="input" type="date" id="o-date" min="${today()}" value="${today()}">
+  showSheet('فترة استثنائية', `
+    <div class="split mb">
+      <div class="field" style="margin:0">
+        <label class="label" for="o-date">من تاريخ</label>
+        <input class="input" type="date" id="o-date" min="${today()}" value="${today()}">
+      </div>
+      <div class="field" style="margin:0">
+        <label class="label" for="o-end">إلى تاريخ</label>
+        <input class="input" type="date" id="o-end" min="${today()}" value="${today()}">
+      </div>
     </div>
+    <p class="hint" id="o-span" style="margin:-6px 0 14px">يوم واحد.</p>
     <div class="field">
       <label class="label">النوع</label>
       <div class="btn-row">
@@ -1514,19 +1534,44 @@ function editOverride() {
     document.getElementById('o-closed').setAttribute('aria-pressed', String(k === 'closed'));
     document.getElementById('o-custom').setAttribute('aria-pressed', String(k === 'custom'));
     document.getElementById('o-hours').classList.toggle('hide', k !== 'custom');
+    span();
   };
   document.getElementById('o-closed').onclick = () => pick('closed');
   document.getElementById('o-custom').onclick = () => pick('custom');
 
+  /* النهاية لا تسبق البداية: يُجرّ الطرف معها بدل أن يُرفض الإدخال. */
+  const oFrom = document.getElementById('o-date');
+  const oTo   = document.getElementById('o-end');
+  function span() {
+    oTo.min = oFrom.value || today();
+    if (oTo.value && oFrom.value && oTo.value < oFrom.value) oTo.value = oFrom.value;
+    const n = daysBetween(oFrom.value, oTo.value);
+    const what = kind === 'closed' ? 'إجازة' : 'ساعات خاصّة';
+    document.getElementById('o-span').textContent =
+      !n ? 'اختاري التاريخين.'
+      : n === 1 ? `يوم واحد — ${what}.`
+      : n === 2 ? `يومان — ${what}.`
+      : `${int(n)} ${n <= 10 ? 'أيام' : 'يومًا'} — ${what}.`;
+  }
+  oFrom.oninput = () => { if (oTo.value < oFrom.value) oTo.value = oFrom.value; span(); };
+  oTo.oninput = span;
+  span();
+
   document.getElementById('o-save').onclick = async () => {
     const row = {
-      the_date: document.getElementById('o-date').value,
+      the_date: oFrom.value,
+      end_date: oTo.value || oFrom.value,
       kind,
       note: document.getElementById('o-note').value.trim() || null,
       start_time: kind === 'custom' ? document.getElementById('o-from').value : null,
       end_time:   kind === 'custom' ? document.getElementById('o-to').value   : null,
     };
     if (!row.the_date) return;
+    if (row.end_date < row.the_date) {
+      document.getElementById('o-err').innerHTML =
+        `<div class="note danger mb">${icon('close', 18)}<span>تاريخ النهاية قبل البداية.</span></div>`;
+      return;
+    }
     if (kind === 'custom' && (!row.start_time || !row.end_time || row.end_time <= row.start_time)) {
       document.getElementById('o-err').innerHTML =
         `<div class="note danger mb">${icon('close', 18)}<span>وقت النهاية يجب أن يكون بعد البداية.</span></div>`;
@@ -2744,6 +2789,16 @@ function openNewBooking() {
       <p class="hint" id="n-disc" hidden style="color:var(--rose)"></p>
       <p class="hint" id="n-dur">اختاري خدمة واحدة على الأقل.</p>
     </div>
+    <div class="card mb">
+      <div class="field" style="margin:0">
+        <label class="label" for="n-dep">العربون المستلَم <span class="opt">(اختياري)</span></label>
+        <input class="input ltr" id="n-dep" type="number" min="0" step="50"
+               inputmode="numeric" placeholder="0" value="">
+      </div>
+      <div class="leader" style="margin-top:10px"><span class="k">المتبقّي</span>
+        <span class="d"></span><span class="v" id="n-rest">—</span></div>
+      <p class="hint" id="n-dephint">اتركيه فارغًا إن لم تُحوِّل شيئًا بعد.</p>
+    </div>
     <div class="split mb">
       <div class="field" style="margin:0"><label class="label" for="n-date">التاريخ</label>
         <input class="input" type="date" id="n-date" value="${today()}"></div>
@@ -2791,6 +2846,22 @@ function openNewBooking() {
     gn('n-dur').textContent = n
       ? `${int(n)} شخص · ${fmtDuration(Math.max(dur, 15))}${ends}`
       : 'اختاري خدمة واحدة على الأقل.';
+    nRest(total - disc);
+  }
+
+  /* العربون المستلَم: ما دفعته العميلة قبل الموعد. القاعدة تقصّه إلى
+     السعر إن زاد، لكنّ الأصدق أن تراه هنا قبل الحفظ لا بعده. */
+  function nRest(due) {
+    const dep = Math.max(0, Number(gn('n-dep').value) || 0);
+    const over = dep > due && due > 0;
+    const rest = Math.max(due - dep, 0);
+    gn('n-rest').textContent = due > 0 ? `${money(rest)} ر.س` : '—';
+    gn('n-dephint').textContent = !due ? 'اتركيه فارغًا إن لم تُحوِّل شيئًا بعد.'
+      : over ? `العربون أكبر من الإجمالي — سيُحفظ ${money(due)} ر.س.`
+      : !dep ? 'اتركيه فارغًا إن لم تُحوِّل شيئًا بعد.'
+      : rest ? 'يُذكر المتبقّي في رسالة التأكيد.'
+             : 'مُسدَّد بالكامل.';
+    gn('n-dephint').style.color = over ? 'var(--c-open)' : '';
   }
   document.querySelectorAll('[data-nprice]').forEach((el) => el.oninput = nRecompute);
   document.querySelectorAll('[data-nd]').forEach((btn) => btn.onclick = () => {
@@ -2799,6 +2870,7 @@ function openNewBooking() {
     cell.textContent = String(next); nRecompute();
   });
   gn('n-time').onchange = nRecompute;
+  gn('n-dep').oninput = nRecompute;
   nRecompute();
 
   // يُولَّد مرّة لهذه الورقة: ضغطةٌ ثانية بعد انقطاع تحمل المفتاح نفسه.
@@ -2828,6 +2900,7 @@ function openNewBooking() {
         loc_map: map || null,
         // بدونه يبقى صفرًا فلا يُطبَّق خصم المجموعة على الحجز اليدوي.
         discount_per_person: Number(S.settings?.group_discount_amount || 0),
+        deposit: Math.max(0, Number(gn('n-dep').value) || 0),
         confirmed_at: new Date().toISOString(),
       }, chosen.map((sv) => ({
         service_id: sv.id, service_name: sv.name, service_icon: sv.icon,

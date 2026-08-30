@@ -47,6 +47,12 @@ export function parseDate(s) {
 export const today    = () => isoDate(new Date());
 export const addDays  = (s, n) => { const d = parseDate(s); d.setDate(d.getDate() + n); return isoDate(d); };
 export const weekday  = (s) => parseDate(s).getDay();
+// عدد أيام نطاقٍ مغلق الطرفين: من السابع إلى السابع يومٌ واحد لا صفر.
+export const daysBetween = (a, b) => {
+  if (!a || !b) return 0;
+  const ms = parseDate(b) - parseDate(a);
+  return ms < 0 ? 0 : Math.round(ms / 86400000) + 1;
+};
 
 export function fmtDate(s, { withDow = true, short = false } = {}) {
   if (!s) return '';

@@ -60,7 +60,11 @@
   ];
 
   const OVERRIDES = [
-    { id:'o1', the_date: day(9), kind:'closed', start_time:null, end_time:null, note:'إجازة' },
+    { id:'o1', the_date: day(9), end_date: day(9), kind:'closed',
+      start_time:null, end_time:null, note:'إجازة' },
+    // فترةٌ ممتدّة: سفرٌ أربعة أيام — تُقرأ صفًّا واحدًا لا أربعة.
+    { id:'o2', the_date: day(14), end_date: day(17), kind:'closed',
+      start_time:null, end_time:null, note:'سفر' },
   ];
 
   const TEMPLATES = [
@@ -100,7 +104,8 @@
       lte() { return q; }, ilike() { return q; }, order() { return q; }, limit() { return q; },
       insert(v) { return { select: () => ({ maybeSingle: () => ok(Array.isArray(v) ? v[0] : v) }) , then:(r)=>r({data:v,error:null}) }; },
       update(v) { return { eq: () => ({ select: () => ({ maybeSingle: () => ok({ ...rows[0], ...v }) }), then:(r)=>r({data:v,error:null}) }), then:(r)=>r({data:v,error:null}) }; },
-      upsert(v) { return { select: () => ({ maybeSingle: () => ok(v) }) }; },
+      upsert(v) { (window.__UPSERT = window.__UPSERT || []).push(v);
+                  return { select: () => ({ maybeSingle: () => ok(v) }) }; },
       delete() { return { eq: () => ok(null) }; },
       maybeSingle() { return ok(q._rows[0] || null); },
       single() { return ok(q._rows[0] || null); },
