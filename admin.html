@@ -286,23 +286,15 @@ function butterflySVG(gid) {
     </svg>`;
 }
 
-/* ── الفراشة ─────────────────────────────────────────────────────────
-   كانت تطير وتحطّ حيثما اتّفق. جميلٌ أوّل مرّة، ومُربِكٌ حين صارت زرًّا:
-   زرٌّ يتنقّل لا يُحفظ مكانه في اليد. الآن تثبت في ركنٍ واحد، تتنفّس
-   بجناحيها، وتفتح ورقة الإضافة — بدل النزول إلى آخر صفحة الحجوزات. */
-function startButterfly() {
-  if (document.getElementById('addFab')) return;
+/* ── الفراشة زرًّا ────────────────────────────────────────────────────
+   كانت تطير وتحطّ حيثما اتّفق، ثمّ صارت قرصًا عائمًا في ركن الشاشة. وكلاهما
+   خطأ: الأولى زينةٌ لا تُلمَس، والثاني يزاحم ما تحته ويتبعها وهي تقرأ.
 
-  const el = document.createElement('button');
-  el.className = 'bfly';
-  el.id = 'addFab';
-  el.type = 'button';
-  el.setAttribute('aria-label', 'إضافة حجز');
-  el.title = 'إضافة حجز';
-  el.innerHTML = butterflySVG('bflyG');
-
-  document.body.appendChild(el);
-
+   الآن في سطر التحيّة بجانب اسمها — أوّل ما تراه — ويمضي مع الصفحة إذا
+   نزلت، لأنّ في آخرها زرَّ إضافةٍ آخر. */
+function wireAddButton() {
+  const el = document.getElementById('addFab');
+  if (!el) return;
   el.onclick = () => {
     el.classList.remove('flutter');
     void el.offsetWidth;              // إعادة تشغيل الحركة
@@ -515,7 +507,6 @@ async function reload(announce = false) {
     if (settings?.business_name) document.getElementById('bizName').textContent = settings.business_name;
     renderTabs();
     render();
-    if (!reload._bfly) { reload._bfly = true; startButterfly(); }
     if (announce) toast('تم التحديث', 'ok');
 
     // الرفع يسبق الحجز، فمن تركت الصفحة بعد الرفع تخلّف ملفًا بلا حجز.
@@ -837,7 +828,11 @@ function greetCard(todays, pending) {
         <span>${esc(BAYT.v[0])}</span><i></i><span>${esc(BAYT.v[1])}</span>
         <b>${esc(BAYT.p)}</b>
       </div>
-      <h1>${esc(g.h)}، ${esc(name)}<i class="bmark">${butterflySVG('bmarkG')}</i></h1>
+      <div class="greet-row">
+        <h1>${esc(g.h)}، ${esc(name)}</h1>
+        <button class="bfly" id="addFab" type="button"
+                aria-label="إضافة حجز" title="إضافة حجز">${butterflySVG('bflyG')}</button>
+      </div>
       <p>${line}</p>
     </div>`;
 }
@@ -949,6 +944,7 @@ function renderHome() {
   view.querySelectorAll('[data-iv]').forEach((b) => b.onclick = () => {
     setIncomeView(b.dataset.iv); render(); hydrateIcons(view);
   });
+  wireAddButton();
   const bc = document.getElementById('baytCopy');
   if (bc) bc.onclick = async () => {
     const done = await copyText(baytForWhatsApp());

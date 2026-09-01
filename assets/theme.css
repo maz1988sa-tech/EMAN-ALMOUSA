@@ -313,32 +313,8 @@ a  { color: var(--accent); }
 /* والبيت لا يمرّ تحت الزرّ: يُترك له ركنه. */
 .greet .bayt span:first-of-type { padding-inline-end: 40px; }
 @media (max-width: 380px) { .greet .bayt span { font-size: 12.5px; } }
-.greet h1 { margin: 0 0 7px; }
-/* الشعار بجانب اسمها: الفراشة نفسها التي في الزرّ، بحجم الحرف لا أكبر،
-   تتنفّس بإيقاعٍ أبطأ — زينةٌ لا تنادي على نفسها. */
-.bmark { display: inline-flex; vertical-align: -4px; margin-inline-start: 10px;
-         width: 29px; height: 25px; }
-.bmark svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.bmark .w path    { fill: url(#bmarkG); stroke: var(--glass-line); stroke-width: .85;
-                    stroke-linejoin: round; }
-.bmark .w path.lo { opacity: .88; }
-.bmark .w path.vn { fill: none; stroke: var(--glass-line); stroke-width: .8;
-                    opacity: .4; stroke-linecap: round; }
-.bmark .bd { fill: var(--ink); opacity: .72; }
-.bmark .an { fill: none; stroke: var(--ink); stroke-width: 1.15; opacity: .5;
-             stroke-linecap: round; }
-/* نفَسٌ أهدأ من نفَس الزرّ: الشعار لا ينطبق حتى يصير خيطًا. */
-.bmark .w  { transform-box: fill-box; transform-origin: var(--ox) 50%;
-             animation: bmark-breathe 5.2s var(--ease) infinite; }
-@keyframes bmark-breathe {
-  0%, 100% { transform: scaleX(1)   rotate(0deg); }
-  48%      { transform: scaleX(.66) rotate(-1deg); }
-}
-.bmark .wl { --ox: 100%; }
-.bmark .wr { --ox: 0%; animation-delay: .22s; }
-[data-time="night"] .bmark .bd,
-[data-time="night"] .bmark .an { fill: #F5E4C6; stroke: #F5E4C6; }
-@media (prefers-reduced-motion: reduce) { .bmark .w { animation: none; } }
+.greet h1 { margin: 0; }
+.greet .greet-row { margin-bottom: 7px; }
 .greet p { color: var(--ink-2); font-size: 14.5px; line-height: 1.65; }
 .greet p b { color: var(--ink); font-weight: 700; }
 /* الرقم الذي ينتظر ردًّا يكبر وينبض؛ وما عداه من أرقام التحيّة يكبر ولا
@@ -975,24 +951,25 @@ input[type="range"].input::-moz-range-thumb {
    الشاشة، والمرسى المنطقيّ يقلبها إلى اليمين في صفحةٍ عربيّة فتطير
    الفراشة خارج الشاشة. */
 /* ── الفراشة زرًّا ────────────────────────────────────────────────────
-   ركنٌ واحد لا يتغيّر: زرٌّ يتنقّل لا يُحفظ مكانه في اليد. وأسفل الشاشة
-   لأنّ أعلاها أبعد نقطةٍ عن الإبهام على جوّالٍ كبير. */
-.bfly { position: fixed; z-index: 40; padding: 0; cursor: pointer;
-        inset-block-end: calc(18px + env(safe-area-inset-bottom, 0px));
-        inset-inline-start: 18px;
-        width: 58px; height: 58px; border-radius: 50%;
+   في سطر التحيّة بجانب اسمها لا عائمةً في ركن الشاشة: القرص العائم يزاحم
+   ما تحته ويتبعها وهي تقرأ. وتمضي مع الصفحة إذا نزلت، لأنّ في آخرها
+   زرَّ إضافةٍ آخر. */
+.greet-row { display: flex; align-items: center; justify-content: space-between;
+             gap: 12px; }
+.greet-row h1 { margin: 0; min-width: 0; }
+
+.bfly { flex: none; padding: 0; cursor: pointer;
+        width: 50px; height: 50px; border-radius: 50%;
         display: grid; place-items: center;
         background-image: linear-gradient(var(--tint), var(--tint));
-        background-color: var(--glass);
+        background-color: var(--glass-2);
         border: 1px solid var(--glass-line);
-        backdrop-filter: blur(14px) saturate(1.05);
-        -webkit-backdrop-filter: blur(14px) saturate(1.05);
         box-shadow: var(--glass-sh);
-        transition: transform .22s var(--ease), box-shadow .22s var(--ease); }
-.bfly:hover  { transform: scale(1.06); }
+        transition: transform .22s var(--ease), border-color .22s var(--ease); }
+.bfly:hover  { transform: scale(1.06); border-color: var(--accent); }
 .bfly:active { transform: scale(.94); }
 .bfly:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; }
-.bfly svg { display: block; width: 36px; height: 31px; overflow: visible; }
+.bfly svg { display: block; width: 32px; height: 28px; overflow: visible; }
 
 .bfly .w path      { fill: url(#bflyG); stroke: var(--glass-line); stroke-width: .85;
                      stroke-linejoin: round; }
@@ -1005,13 +982,12 @@ input[type="range"].input::-moz-range-thumb {
 
 /* تتنفّس بجناحيها: انطباقٌ وانفراج، لا رفرفةً دائمة تشدّ العين. */
 .bfly .w { transform-box: fill-box; transform-origin: var(--ox) 50%;
-           animation: bfly-breathe 3.6s var(--ease) infinite; }
+           animation: bfly-breathe 4.2s var(--ease) infinite; }
 .bfly .wl { --ox: 100%; }
-.bfly .wr { --ox: 0%; animation-delay: .18s; }
+.bfly .wr { --ox: 0%; animation-delay: .2s; }
 @keyframes bfly-breathe {
   0%, 100% { transform: scaleX(1)   rotate(0deg); }
-  46%      { transform: scaleX(.34) rotate(-1.5deg); }
-  54%      { transform: scaleX(.34) rotate(-1.5deg); }
+  48%      { transform: scaleX(.4)  rotate(-1.5deg); }
 }
 /* وعند اللمس ترفرف رفرفةً سريعة ثمّ تهدأ، فتُحسّ اللمسة. */
 .bfly.flutter .w { animation: bfly-flap .13s linear 9; }
@@ -1019,9 +995,6 @@ input[type="range"].input::-moz-range-thumb {
 
 [data-time="night"] .bfly .bd,
 [data-time="night"] .bfly .an { fill: #F5E4C6; stroke: #F5E4C6; }
-
-/* الورقة المفتوحة تُخفيها: زرٌّ فوق ورقةٍ مفتوحة لا معنى له. */
-body.sheeting .bfly { opacity: 0; pointer-events: none; transform: scale(.9); }
 
 @media (prefers-reduced-motion: reduce) {
   .bfly .w { animation: none; }
