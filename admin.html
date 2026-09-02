@@ -829,11 +829,15 @@ function greetCard(todays, pending) {
         <b>${esc(BAYT.p)}</b>
       </div>
       <div class="greet-row">
-        <h1>${esc(g.h)}، ${esc(name)}</h1>
-        <button class="bfly" id="addFab" type="button"
-                aria-label="إضافة حجز" title="إضافة حجز">${butterflySVG('bflyG')}</button>
+        <div class="greet-text">
+          <h1>${esc(g.h)}، ${esc(name)}</h1>
+          <p>${line}</p>
+        </div>
+        <div class="greet-act">
+          <button class="bfly" id="addFab" type="button"
+                  aria-label="إضافة حجز" title="إضافة حجز">${butterflySVG('bflyG')}</button>
+        </div>
       </div>
-      <p>${line}</p>
     </div>`;
 }
 

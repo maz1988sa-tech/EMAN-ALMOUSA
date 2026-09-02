@@ -313,8 +313,7 @@ a  { color: var(--accent); }
 /* والبيت لا يمرّ تحت الزرّ: يُترك له ركنه. */
 .greet .bayt span:first-of-type { padding-inline-end: 40px; }
 @media (max-width: 380px) { .greet .bayt span { font-size: 12.5px; } }
-.greet h1 { margin: 0; }
-.greet .greet-row { margin-bottom: 7px; }
+.greet h1 { margin: 0 0 7px; }
 .greet p { color: var(--ink-2); font-size: 14.5px; line-height: 1.65; }
 .greet p b { color: var(--ink); font-weight: 700; }
 /* الرقم الذي ينتظر ردًّا يكبر وينبض؛ وما عداه من أرقام التحيّة يكبر ولا
@@ -954,9 +953,11 @@ input[type="range"].input::-moz-range-thumb {
    في سطر التحيّة بجانب اسمها لا عائمةً في ركن الشاشة: القرص العائم يزاحم
    ما تحته ويتبعها وهي تقرأ. وتمضي مع الصفحة إذا نزلت، لأنّ في آخرها
    زرَّ إضافةٍ آخر. */
-.greet-row { display: flex; align-items: center; justify-content: space-between;
-             gap: 12px; }
-.greet-row h1 { margin: 0; min-width: 0; }
+/* النصّ يأخذ عرضه، والزرّ يتوسّط ما بقي — طولًا وعرضًا. */
+.greet-row  { display: flex; align-items: stretch; gap: 10px; }
+.greet-text { flex: 0 1 auto; min-width: 0; }
+.greet-act  { flex: 1 1 auto; min-width: 62px; display: grid; place-items: center; }
+.greet-row h1 { margin: 0; }
 
 .bfly { flex: none; padding: 0; cursor: pointer;
         width: 50px; height: 50px; border-radius: 50%;
