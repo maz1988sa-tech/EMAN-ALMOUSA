@@ -10,10 +10,40 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <!-- ?v= يطابق VERSION في sw.js: بدونه يخدم متصفح العميلة نسخة CSS
      القديمة من ذاكرته بعد كل نشر، فتظهر الواجهة كما كانت. -->
-<link rel="stylesheet" href="assets/fonts.css?v=35">
+<script>
+  /* المختبر يُعرَف من مساره لا من ملفٍّ يخالف الحيّ: الملفّان في /lab/
+     والجذر متطابقان بايتًا ببايت، فالترقية نسخٌ محض لا تحويل — ولا يوجد
+     فرقٌ صامت بين ما جُرّب وما نُشر. */
+  window.__LAB__ = /(^|\/)lab\//.test(location.pathname);
+  if (window.__LAB__) {
+    document.documentElement.classList.add('is-lab');
+    if (!document.querySelector('meta[name="robots"]')) {
+      var m = document.createElement('meta');
+      m.name = 'robots'; m.content = 'noindex, nofollow';
+      document.head.appendChild(m);
+    }
+  }
+</script>
+<style>
+  /* شارةٌ لا تُنسى ولا تحجب: شريطٌ رفيع فوق كل شيء، لا يزحزح تخطيطًا. */
+  html:not(.is-lab) .labflag{display:none}
+  .labflag{
+    position:fixed;inset-inline:0;top:0;z-index:2147483647;pointer-events:none;
+    display:flex;align-items:center;justify-content:center;gap:8px;height:22px;
+    background:#8a2f2f;color:#fff;font:600 11px/1 'Tajawal','IBM Plex Sans Arabic',Tahoma,sans-serif;
+    letter-spacing:.02em;box-shadow:0 1px 6px rgba(0,0,0,.25);
+  }
+  .labflag i{font-style:normal;opacity:.72;font-weight:400}
+  /* اللوحة مستندٌ يمرّر فتُزاح بالحشو؛ وصفحة العميلة تطبيقٌ ثابتٌ بارتفاع
+     الشاشة، فتُزاح هي ويُنقص ارتفاعها — وإلّا خرج أسفلها عن الشاشة. */
+  html.is-lab body{padding-top:22px}
+  html.is-lab body.public-site{padding-top:0}
+  html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
+</style>
+<link rel="stylesheet" href="assets/fonts.css?v=38">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=35">
+<link rel="stylesheet" href="assets/client-theme.css?v=38">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -28,6 +58,8 @@
 </style>
 </head>
 <body class="public-site">
+<div class="labflag" role="status">نسخة تجريبية <i>· ليست النسخة الحيّة · البيانات حقيقية</i></div>
+
 
 <!-- ══ التطبيق: خمس شاشات، سحبة واحدة = شاشة كاملة ══════════════════════ -->
 <div class="app" id="app" data-screen="0" data-theme="light">
@@ -256,6 +288,25 @@
     <div class="menu-foot">EMAN AAL MOUSA · RIYADH</div>
   </nav>
 
+  <!-- فحص الإيصال: نافذةٌ في منتصف الشاشة، فتعرف العميلة أنّ شيئًا يجري
+       الآن ولا تظنّ الصفحة واقفة. ثم إمّا تنصرف صامتة أو تقول كلمةً
+       واحدة — ولا تُفصح عن سببٍ يُبنى عليه تحايل. -->
+  <div class="rcpt-modal" id="rcptModal" role="dialog" aria-modal="true"
+       aria-live="polite" aria-hidden="true">
+    <div class="veil"></div>
+    <div class="box">
+      <div class="spin" id="rcptSpin" aria-hidden="true"><i></i><i></i><i></i></div>
+      <svg class="mark bad" id="rcptBad" width="34" height="34" viewBox="0 0 24 24" fill="none" hidden aria-hidden="true">
+        <path d="M12 3.4a8.6 8.6 0 1 0 0 17.2 8.6 8.6 0 0 0 0-17.2Z" stroke="currentColor" stroke-width="1.3"/>
+        <path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <h3 id="rcptModalTitle">جارٍ فحص الإيصال…</h3>
+      <p id="rcptModalNote">لحظة من فضلك.</p>
+      <a class="wa" id="rcptModalWa" hidden target="_blank" rel="noopener">تواصلي معنا عبر واتساب</a>
+      <button class="ok" type="button" id="rcptModalOk" hidden>حسنًا</button>
+    </div>
+  </div>
+
   <!-- لوح الشهور: للانتقال السريع دون ضغطٍ متكرّر على السهم -->
   <div class="mpick" id="mPick" role="dialog" aria-modal="true" aria-label="اختيار الشهر" aria-hidden="true">
     <div class="veil" id="mPickVeil"></div>
@@ -407,10 +458,10 @@ import {
   getPublicSettings, getServices, getDaysWithAvailability, getAvailableSlots,
   createBooking, getBookingByToken, requestCancel,
   fmtDate, fmtDuration, money, riyal, esc,
-  uploadReceipt, depositFor, verifyReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
+  uploadReceipt, depositFor, verifyReceipt, checkReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=35';
+} from './assets/db.js?v=38';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -1108,16 +1159,9 @@ function gate() {
   });
   toPayBtn.disabled = !(mapOk && reqOk) || state.busy;
   // الحجز مرفوض من الخادم بلا إيصال، فلا معنى لزرّ إرسال قبل اختيار ملف.
-  // ومتى كان الفحص مفعّلًا في الإعدادات لم يُفتح الإرسال على صورة رفضها الفحص:
-  // الخادم سيرفضها على كل حال، فمنعها هنا يوفّر على العميلة محاولة خاسرة.
-  /* نفس شرطَي الخادم: مبلغ يكفي العربون، ومعه آيبان الحساب أو كلمة تدلّ
-     على تحويل. الآيبان بديل عن اللغة: القراءة المجانية لا تدعم العربية،
-     وأرقام الآيبان تُقرأ بلا لغة. */
-  const c = state.receiptCheck;
-  const need = Number(state.depositDue || 0);
-  const scanBad = !!state.settings?.receipt_ocr_required && !!c && c.ok !== false && !c.skipped
-    && ((need > 0 && !(c.numbers || []).some((n) => Number(n) >= need))
-        || (!c.iban_hit && !c.keywords?.length));
+  // والصورة التي رفضها الفحص تُزال ساعتَها، فيكفي غيابُ المسار للمنع —
+  // والشرط على الحكم باقٍ احتياطًا. ولا يُقرَّر هنا شيء: الحكم من القاعدة.
+  const scanBad = state.receiptCheck?.verdict === 'bad';
   sendBtn.disabled = !state.receiptPath || state.busy || scanBad;
 }
 [loc, phone, nameIn, district].forEach((e) => {
@@ -1213,33 +1257,65 @@ function chk(kind, text) {
   box.textContent = text;
   box.hidden = !text;
 }
+
+/* ــ نافذة الفحص ــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
+   حالان لا ثالث لهما أمام العميلة: «يُفحص الآن» و«الإيصال غير صحيح».
+   ولا يُقال لِمَ رُفض — من عرف أنّ المبلغ هو الشرط زوّر مبلغًا، ومن عرف
+   أنّ الآيبان مطلوب ألصقه. والسببُ محفوظٌ في السجلّ لصاحبة العمل. */
+let rcptFails = 0;
+function rcptModal(state_, opts = {}) {
+  const box = el('rcptModal');
+  const on = state_ !== 'off';
+  el('rcptSpin').hidden = state_ !== 'checking';
+  el('rcptBad').hidden  = state_ !== 'bad';
+  el('rcptModalOk').hidden = state_ !== 'bad';
+  el('rcptModalTitle').textContent = opts.title || '';
+  el('rcptModalNote').textContent  = opts.note || '';
+  const wa = el('rcptModalWa');
+  wa.hidden = !opts.wa;
+  if (opts.wa) wa.href = opts.wa;
+  box.classList.toggle('open', on);
+  box.setAttribute('aria-hidden', on ? 'false' : 'true');
+}
+
 async function uploadAndCheck() {
-  const need = Number(state.depositDue || 0);
-  chk('wait', 'جارٍ رفع الإيصال وفحصه…');
+  rcptModal('checking', { title: 'جارٍ فحص الإيصال…', note: 'لحظة من فضلك.' });
+  chk('', '');
   gate();
+
+  let verdict = 'wait';
   try {
     const file = await shrinkForOcr(state.receiptFile);
     state.receiptPath = await uploadReceipt(file);
-  } catch (e) {
-    state.receiptCheck = null; chk('bad', e.message || 'تعذّر رفع الإيصال');
-    gate(); return;
+    await verifyReceipt(state.receiptPath);
+    // الحكم من القاعدة لا من المتصفّح، والعربون يُحسب هناك من الخدمات.
+    verdict = await checkReceipt(state.receiptPath, flatPicked().map((s) => s.id));
+  } catch {
+    // تعذّر الرفع أو الاتصال: ليس اتّهامًا لصاحبة الإيصال. يُترك الحكم
+    // للخادم عند الإرسال، ولا تُمنع من المحاولة.
+    verdict = 'wait';
   }
-  const r = await verifyReceipt(state.receiptPath);
-  state.receiptCheck = r;
-  if (!r || r.skipped || r.reason === 'unreachable' || r.reason === 'ocr_failed') {
-    // الفحص لم يعمل؛ لا نمنع من هنا — الخادم هو من يقرّر عند الإرسال.
-    chk('ok', 'تم رفع الإيصال');
-  } else if (r.reason === 'too_large') {
-    chk('bad', 'حجم الصورة كبير على الفحص — أرفقي لقطة شاشة أصغر');
-  } else if (need > 0 && !(r.numbers || []).some((n) => Number(n) >= need)) {
-    chk('bad', `لم نجد مبلغ العربون (${money(need)} ﷼) في الصورة — تأكدي من وضوحها`);
-  } else if (!r.iban_hit && !r.keywords?.length) {
-    chk('bad', 'الصورة لا تبدو إيصال تحويل — أرفقي إشعار التحويل من تطبيق البنك كاملًا');
+
+  state.receiptCheck = { verdict };
+  if (verdict === 'bad') {
+    rcptFails += 1;
+    // الصورة المرفوضة لا تبقى مرفقة: تُزال فيُعاد الاختيار من جديد.
+    const waPhone = state.settings?.whatsapp_phone;
+    clearReceipt();
+    rcptModal('bad', {
+      title: 'الإيصال غير صحيح',
+      note: 'أرفقي صورة إشعار التحويل من تطبيق البنك.',
+      wa: rcptFails >= 2 && waPhone
+        ? `https://wa.me/${String(waPhone).replace(/\D/g, '')}` : null,
+    });
   } else {
-    chk('ok', 'تم التحقق من الإيصال');
+    rcptModal('off');
+    chk('ok', verdict === 'ok' ? 'تم التحقق من الإيصال' : 'تم رفع الإيصال');
   }
   gate();
 }
+
+el('rcptModalOk').addEventListener('click', () => rcptModal('off'));
 
 rcptInput.addEventListener('change', () => {
   const f = rcptInput.files && rcptInput.files[0];
@@ -1310,8 +1386,22 @@ async function submit() {
     closeSheet(); go(4); clearReceipt(); showPane('form');
   } catch (err) {
     const msg = err?.message || 'تعذّر إرسال الطلب.';
-    el('payErr').textContent = msg;
-    el('payErr').hidden = false;
+    // رفض الخادم للإيصال يُقال كما يُقال عند الرفع: نافذةٌ في المنتصف
+    // بكلمةٍ واحدة، لا سطرٌ صغير تحت الزرّ يُقرأ ولا يُفهم.
+    if (/^الإيصال غير صحيح/.test(msg)) {
+      rcptFails += 1;
+      const waPhone = state.settings?.whatsapp_phone;
+      clearReceipt();
+      rcptModal('bad', {
+        title: 'الإيصال غير صحيح',
+        note: 'أرفقي صورة إشعار التحويل من تطبيق البنك.',
+        wa: rcptFails >= 2 && waPhone
+          ? `https://wa.me/${String(waPhone).replace(/\D/g, '')}` : null,
+      });
+    } else {
+      el('payErr').textContent = msg;
+      el('payErr').hidden = false;
+    }
     // مسار رُفض من الخادم لا يُعاد إرساله؛ الرفع يتكرّر في المحاولة التالية.
     if (/الإيصال/.test(msg)) state.receiptPath = null;
     if (/لم يعد متاح/.test(msg)) {

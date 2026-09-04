@@ -346,6 +346,18 @@ export async function verifyReceipt(path) {
   }
 }
 
+/** حكم القاعدة على الإيصال: 'ok' أو 'bad' أو 'wait'.
+ *
+ *  الحرف الواحد كلُّ ما يعود — لا مبلغَ ولا سببَ ولا أيُّ شرطٍ سقط. ومن
+ *  عرف السبب صنع صورةً تتجاوزه، فلا يُقال. والعربون يُحسب هناك من
+ *  الخدمات لا مما يرسله هذا الملفّ. */
+export async function checkReceipt(path, serviceIds) {
+  const { data, error } = await sb.rpc('check_receipt',
+    { p_path: path, p_service_ids: serviceIds });
+  if (error) throw error;
+  return data === 'ok' || data === 'bad' || data === 'wait' ? data : 'wait';
+}
+
 export async function createBooking(payload) {
   const { data, error } = await sb.rpc('create_booking', {
     p_client_name:  payload.name,
@@ -535,6 +547,23 @@ export const TEMPLATE_FIELDS = [
   '{العربون}', '{المتبقي}', '{الموقع}', '{رابط الحجز}', '{الاسم التجاري}',
 ];
 
+/* رسائل الأعمال عند ميتا لا تُرسل نصًّا حرًّا: تُعتمد قوالبها مسبقًا،
+   ومتغيّراتها مرقّمة. وهذا يترجم أسماء إيمان إلى أرقامها بترتيب ظهورها
+   — نفس ترتيب wa_vars في القاعدة، فما تنسخه هو ما يُرسَل. */
+export function waVars(body) {
+  const out = [];
+  for (const m of String(body || '').matchAll(/\{[^}]{1,24}\}/g)) {
+    if (!out.includes(m[0])) out.push(m[0]);
+  }
+  return out;
+}
+
+export function waTemplateText(body) {
+  let out = String(body || '');
+  waVars(body).forEach((v, i) => { out = out.split(v).join(`{{${i + 1}}}`); });
+  return out;
+}
+
 export function fillTemplate(body, b = {}, extra = {}) {
   const items = b.booking_items || b.items || [];
   const due = Number(b.price || 0) - Number(b.deposit || 0);
@@ -661,6 +690,47 @@ export const admin = {
     // المدمجة تُخفى ولا تُحذف: حذفها يعني ضياع نصٍّ لا تملك استعادته.
     const { error } = await sb.from('message_templates').update({ active: false }).eq('id', id);
     if (error) throw error;
+  },
+
+  /* ــ الرسائل التلقائية ــــــــــــــــــــــــــــــــــــــــــــــــــ */
+
+  /** الطابور كما تراه اللوحة: ما جُدول وما أُرسل وما فشل ولماذا. */
+  async outbox(limit = 100) {
+    const { data, error } = await sb.rpc('admin_outbox', { p_limit: limit });
+    if (error) throw error;
+    return data || [];
+  },
+
+  /** بعد تغيير توقيت رسالةٍ تلقائية: تسري على الحجوزات القائمة لا القادمة
+   *  وحدها. تمسح ما لم يُرسل وتعيد بناءه. */
+  async rescheduleAuto() {
+    const { data, error } = await sb.rpc('admin_reschedule_auto');
+    if (error) throw error;
+    return Number(data) || 0;
+  },
+
+  /** المعاينة تُصاغ في القاعدة لا في المتصفّح: النصّ الذي يظهر هنا هو
+   *  النصّ الذي يصل العميلة حرفًا بحرف. */
+  async renderTemplate(body, bookingId) {
+    const { data, error } = await sb.rpc('render_template',
+      { p_body: body, p_booking: bookingId });
+    if (error) throw error;
+    return data || '';
+  },
+
+  /** رسالة تجربة إلى رقمٍ تكتبه إيمان. نصٌّ حرّ لا قالب، فيلزم أن تكون
+   *  راسلَت الرقمَ من جوّالها قبل قليل — وإلّا رفضه واتساب. */
+  async sendTest(phone) {
+    const { data, error } = await sb.rpc('admin_send_test', { p_phone: phone });
+    if (error) throw error;
+    return data;
+  },
+
+  /** قراءة جواب ميتا فورًا بدل انتظار الدورة. */
+  async reconcile() {
+    const { data, error } = await sb.rpc('admin_reconcile');
+    if (error) throw error;
+    return Number(data) || 0;
   },
 
   async services() {
