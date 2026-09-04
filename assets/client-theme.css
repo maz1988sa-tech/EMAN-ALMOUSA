@@ -216,12 +216,16 @@ button{border:0;background:none;cursor:pointer}
 .block-head h3{margin:0;font-size:15px;font-weight:400}
 .block-head span{font-size:9.5px;color:var(--muted);letter-spacing:.04em}
 /* شريط الشهر: الاسم في الوسط وسهمان حوله — كما في لوحة إيمان. */
-.calnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px}
+.calnav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .calnav[hidden]{display:none}
-.calnav b{font:500 17px/1 var(--serif);letter-spacing:.02em;direction:rtl}
-.calnav button{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--line-l);
-  background:rgba(255,255,255,.55);color:var(--ink);transition:.2s ease}
+/* الاسم يتوسّط بالتخطيط لا بالمصادفة: يأخذ ما بين الزرّين كلَّه ويتوسّطه. */
+.calnav b{flex:1;min-width:0;text-align:center;font:500 20px/1.2 var(--serif);
+  letter-spacing:.02em;direction:rtl}
+.calnav button{flex:none;width:44px;height:44px;display:grid;place-items:center;
+  border:1px solid var(--line-l);background:rgba(255,255,255,.55);color:var(--ink);
+  transition:.2s ease}
 .calnav button:hover:not([disabled]){border-color:var(--clay);color:var(--clay)}
+.calnav button:active:not([disabled]){background:rgba(255,255,255,.9)}
 .calnav button[disabled]{opacity:.28}
 
 .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px}
