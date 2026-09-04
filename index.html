@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=38">
+<link rel="stylesheet" href="assets/fonts.css?v=39">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=38">
+<link rel="stylesheet" href="assets/client-theme.css?v=39">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -302,8 +302,8 @@
       </svg>
       <h3 id="rcptModalTitle">جارٍ فحص الإيصال…</h3>
       <p id="rcptModalNote">لحظة من فضلك.</p>
-      <a class="wa" id="rcptModalWa" hidden target="_blank" rel="noopener">تواصلي معنا عبر واتساب</a>
       <button class="ok" type="button" id="rcptModalOk" hidden>حسنًا</button>
+      <a class="rcpt-wa" id="rcptModalWa" hidden target="_blank" rel="noopener">تواصلي معنا عبر واتساب</a>
     </div>
   </div>
 
@@ -461,7 +461,7 @@ import {
   uploadReceipt, depositFor, verifyReceipt, checkReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=38';
+} from './assets/db.js?v=39';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا

@@ -7,6 +7,8 @@
 
 :root{
   --espresso:#150c09; --cocoa:#26150f; --clay:#b0705c; --clay-2:#c98a72;
+  /* الطينيّ نصًّا على الورق: --clay يعطي ٣٫٦٤:١ وهو دون الحدّ، وهذا ٤٫٨:١. */
+  --clay-ink:#9c5c48;
   --blush:#e6c2b1; --sand:#d9c4b3;
   --paper:#faf5f0; --paper-2:#f2e7de; --ink:#2b1c16; --muted:#8a7568;
   --line-d:rgba(255,255,255,.16); --line-l:rgba(43,28,22,.13);
@@ -258,8 +260,15 @@ button{border:0;background:none;cursor:pointer}
 .rcpt-modal .ok{margin-top:18px;width:100%;height:46px;background:var(--clay);
   color:#fff;font-size:15px;transition:background .2s ease}
 .rcpt-modal .ok:hover{background:var(--clay-2)}
-.rcpt-modal .wa{display:block;margin-top:14px;font-size:13px;color:var(--clay);
-  text-decoration:underline;text-underline-offset:3px}
+/* اسمٌ لا يشاركه أحد: الصنف .wa مأخوذٌ لبطاقة التواصل الكبيرة، فورثت
+   الوصلةُ خلفيّتَها الطينية وبقي نصُّها طينيًّا — فاختفى في لونه.
+   وهي دون «حسنًا» في الرتبة: تلك تُغلق وتُعيد المحاولة، وهذه مخرجٌ عند
+   تكرار الفشل. فتُرسم مفرَّغةً بحدٍّ لا مملوءة، ولا يتنازع لونان. */
+.rcpt-modal .rcpt-wa{display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-top:10px;width:100%;height:46px;background:transparent;
+  border:1px solid var(--clay-ink);color:var(--clay-ink);font-size:14px;
+  text-decoration:none;transition:background .2s ease,color .2s ease}
+.rcpt-modal .rcpt-wa:hover{background:var(--clay-ink);color:#fff}
 .rcpt-modal [hidden]{display:none!important}
 /* ثلاث نقاطٍ تتعاقب: حركةٌ تكفي للدلالة على العمل بلا ضجيج. */
 .rcpt-modal .spin{display:flex;gap:7px;justify-content:center;height:34px;align-items:center}
