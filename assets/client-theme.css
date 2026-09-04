@@ -215,6 +215,15 @@ button{border:0;background:none;cursor:pointer}
 .block-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px}
 .block-head h3{margin:0;font-size:15px;font-weight:400}
 .block-head span{font-size:9.5px;color:var(--muted);letter-spacing:.04em}
+/* شريط الشهر: الاسم في الوسط وسهمان حوله — كما في لوحة إيمان. */
+.calnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px}
+.calnav[hidden]{display:none}
+.calnav b{font:500 17px/1 var(--serif);letter-spacing:.02em;direction:rtl}
+.calnav button{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--line-l);
+  background:rgba(255,255,255,.55);color:var(--ink);transition:.2s ease}
+.calnav button:hover:not([disabled]){border-color:var(--clay);color:var(--clay)}
+.calnav button[disabled]{opacity:.28}
+
 .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px}
 .dow span{text-align:center;font-size:11px;line-height:1.2;color:var(--muted);white-space:nowrap;overflow:hidden}
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
@@ -325,7 +334,7 @@ button{border:0;background:none;cursor:pointer}
 .rcpt-chk.ok{color:var(--clay)}
 .rcpt-chk.bad{color:#a8493f}
 @keyframes chkPulse{0%,100%{opacity:.25}50%{opacity:1}}
-.rcpt-prev[hidden],.mpick[hidden]{display:none}
+.rcpt-prev[hidden]{display:none}
 .rcpt-prev{display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:center;padding:10px;border:1px solid var(--line-l);background:rgba(255,255,255,.62)}
 .rcpt-prev img{width:54px;height:54px;object-fit:cover;border-radius:4px}
 .rcpt-prev img[hidden]{display:none}

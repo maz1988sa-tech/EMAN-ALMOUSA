@@ -87,18 +87,16 @@
           </div>
 
           <div data-anim="3" class="block-wrap">
-            <div class="block-head"><h3>التاريخ</h3>
-              <button class="month-btn" type="button" id="monthBtn"><span id="monthLabel">—</span>
-                <svg width="9" height="6" viewBox="0 0 9 6" fill="none" aria-hidden="true"><path d="m1 1 3.5 3.5L8 1" stroke="currentColor" stroke-width="1.1"/></svg>
+            <div class="block-head"><h3>التاريخ</h3></div>
+            <!-- في RTL يقع «السابق» يمينًا، فيشير سهمُه يمينًا نحو الخارج. -->
+            <div class="calnav" id="calNav">
+              <button type="button" id="mPrev" aria-label="الشهر السابق">
+                <svg width="8" height="13" viewBox="0 0 8 13" fill="none" aria-hidden="true"><path d="M1.2 1.2 6.6 6.5 1.2 11.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </button>
-            </div>
-            <div class="mpick" id="mpick" hidden>
-              <div class="mp-head">
-                <button type="button" id="yPrev" aria-label="سنة سابقة">‹</button>
-                <b id="yLabel">—</b>
-                <button type="button" id="yNext" aria-label="سنة تالية">›</button>
-              </div>
-              <div class="mp-grid" id="mpGrid"></div>
+              <b id="monthLabel">—</b>
+              <button type="button" id="mNext" aria-label="الشهر التالي">
+                <svg width="8" height="13" viewBox="0 0 8 13" fill="none" aria-hidden="true"><path d="M6.8 1.2 1.4 6.5l5.4 5.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
             </div>
             <div class="cal" id="cal">
               <div class="dow"><span>أحد</span><span>اثنين</span><span>ثلاثاء</span><span>أربعاء</span><span>خميس</span><span>جمعة</span><span>سبت</span></div>
@@ -729,14 +727,14 @@ el('cartGo').addEventListener('click', () => go(2));
    ════════════════════════════════════════════════════════════════════════ */
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 const DOW = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-const week = el('week'), times = el('times'), mpick = el('mpick'), mpGrid = el('mpGrid');
+const week = el('week'), times = el('times');
 const todayDate = parseDate(today());
-let curY = todayDate.getFullYear(), curM = todayDate.getMonth(), pickY = curY, monthBusy = false;
+let curY = todayDate.getFullYear(), curM = todayDate.getMonth(), monthBusy = false;
 let monthPending = null, monthMins = null;   // آخر مدة بُنيت عليها إتاحة الشهر
 
 function showCal(open) {
   el('cal').hidden = !open;
-  el('monthBtn').hidden = !open;
+  el('calNav').hidden = !open;
   el('dateChip').hidden = open || !state.date;
   el('timeBlock').hidden = open || !state.date;
   el('toConfirm').disabled = !(state.date && state.time);
@@ -749,7 +747,7 @@ async function loadMonth(y, m) {
   if (monthBusy) { monthPending = [y, m]; return; }
   monthBusy = true;
   monthMins = totalMins();
-  el('monthLabel').textContent = `${MONTHS[m]} ${y}`;
+  renderNav();
   week.innerHTML = `<div class="sk" style="grid-column:1/-1;height:120px"></div>`;
   const first = isoDate(new Date(y, m, 1));
   const last = new Date(y, m + 1, 0);
@@ -829,27 +827,33 @@ function renderSlots() {
   });
 }
 
-/* منتقي الشهور */
-function renderPicker() {
-  el('yLabel').textContent = pickY;
-  el('yPrev').disabled = pickY <= todayDate.getFullYear();
-  el('yNext').disabled = pickY >= todayDate.getFullYear() + UI.monthsAhead;
-  mpGrid.innerHTML = '';
-  MONTHS.forEach((name, i) => {
-    const b = document.createElement('button');
-    b.type = 'button'; b.textContent = name;
-    if (pickY === todayDate.getFullYear() && i < todayDate.getMonth()) b.disabled = true;
-    if (pickY === curY && i === curM) b.classList.add('on');
-    b.addEventListener('click', () => {
-      curY = pickY; curM = i; mpick.hidden = true; showCal(true); loadMonth(curY, curM);
-    });
-    mpGrid.appendChild(b);
-  });
+/* تنقّل الشهور — كما في لوحة إيمان: الاسم في الوسط وسهمان حوله.
+   وحدُّه من الجهتين حقيقيّ: لا شهرَ مضى، ولا شهرَ يقع كلُّه بعد أقصى مدى
+   يقبل الحجز — فلا تتنقّل العميلة إلى شهرٍ لن تجد فيه يومًا واحدًا. */
+function monthBounds() {
+  const first = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
+  const days = Number(state.settings?.max_advance_days) || (UI.monthsAhead * 365);
+  const far = new Date(todayDate.getFullYear(), todayDate.getMonth(),
+                       todayDate.getDate() + days);
+  return { first, last: new Date(far.getFullYear(), far.getMonth(), 1) };
 }
-el('monthBtn').addEventListener('click', (e) => { e.stopPropagation(); pickY = curY; renderPicker(); mpick.hidden = !mpick.hidden; });
-el('yPrev').addEventListener('click', (e) => { e.stopPropagation(); pickY -= 1; renderPicker(); });
-el('yNext').addEventListener('click', (e) => { e.stopPropagation(); pickY += 1; renderPicker(); });
-document.addEventListener('click', (e) => { if (!mpick.hidden && !mpick.contains(e.target)) mpick.hidden = true; });
+function renderNav() {
+  const { first, last } = monthBounds();
+  const cur = new Date(curY, curM, 1);
+  el('monthLabel').textContent = `${MONTHS[curM]} ${curY}`;
+  el('mPrev').disabled = cur <= first;
+  el('mNext').disabled = cur >= last;
+}
+function moveMonth(step) {
+  const d = new Date(curY, curM + step, 1);
+  const { first, last } = monthBounds();
+  if (d < first || d > last) return;
+  curY = d.getFullYear(); curM = d.getMonth();
+  renderNav();
+  loadMonth(curY, curM);
+}
+el('mPrev').addEventListener('click', () => moveMonth(-1));
+el('mNext').addEventListener('click', () => moveMonth(1));
 el('dateChip').addEventListener('click', () => showCal(true));
 el('changeSvc').addEventListener('click', () => go(1));
 el('toConfirm').addEventListener('click', () => go(3));
