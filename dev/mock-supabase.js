@@ -89,6 +89,7 @@
     beneficiary_name:'إيمان آل موسى', receipt_ocr_required:false,
     instagram_url:'https://instagram.com/example',
     tiktok_url:'https://tiktok.com/@example',
+    show_closed_months:true, closed_month_word:'غير مفتوحة',
   };
 
   const ok = (data) => Promise.resolve({ data, error: null });
