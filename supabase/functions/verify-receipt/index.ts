@@ -1,7 +1,11 @@
 // فحص إيصال العربون: يقرأ الصورة المرفوعة ويسجّل ما رآه فيها.
 //
-// الحكم ليس هنا بل في create_booking، حيث يُحسب العربون من قاعدة البيانات.
-// المتصفّح لا يُصدَّق في مبلغ ولا في نتيجة فحص.
+// الحكم ليس هنا بل في receipt_state داخل القاعدة، حيث يُحسب العربون من
+// الخدمات لا مما أرسله المتصفّح. وهذه تقرأ وتسجّل فقط.
+//
+// وشرطان يجتمعان هناك: آيبان صاحبة العمل، ومبلغٌ يبلغ العربون. كانت
+// الكلمات وحدها تكفي، ففاتورة سينما فيها SAR ورقمٌ كبير مرّت. فصار
+// الآيبان شرطًا لا قرينة — وهو الدليل الذي لا تحمله صورةٌ من مكانٍ آخر.
 //
 // ملاحظة على اللغة: المفتاح المجاني لدى مزوّد القراءة لا يقبل العربية
 // (يردّ E201 على language=ara مهما كان المحرّك). فالقراءة تجري بالمحرّك ٣
@@ -13,7 +17,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const PATH_RE = /^pending\/[0-9a-f-]{36}\.(jpg|jpeg|png|webp|heic|pdf)$/;
 const MAX_BYTES = 1024 * 1024;
-const IBAN_TAIL = 8;          // آخر ثماني خانات تكفي للتمييز ولا تتأثّر بخطأ قراءة في الصدر
+const IBAN_TAIL_DEFAULT = 6;  // يُضبَط من الإعدادات: أقصر يسامح خطأ القراءة، وأطول يشدّد
 
 /* كلمات تدلّ على إيصال. العربية تُبقى لأن المحرّك ٣ يلتقط بعضها،
    واللاتينية هي الأوثق ما دامت العربية غير مدعومة. */
@@ -63,12 +67,12 @@ const found = (t: string) => {
 
 /** هل يحمل النصّ آيبان صاحبة العمل؟ تُجرَّد كل الفواصل والمسافات من
  *  الجانبين، ثم يُبحث عن ذيل الآيبان — فلا يضرّ خطأ قراءة في أوّله. */
-function ibanSeen(text: string, iban: string | null) {
+function ibanSeen(text: string, iban: string | null, tail: number) {
   if (!iban) return false;
   const want = toLatin(iban).replace(/\D/g, '');
-  if (want.length < IBAN_TAIL) return false;
+  if (want.length < tail) return false;
   const hay = toLatin(text).replace(/\D/g, '');
-  return hay.includes(want.slice(-IBAN_TAIL));
+  return hay.includes(want.slice(-tail));
 }
 
 async function ocr(key: string, bytes: Uint8Array, ext: string) {
@@ -147,8 +151,10 @@ Deno.serve(async (req) => {
       return reply({ ok: false, reason: 'ocr_failed', detail });
     }
 
-    const { data: cfg } = await db.from('settings').select('iban').eq('id', 1).maybeSingle();
-    const iban_hit = ibanSeen(text, cfg?.iban ?? null);
+    const { data: cfg } = await db.from('settings')
+      .select('iban, receipt_iban_digits').eq('id', 1).maybeSingle();
+    const tail = Math.min(24, Math.max(5, Number(cfg?.receipt_iban_digits) || IBAN_TAIL_DEFAULT));
+    const iban_hit = ibanSeen(text, cfg?.iban ?? null, tail);
     const { numbers, strong } = extractAmounts(text);
     const keywords = found(text);
 
@@ -165,11 +171,9 @@ Deno.serve(async (req) => {
       raw_text: text.trim().slice(0, 4000) || null,
     });
 
-    return reply({
-      ok: true, keywords, iban_hit,
-      numbers: strong.length ? strong : numbers,
-      textLen: text.trim().length,
-    });
+    // ما يعود إلى المتصفّح لا يحمل حكمًا: الحكم في القاعدة، والمتصفّح
+    // يسألها عنه. فلا يتعلّم أحدٌ من الجواب أيَّ شرطٍ سقط.
+    return reply({ ok: true, textLen: text.trim().length });
   } catch (e) {
     return reply({ ok: false, reason: 'server_error', detail: String(e) }, 500);
   }

@@ -100,7 +100,7 @@
     tiktok_url:'https://tiktok.com/@example',
     show_closed_months:true, closed_month_word:'غير مفتوحة',
     wa_auto_enabled:false, wa_phone_id:null, wa_quiet_from:22, wa_quiet_to:9,
-    wa_test_phone:null,
+    wa_test_phone:null, receipt_iban_digits:6,
   };
 
   const ok = (data) => Promise.resolve({ data, error: null });
@@ -194,6 +194,17 @@
             return ok([{ ...b, items: b.booking_items }]);
           }
           if (fn === 'get_public_settings') return ok([SETTINGS]);
+
+          /* حكم الإيصال: يُملى من الفحص عبر window.__RECEIPT__ ليُجرَّب
+             القبولُ والرفض والانتظار بلا قراءةٍ حقيقية للصورة. */
+          if (fn === 'check_receipt') {
+            (window.__CHECKS = window.__CHECKS || []).push(args);
+            const v = window.__RECEIPT__ || 'ok';
+            const d = Number(window.__RECEIPT_DELAY__) || 0;
+            // الفحص الحقيقي يستغرق ثوانيَ؛ التأخير يجعل حال الانتظار قابلةً للقياس.
+            return d ? new Promise((r) => setTimeout(() => r({ data: v, error: null }), d))
+                     : ok(v);
+          }
 
           /* ــ الرسائل التلقائية: جدولةٌ مبسّطة تكفي لفحص اللوحة ــــــــــ */
           if (fn === 'render_template') {

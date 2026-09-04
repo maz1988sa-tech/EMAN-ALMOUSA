@@ -346,6 +346,18 @@ export async function verifyReceipt(path) {
   }
 }
 
+/** حكم القاعدة على الإيصال: 'ok' أو 'bad' أو 'wait'.
+ *
+ *  الحرف الواحد كلُّ ما يعود — لا مبلغَ ولا سببَ ولا أيُّ شرطٍ سقط. ومن
+ *  عرف السبب صنع صورةً تتجاوزه، فلا يُقال. والعربون يُحسب هناك من
+ *  الخدمات لا مما يرسله هذا الملفّ. */
+export async function checkReceipt(path, serviceIds) {
+  const { data, error } = await sb.rpc('check_receipt',
+    { p_path: path, p_service_ids: serviceIds });
+  if (error) throw error;
+  return data === 'ok' || data === 'bad' || data === 'wait' ? data : 'wait';
+}
+
 export async function createBooking(payload) {
   const { data, error } = await sb.rpc('create_booking', {
     p_client_name:  payload.name,
