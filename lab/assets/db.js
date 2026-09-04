@@ -535,6 +535,23 @@ export const TEMPLATE_FIELDS = [
   '{العربون}', '{المتبقي}', '{الموقع}', '{رابط الحجز}', '{الاسم التجاري}',
 ];
 
+/* رسائل الأعمال عند ميتا لا تُرسل نصًّا حرًّا: تُعتمد قوالبها مسبقًا،
+   ومتغيّراتها مرقّمة. وهذا يترجم أسماء إيمان إلى أرقامها بترتيب ظهورها
+   — نفس ترتيب wa_vars في القاعدة، فما تنسخه هو ما يُرسَل. */
+export function waVars(body) {
+  const out = [];
+  for (const m of String(body || '').matchAll(/\{[^}]{1,24}\}/g)) {
+    if (!out.includes(m[0])) out.push(m[0]);
+  }
+  return out;
+}
+
+export function waTemplateText(body) {
+  let out = String(body || '');
+  waVars(body).forEach((v, i) => { out = out.split(v).join(`{{${i + 1}}}`); });
+  return out;
+}
+
 export function fillTemplate(body, b = {}, extra = {}) {
   const items = b.booking_items || b.items || [];
   const due = Number(b.price || 0) - Number(b.deposit || 0);
@@ -687,6 +704,21 @@ export const admin = {
       { p_body: body, p_booking: bookingId });
     if (error) throw error;
     return data || '';
+  },
+
+  /** رسالة تجربة إلى رقمٍ تكتبه إيمان. نصٌّ حرّ لا قالب، فيلزم أن تكون
+   *  راسلَت الرقمَ من جوّالها قبل قليل — وإلّا رفضه واتساب. */
+  async sendTest(phone) {
+    const { data, error } = await sb.rpc('admin_send_test', { p_phone: phone });
+    if (error) throw error;
+    return data;
+  },
+
+  /** قراءة جواب ميتا فورًا بدل انتظار الدورة. */
+  async reconcile() {
+    const { data, error } = await sb.rpc('admin_reconcile');
+    if (error) throw error;
+    return Number(data) || 0;
   },
 
   async services() {

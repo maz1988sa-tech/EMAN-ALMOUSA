@@ -38,8 +38,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=36">
-<link rel="stylesheet" href="assets/theme.css?v=36">
+<link rel="stylesheet" href="assets/fonts.css?v=37">
+<link rel="stylesheet" href="assets/theme.css?v=37">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -200,7 +200,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=36"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=37"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -234,17 +234,17 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=36';
+import { icon, hydrateIcons } from './assets/icons.js?v=37';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
   today, addDays, parseDate, weekday, daysBetween, addMinutes, prettyPhone, telHref, waHref, isoDate,
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
   receiptUrl, purgeOrphanReceipts, uuid, isOffline, NET_MSG, backups,
-  fillTemplate, TEMPLATE_FIELDS, groupItems,
+  fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=36';
+} from './assets/db.js?v=37';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -1680,7 +1680,16 @@ function renderMessages() {
     <div class="card mb">
       <p class="label">الإرسال التلقائي</p>
       ${live
-        ? `<p class="hint" style="margin-top:0">مربوطة برقم واتساب — الرسائل المفعّلة تخرج وحدها.</p>`
+        ? `<p class="hint" style="margin-top:0">مربوطة برقم واتساب — الرسائل المفعّلة تخرج وحدها.</p>
+           <div class="split" style="margin-top:10px">
+             <div class="field" style="margin:0"><label class="label" for="wa-test">جرّبي على رقمك</label>
+               <input class="input ltr" id="wa-test" type="tel" inputmode="numeric" placeholder="05xxxxxxxx"
+                      value="${esc(s.wa_test_phone ? prettyPhone(s.wa_test_phone) : '')}"></div>
+             <div class="field" style="margin:0;align-self:end">
+               <button class="btn" id="wa-send-test">${icon('whatsapp', 18)} أرسلي تجربة</button></div>
+           </div>
+           <p class="hint" style="margin:6px 0 0">راسلي رقم العمل من جوّالك أوّلًا، ثم اضغطي —
+             واتساب لا يقبل نصًّا حرًّا إلّا خلال ٢٤ ساعة من رسالتك.</p>`
         : `<div class="note mb" style="margin-top:0">${icon('bell', 18)}
              <span><b>وضع المعاينة.</b> لم يُربط رقم واتساب بعد، فلا تخرج رسالة إلى أحد.
                تُجدول كما لو كانت حقيقية وتظهر لكِ في السجلّ أسفل الصفحة — فترين
@@ -1741,6 +1750,28 @@ function renderMessages() {
     } catch (e) {
       btn.disabled = false;
       document.getElementById('wa-err').innerHTML = note(isOffline(e) ? NET_MSG : e.message);
+    }
+  };
+
+  const testBtn = document.getElementById('wa-send-test');
+  if (testBtn) testBtn.onclick = async () => {
+    const raw = document.getElementById('wa-test').value.trim();
+    const phone = normalisePhone(raw);
+    const err = document.getElementById('wa-err');
+    if (!phone) { err.innerHTML = note('رقم غير صحيح.'); return; }
+    testBtn.disabled = true; testBtn.textContent = 'جارٍ الإرسال…';
+    try {
+      await admin.saveSettings({ wa_test_phone: phone });
+      await admin.sendTest(phone);
+      // النداء لا ينتظر جوابه، فيُقرأ بعد لحظة ويُعرض في السجلّ.
+      await new Promise((r) => setTimeout(r, 2500));
+      await admin.reconcile();
+      toast('أُرسلت — راجعي السجلّ أدناه', 'ok');
+      loadOutbox();
+    } catch (e) {
+      err.innerHTML = note(isOffline(e) ? NET_MSG : e.message);
+    } finally {
+      testBtn.disabled = false; testBtn.innerHTML = `${icon('whatsapp', 18)} أرسلي تجربة`;
     }
   };
 
@@ -1833,6 +1864,29 @@ function openTemplate(t) {
           </select></div>
       </div>
       <p class="hint" id="t-auto-sum" style="margin:10px 0 0"></p>
+
+      <div id="t-meta" hidden style="margin-top:16px;padding-top:14px;border-top:1px solid var(--glass-line)">
+        <p class="label">قالبها عند ميتا</p>
+        <p class="hint" style="margin-top:0">واتساب لا يرسل رسالةً تبدأينها أنتِ إلّا بنصٍّ
+          معتمدٍ مسبقًا. انسخي النصّ أدناه كما هو وقدّميه في مدير القوالب، ثم اكتبي هنا
+          الاسم الذي سجّلتِه واعتمديه.</p>
+        <div class="field"><label class="label" for="t-wa-name">اسم القالب عند ميتا
+          <span class="opt">(حروف لاتينية صغيرة وشُرَط سفلية)</span></label>
+          <input class="input ltr" id="t-wa-name" dir="ltr" placeholder="booking_confirmed"
+                 value="${esc(t.wa_template_name || '')}"></div>
+        <div class="card mb" style="margin:0 0 10px">
+          <p class="label">النصّ كما يُقدَّم لميتا</p>
+          <p class="hint ltr" id="t-meta-text" dir="rtl"
+             style="white-space:pre-wrap;margin:0 0 8px"></p>
+          <p class="hint" id="t-meta-vars" style="margin:0 0 10px"></p>
+          <button class="btn" type="button" id="t-meta-copy">${icon('copy', 18)} انسخي نصّ القالب</button>
+        </div>
+        <label class="toggle" style="padding:6px 0">
+          <input type="checkbox" id="t-wa-ok" ${t.wa_template_ok ? 'checked' : ''}>
+          <span class="grow"><span class="t">اعتمدت ميتا هذا القالب</span>
+          <span class="s">لا تُرسل الرسالة تلقائيًا قبل أن تؤشّري هنا — وإلّا رفضها واتساب.</span></span>
+          <span class="sw"></span></label>
+      </div>
     </div>
 
     <div id="t-err"></div>
@@ -1848,7 +1902,8 @@ function openTemplate(t) {
 
   const preview = () => { g('t-prev').textContent = fillTemplate(g('t-body').value, sample,
     { business: S.settings?.business_name, link: 'https://eman-aalmousa.com/?t=…' }); };
-  g('t-body').oninput = preview; preview();
+  g('t-body').oninput = () => { preview(); if (!g('t-meta').hidden) metaFields(); };
+  preview();
 
   // الإدراج عند مؤشّر الكتابة لا في آخر النصّ — وإلا صار الحقل عبئًا.
   g('t-fields').querySelectorAll('[data-f]').forEach((b) => b.onclick = () => {
@@ -1866,6 +1921,17 @@ function openTemplate(t) {
     g('t-auto-sum').textContent = !v
       ? 'هذه الرسالة تُرسلينها بيدك من بطاقة العميلة.'
       : `ستُرسل تلقائيًا: ${autoLabel(readAuto())}.`;
+    // قالب ميتا لا يلزم إلّا رسالةً تخرج وحدها؛ اليدوية نصٌّ حرّ.
+    g('t-meta').hidden = !v;
+    if (v) metaFields();
+  };
+  const metaFields = () => {
+    const body = g('t-body').value;
+    const vars = waVars(body);
+    g('t-meta-text').textContent = waTemplateText(body);
+    g('t-meta-vars').textContent = vars.length
+      ? `المتغيّرات بالترتيب: ${vars.map((x, i) => `{{${i + 1}}} = ${x}`).join(' · ')}`
+      : 'لا متغيّرات في هذه الرسالة.';
   };
   const readAuto = () => {
     const v = g('t-trig').value;
@@ -1878,11 +1944,20 @@ function openTemplate(t) {
         ? Math.min(43200, Math.max(1, Number(g('t-num').value) || 1) * Number(g('t-unit').value))
         : 0,
       auto_at_hour: timed && g('t-hour').value !== '' ? Number(g('t-hour').value) : null,
+      wa_template_name: g('t-wa-name').value.trim() || null,
+      wa_template_ok: g('t-wa-name').value.trim() ? g('t-wa-ok').checked : false,
     };
   };
   ['t-trig', 't-num', 't-unit', 't-hour'].forEach((id) => { g(id).onchange = autoFields; });
   g('t-num').oninput = autoFields;
   autoFields();
+
+  g('t-meta-copy').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(g('t-meta-text').textContent);
+      toast('نُسخ نصّ القالب', 'ok');
+    } catch { toast('انسخيه يدويًا من الصندوق', 'danger'); }
+  };
 
   g('t-save').onclick = async () => {
     const title = g('t-title').value.trim(), body = g('t-body').value.trim();

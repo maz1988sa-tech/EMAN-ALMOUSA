@@ -70,14 +70,17 @@
   const TEMPLATES = [
     { id:'t1', title:'تأكيد الموعد', pinned:true, sort:1, active:true, builtin:true,
       auto_enabled:false, auto_trigger:null, auto_offset_min:0, auto_at_hour:null,
+      wa_template_name:null, wa_template_lang:'ar', wa_template_ok:false,
       body:'أهلاً {الاسم} 🌸\nتم تأكيد موعدك مع {الاسم التجاري}:\n\n📅 {التاريخ}\n🕐 {الوقت}\n💄 {الخدمة}\n💰 الإجمالي: {الإجمالي}\n\nلمتابعة حجزك:\n{رابط الحجز}\n\nبانتظارك 💗',
       created_at:new Date().toISOString() },
     { id:'t2', title:'تذكير قبل الموعد', pinned:false, sort:2, active:true, builtin:true,
       auto_enabled:true, auto_trigger:'before_appt', auto_offset_min:1440, auto_at_hour:18,
+      wa_template_name:'appt_reminder', wa_template_lang:'ar', wa_template_ok:true,
       body:'تذكير بموعدك غدًا مع {الاسم التجاري} 🌸\n\n📅 {التاريخ}\n🕐 {الوقت}\n📍 {الموقع}\n\nالمتبقي: {المتبقي}\n\nنراكِ غدًا 💗',
       created_at:new Date().toISOString() },
     { id:'t3', title:'طلب العربون', pinned:false, sort:3, active:true, builtin:false,
       auto_enabled:false, auto_trigger:null, auto_offset_min:0, auto_at_hour:null,
+      wa_template_name:null, wa_template_lang:'ar', wa_template_ok:false,
       body:'أهلاً {الاسم} 🌸\nلتثبيت موعد {التاريخ} الساعة {الوقت} يلزم عربون {العربون} من إجمالي {الإجمالي}.\n\nشاكرين لكِ 💗',
       created_at:new Date().toISOString() },
   ];
@@ -97,6 +100,7 @@
     tiktok_url:'https://tiktok.com/@example',
     show_closed_months:true, closed_month_word:'غير مفتوحة',
     wa_auto_enabled:false, wa_phone_id:null, wa_quiet_from:22, wa_quiet_to:9,
+    wa_test_phone:null,
   };
 
   const ok = (data) => Promise.resolve({ data, error: null });
@@ -236,6 +240,20 @@
             return ok(OUTBOX.length);
           }
           if (fn === 'admin_outbox') return ok(OUTBOX.slice(0, args?.p_limit || 100));
+          if (fn === 'admin_send_test') {
+            OUTBOX.unshift({ id:'ob-test', booking_id:null, ref:'—', client_name:'رسالة تجربة',
+              to_phone:args.p_phone, title:'تجربة الإرسال', trigger_kind:'test',
+              due_at:new Date().toISOString(), status:'sending',
+              body:'رسالة تجربة من إيمان آل موسى — إن وصلتك هذه فالإرسال التلقائي يعمل.',
+              error:null, sent_at:null });
+            return ok('ob-test');
+          }
+          if (fn === 'admin_reconcile') {
+            OUTBOX.filter(o => o.status === 'sending').forEach((o) => {
+              o.status = 'sent'; o.sent_at = new Date().toISOString(); o.error = null;
+            });
+            return ok(1);
+          }
           if (fn === 'request_cancel') return ok(true);
           return ok([]);
         },
