@@ -663,6 +663,32 @@ export const admin = {
     if (error) throw error;
   },
 
+  /* ــ الرسائل التلقائية ــــــــــــــــــــــــــــــــــــــــــــــــــ */
+
+  /** الطابور كما تراه اللوحة: ما جُدول وما أُرسل وما فشل ولماذا. */
+  async outbox(limit = 100) {
+    const { data, error } = await sb.rpc('admin_outbox', { p_limit: limit });
+    if (error) throw error;
+    return data || [];
+  },
+
+  /** بعد تغيير توقيت رسالةٍ تلقائية: تسري على الحجوزات القائمة لا القادمة
+   *  وحدها. تمسح ما لم يُرسل وتعيد بناءه. */
+  async rescheduleAuto() {
+    const { data, error } = await sb.rpc('admin_reschedule_auto');
+    if (error) throw error;
+    return Number(data) || 0;
+  },
+
+  /** المعاينة تُصاغ في القاعدة لا في المتصفّح: النصّ الذي يظهر هنا هو
+   *  النصّ الذي يصل العميلة حرفًا بحرف. */
+  async renderTemplate(body, bookingId) {
+    const { data, error } = await sb.rpc('render_template',
+      { p_body: body, p_booking: bookingId });
+    if (error) throw error;
+    return data || '';
+  },
+
   async services() {
     const { data, error } = await sb.from('services').select('*').order('sort');
     if (error) throw error;

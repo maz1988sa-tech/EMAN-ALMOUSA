@@ -69,15 +69,21 @@
 
   const TEMPLATES = [
     { id:'t1', title:'تأكيد الموعد', pinned:true, sort:1, active:true, builtin:true,
+      auto_enabled:false, auto_trigger:null, auto_offset_min:0, auto_at_hour:null,
       body:'أهلاً {الاسم} 🌸\nتم تأكيد موعدك مع {الاسم التجاري}:\n\n📅 {التاريخ}\n🕐 {الوقت}\n💄 {الخدمة}\n💰 الإجمالي: {الإجمالي}\n\nلمتابعة حجزك:\n{رابط الحجز}\n\nبانتظارك 💗',
       created_at:new Date().toISOString() },
     { id:'t2', title:'تذكير قبل الموعد', pinned:false, sort:2, active:true, builtin:true,
+      auto_enabled:true, auto_trigger:'before_appt', auto_offset_min:1440, auto_at_hour:18,
       body:'تذكير بموعدك غدًا مع {الاسم التجاري} 🌸\n\n📅 {التاريخ}\n🕐 {الوقت}\n📍 {الموقع}\n\nالمتبقي: {المتبقي}\n\nنراكِ غدًا 💗',
       created_at:new Date().toISOString() },
     { id:'t3', title:'طلب العربون', pinned:false, sort:3, active:true, builtin:false,
+      auto_enabled:false, auto_trigger:null, auto_offset_min:0, auto_at_hour:null,
       body:'أهلاً {الاسم} 🌸\nلتثبيت موعد {التاريخ} الساعة {الوقت} يلزم عربون {العربون} من إجمالي {الإجمالي}.\n\nشاكرين لكِ 💗',
       created_at:new Date().toISOString() },
   ];
+
+  // الطابور الوهميّ: يمتلئ من schedule المحاكى، وتقرؤه اللوحة كما تقرأ الحقيقيّ.
+  const OUTBOX = [];
 
   const SETTINGS = {
     id:1, business_name:'إيمان آل موسى', tagline:'ميك اب عرائس ومناسبات', timezone:'Asia/Riyadh',
@@ -90,6 +96,7 @@
     instagram_url:'https://instagram.com/example',
     tiktok_url:'https://tiktok.com/@example',
     show_closed_months:true, closed_month_word:'غير مفتوحة',
+    wa_auto_enabled:false, wa_phone_id:null, wa_quiet_from:22, wa_quiet_to:9,
   };
 
   const ok = (data) => Promise.resolve({ data, error: null });
@@ -183,6 +190,52 @@
             return ok([{ ...b, items: b.booking_items }]);
           }
           if (fn === 'get_public_settings') return ok([SETTINGS]);
+
+          /* ــ الرسائل التلقائية: جدولةٌ مبسّطة تكفي لفحص اللوحة ــــــــــ */
+          if (fn === 'render_template') {
+            const b = BOOKINGS.find(x => x.id === args.p_booking) || BOOKINGS[0] || {};
+            const items = b.booking_items || [];
+            const M = new Intl.NumberFormat('ar-SA-u-nu-latn', { maximumFractionDigits: 0 });
+            const rs = (v) => `${M.format(Math.round(Number(v) || 0))} ر.س`;
+            const DOW = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+            const MON = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس',
+                         'سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+            const [Y,Mo,D] = String(b.the_date || '').split('-').map(Number);
+            const dt = new Date(Y, (Mo||1)-1, D||1);
+            const [hh,mm] = String(b.start_time || '00:00').split(':');
+            const h24 = Number(hh);
+            const map = {
+              '{الاسم}': b.client_name || '',
+              '{التاريخ}': `${DOW[dt.getDay()]} ${dt.getDate()} ${MON[dt.getMonth()]} ${dt.getFullYear()}`,
+              '{الوقت}': `${h24 % 12 === 0 ? 12 : h24 % 12}:${String(mm).padStart(2,'0')} ${h24 < 12 ? 'ص' : 'م'}`,
+              '{الخدمة}': items.map(i => i.service_name).filter(Boolean).join(' + '),
+              '{الإجمالي}': rs(b.price), '{العربون}': rs(b.deposit),
+              '{المتبقي}': rs(Math.max(Number(b.price||0) - Number(b.deposit||0), 0)),
+              '{الموقع}': b.loc_text || '',
+              '{رابط الحجز}': `https://eman-aalmousa.com/?t=${b.public_token || ''}`,
+              '{الاسم التجاري}': SETTINGS.business_name,
+            };
+            return ok(String(args.p_body || '').replace(/\{[^}]{1,24}\}/g,
+              (m) => (m in map ? map[m] : m)));
+          }
+          if (fn === 'admin_reschedule_auto') {
+            OUTBOX.length = 0;
+            const live = !!SETTINGS.wa_auto_enabled && !!SETTINGS.wa_phone_id;
+            TEMPLATES.filter(t => t.auto_enabled && t.auto_trigger).forEach((t) => {
+              BOOKINGS.slice(0, 3).forEach((b, i) => {
+                const due = new Date(Date.now() + (i - 1) * 86400000);
+                OUTBOX.push({ id: `ob-${t.id}-${b.id}`, booking_id: b.id, ref: b.ref,
+                  client_name: b.client_name, to_phone: b.client_phone, title: t.title,
+                  trigger_kind: t.auto_trigger, due_at: due.toISOString(),
+                  status: due <= new Date() ? (live ? 'failed' : 'preview') : 'queued',
+                  body: due <= new Date() ? t.body : null,
+                  error: due <= new Date() && !live ? 'وضع المعاينة — لم يُربط حساب واتساب بعد' : null,
+                  sent_at: null });
+              });
+            });
+            return ok(OUTBOX.length);
+          }
+          if (fn === 'admin_outbox') return ok(OUTBOX.slice(0, args?.p_limit || 100));
           if (fn === 'request_cancel') return ok(true);
           return ok([]);
         },
