@@ -1,0 +1,144 @@
+/* Fonts are served from the app itself, not from a CDN: this is a phone-first
+   tool used in a client's home, and Arabic text falling back to a system
+   serif mid-appointment is not acceptable. Arabic and Latin ranges are split
+   so a page only downloads the script it actually paints. */
+
+@font-face {
+  font-family: 'Amiri'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('fonts/amiri-arabic-400-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Amiri'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('fonts/amiri-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2070-209F, U+20A0-20CF;
+}
+@font-face {
+  font-family: 'Amiri'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('fonts/amiri-arabic-700-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Amiri'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('fonts/amiri-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2070-209F, U+20A0-20CF;
+}
+
+@font-face {
+  font-family: 'Tajawal'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('fonts/tajawal-arabic-400-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Tajawal'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('fonts/tajawal-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2070-209F, U+20A0-20CF;
+}
+@font-face {
+  font-family: 'Tajawal'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('fonts/tajawal-arabic-500-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Tajawal'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('fonts/tajawal-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2070-209F, U+20A0-20CF;
+}
+@font-face {
+  font-family: 'Tajawal'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('fonts/tajawal-arabic-700-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Tajawal'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('fonts/tajawal-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2070-209F, U+20A0-20CF;
+}
+
+@font-face {
+  font-family: 'Aref Ruqaa'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('fonts/aref-ruqaa-arabic-400-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Aref Ruqaa'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('fonts/aref-ruqaa-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2070-209F, U+20A0-20CF;
+}
+
+/* ── خطّا اللوحة المعتمدان ──────────────────────────────────────────────
+   ريدكس برو للعناوين والأرقام، وIBM Plex Arabic لكل ما يُقرأ سطرًا سطرًا.
+   وهما مستضافان هنا كغيرهما: سياسة المحتوى تمنع تحميل خطٍّ من نطاق آخر،
+   ولوحةٌ تفتح بخطّ النظام في بيت عميلة ليست لوحتنا. */
+
+@font-face {
+  font-family: 'Readex Pro'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('fonts/readex-pro-arabic-500-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+@font-face {
+  font-family: 'Readex Pro'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('fonts/readex-pro-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2070-209F, U+20A0-20CF;
+}
+
+@font-face {
+  font-family: 'Readex Pro'; font-style: normal; font-weight: 600; font-display: swap;
+  src: url('fonts/readex-pro-arabic-600-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+@font-face {
+  font-family: 'Readex Pro'; font-style: normal; font-weight: 600; font-display: swap;
+  src: url('fonts/readex-pro-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2070-209F, U+20A0-20CF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Arabic'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Arabic'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('fonts/ibm-plex-sans-arabic-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2070-209F, U+20A0-20CF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Arabic'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('fonts/ibm-plex-sans-arabic-arabic-500-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Arabic'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('fonts/ibm-plex-sans-arabic-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2070-209F, U+20A0-20CF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Arabic'; font-style: normal; font-weight: 600; font-display: swap;
+  src: url('fonts/ibm-plex-sans-arabic-arabic-600-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Arabic'; font-style: normal; font-weight: 600; font-display: swap;
+  src: url('fonts/ibm-plex-sans-arabic-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2070-209F, U+20A0-20CF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Arabic'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('fonts/ibm-plex-sans-arabic-arabic-700-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Arabic'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('fonts/ibm-plex-sans-arabic-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2070-209F, U+20A0-20CF;
+}

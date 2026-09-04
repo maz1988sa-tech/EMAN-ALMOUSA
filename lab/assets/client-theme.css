@@ -215,6 +215,73 @@ button{border:0;background:none;cursor:pointer}
 .block-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px}
 .block-head h3{margin:0;font-size:15px;font-weight:400}
 .block-head span{font-size:9.5px;color:var(--muted);letter-spacing:.04em}
+/* شريط الشهر: الاسم في الوسط وسهمان حوله — كما في لوحة إيمان. */
+.calnav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.calnav[hidden]{display:none}
+/* الاسم يتوسّط بالتخطيط لا بالمصادفة: يأخذ ما بين الزرّين كلَّه ويتوسّطه.
+   وخطُّه خطُّ العنوان نفسه (‏.title‏): العائلة والوزن والتتبّع — فلا يبدو
+   الشهر غريبًا عن السطر الذي فوقه. */
+.calnav .mlabel{flex:1;min-width:0;height:44px;padding:0 6px;display:flex;
+  align-items:center;justify-content:center;gap:7px;direction:rtl;color:var(--ink);
+  font-family:var(--ar);font-weight:200;font-size:23px;line-height:1.2;
+  letter-spacing:-.02em;transition:color .2s ease}
+.calnav .mlabel span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.calnav .mlabel svg{flex:none;opacity:.5;transition:transform .25s var(--ease),opacity .2s ease}
+.calnav .mlabel:hover{color:var(--clay)}
+.calnav .mlabel:hover svg{opacity:1}
+.calnav .mlabel[aria-expanded="true"] svg{transform:rotate(180deg);opacity:1}
+.calnav .arw{flex:none;width:48px;height:48px;display:grid;place-items:center;
+  border:1px solid var(--line-l);border-radius:999px;background:rgba(255,255,255,.55);
+  color:var(--ink);transition:.2s ease}
+.calnav .arw:hover:not([disabled]){border-color:var(--clay);color:var(--clay)}
+.calnav .arw:active:not([disabled]){background:rgba(255,255,255,.9)}
+.calnav .arw[disabled]{opacity:.28}
+
+/* ــ لوح الشهور: انتقالٌ سريع بلا ضغطٍ متكرّر على السهم ــــــــــــــــــ */
+.mpick{position:absolute;inset:0;z-index:56;display:flex;align-items:center;
+  justify-content:center;padding:22px;opacity:0;visibility:hidden;
+  transition:opacity .28s ease,visibility .28s}
+.mpick.open{opacity:1;visibility:visible}
+.mpick .veil{position:absolute;inset:0;background:rgba(21,12,9,.42);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.mpick .box{position:relative;width:100%;max-width:340px;padding:18px 18px 16px;
+  background:var(--paper);border:1px solid var(--line-l);
+  box-shadow:0 26px 70px rgba(20,10,7,.3);color:var(--ink);
+  transform:translateY(14px) scale(.98);transition:transform .32s var(--ease)}
+.mpick.open .box{transform:none}
+.mpick .yr{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.mpick .yr b{flex:1;text-align:center;direction:ltr;font:500 17px/1 var(--serif);
+  letter-spacing:.06em}
+.mpick .yr button{flex:none;width:40px;height:40px;display:grid;place-items:center;
+  border:1px solid var(--line-l);border-radius:999px;background:rgba(255,255,255,.55);
+  color:var(--ink);transition:.2s ease}
+.mpick .yr button:hover:not([disabled]){border-color:var(--clay);color:var(--clay)}
+.mpick .yr button[disabled]{opacity:.26}
+.mpick .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.mpick .mo{height:52px;display:grid;place-items:center;border:1px solid var(--line-l);
+  background:rgba(255,255,255,.55);font-size:15px;color:var(--ink);transition:.2s ease}
+.mpick .mo:hover:not([disabled]){border-color:var(--clay);color:var(--clay)}
+.mpick .mo.now{border-color:var(--clay);background:var(--clay);color:#fff}
+/* الشطبُ خبرٌ لا زينة: يخصُّ ما لم يُفتح بعد وحده. والشهر الذي مضى
+   يخفت ولا يُشطب — وإلّا صار السطر أسفل اللوح كذبًا عليه. */
+.mpick .mo[disabled]{opacity:.55;cursor:default}
+/* الشطبُ بلونٍ غير لون الحرف، وإلّا حسبته العينُ جزءًا من الكلمة
+   العربية لا خطًّا فوقها. */
+.mpick .mo.shut{text-decoration:line-through;text-decoration-thickness:1.5px;
+  text-decoration-color:rgba(176,112,92,.85)}
+.mpick .note{margin:13px 0 0;font-size:11.5px;line-height:1.6;color:var(--muted);
+  text-align:center}
+
+/* ــ شهرٌ مغلق: يُرى ولا يُختار، وعليه سببُه ــــــــــــــــــــــــــــ */
+.cal{position:relative}
+.cal.shut .dow,.cal.shut .week{filter:grayscale(1);opacity:.4}
+.cal .shut-msg{position:absolute;inset:0;z-index:3;display:flex;align-items:center;
+  justify-content:center;padding:12px}
+.cal .shut-msg i{display:block;padding:13px 18px;background:rgba(250,245,240,.94);
+  border:1px solid var(--line-l);box-shadow:0 14px 34px rgba(20,10,7,.16);
+  font-style:normal;font-size:14px;line-height:1.55;color:var(--ink);text-align:center;
+  max-width:100%}
+
 .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px}
 .dow span{text-align:center;font-size:11px;line-height:1.2;color:var(--muted);white-space:nowrap;overflow:hidden}
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
@@ -325,7 +392,7 @@ button{border:0;background:none;cursor:pointer}
 .rcpt-chk.ok{color:var(--clay)}
 .rcpt-chk.bad{color:#a8493f}
 @keyframes chkPulse{0%,100%{opacity:.25}50%{opacity:1}}
-.rcpt-prev[hidden],.mpick[hidden]{display:none}
+.rcpt-prev[hidden]{display:none}
 .rcpt-prev{display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:center;padding:10px;border:1px solid var(--line-l);background:rgba(255,255,255,.62)}
 .rcpt-prev img{width:54px;height:54px;object-fit:cover;border-radius:4px}
 .rcpt-prev img[hidden]{display:none}

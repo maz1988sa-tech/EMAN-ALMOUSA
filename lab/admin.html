@@ -8,8 +8,38 @@
 <meta name="theme-color" content="#2b1c16">
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/fonts.css?v=32">
-<link rel="stylesheet" href="assets/theme.css?v=32">
+<script>
+  /* المختبر يُعرَف من مساره لا من ملفٍّ يخالف الحيّ: الملفّان في /lab/
+     والجذر متطابقان بايتًا ببايت، فالترقية نسخٌ محض لا تحويل — ولا يوجد
+     فرقٌ صامت بين ما جُرّب وما نُشر. */
+  window.__LAB__ = /(^|\/)lab\//.test(location.pathname);
+  if (window.__LAB__) {
+    document.documentElement.classList.add('is-lab');
+    if (!document.querySelector('meta[name="robots"]')) {
+      var m = document.createElement('meta');
+      m.name = 'robots'; m.content = 'noindex, nofollow';
+      document.head.appendChild(m);
+    }
+  }
+</script>
+<style>
+  /* شارةٌ لا تُنسى ولا تحجب: شريطٌ رفيع فوق كل شيء، لا يزحزح تخطيطًا. */
+  html:not(.is-lab) .labflag{display:none}
+  .labflag{
+    position:fixed;inset-inline:0;top:0;z-index:2147483647;pointer-events:none;
+    display:flex;align-items:center;justify-content:center;gap:8px;height:22px;
+    background:#8a2f2f;color:#fff;font:600 11px/1 'Tajawal','IBM Plex Sans Arabic',Tahoma,sans-serif;
+    letter-spacing:.02em;box-shadow:0 1px 6px rgba(0,0,0,.25);
+  }
+  .labflag i{font-style:normal;opacity:.72;font-weight:400}
+  /* اللوحة مستندٌ يمرّر فتُزاح بالحشو؛ وصفحة العميلة تطبيقٌ ثابتٌ بارتفاع
+     الشاشة، فتُزاح هي ويُنقص ارتفاعها — وإلّا خرج أسفلها عن الشاشة. */
+  html.is-lab body{padding-top:22px}
+  html.is-lab body.public-site{padding-top:0}
+  html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
+</style>
+<link rel="stylesheet" href="assets/fonts.css?v=36">
+<link rel="stylesheet" href="assets/theme.css?v=36">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -26,6 +56,8 @@
 </style>
 </head>
 <body>
+<div class="labflag" role="status">نسخة تجريبية <i>· ليست النسخة الحيّة · البيانات حقيقية</i></div>
+
 
 <!-- مشهد اليوم: يُبدَّل من ساعة الجهاز، ولا يُطلب من إيمان اختياره. -->
 <div class="scene" aria-hidden="true">
@@ -168,7 +200,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=32"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=36"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -202,7 +234,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=32';
+import { icon, hydrateIcons } from './assets/icons.js?v=36';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -212,7 +244,7 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems,
   uploadServiceMedia, removeServiceMedia, mediaUrl,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=32';
+} from './assets/db.js?v=36';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -479,7 +511,9 @@ async function start() {
   if ('Notification' in window && Notification.permission === 'default') {
     setTimeout(() => Notification.requestPermission().catch(() => {}), 4000);
   }
-  if ('serviceWorker' in navigator) {
+  // المختبر بلا كاش: النسخة التجريبية التي تخدم القديم من ذاكرتها تكذب
+  // على من يجرّبها. وفي الحيّ يبقى العمل بلا إنترنت كما هو.
+  if ('serviceWorker' in navigator && !window.__LAB__) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 }
@@ -1582,8 +1616,60 @@ function editOverride() {
 
 /* ── رسائل التواصل ─────────────────────────────────────────────────────
    ما يُكتب هنا هو ما يظهر لها حين تضغط «تواصل» على أيّ بطاقة عميلة. */
+/* ── الرسائل التلقائية ───────────────────────────────────────────────
+   الرسالة واحدة: نصُّها في «الرسائل» تكتبه إيمان مرّة، وترسله بيدها من
+   بطاقة العميلة أو ترسله المنصّة وحدها. وما يُضاف هنا سؤالٌ واحد يُعلَّق
+   على كلِّ رسالة: متى تخرج بلا يد؟ */
+const AUTO_TRIGGERS = [
+  { v: '',              label: 'لا تُرسل تلقائيًا — بيدي فقط', timed: false },
+  { v: 'on_pending',    label: 'فور وصول طلب حجز جديد',        timed: false },
+  { v: 'on_confirmed',  label: 'فور تأكيد الحجز',              timed: false },
+  { v: 'before_appt',   label: 'قبل الموعد بـ…',               timed: true  },
+  { v: 'after_done',    label: 'بعد اكتمال الخدمة بـ…',        timed: true  },
+];
+const AUTO_SHORT = {
+  on_pending: 'عند وصول الطلب', on_confirmed: 'عند التأكيد',
+  before_appt: 'قبل الموعد',    after_done:   'بعد الخدمة',
+};
+const OUTBOX_LABEL = {
+  queued:    { t: 'في الانتظار', c: 'quiet' },
+  preview:   { t: 'معاينة',      c: 'quiet' },
+  sent:      { t: 'أُرسلت',      c: 'ok'    },
+  failed:    { t: 'فشلت',        c: 'danger'},
+  cancelled: { t: 'أُلغيت',      c: 'quiet' },
+};
+
+/** العربية تعدّ ثلاثًا لا واحدة: مفرد ومثنّى وجمع. والرقم قبل الجمع
+ *  وحده — «١ رسائل» ليست عربية. */
+function arCount(n, one, two, many) {
+  if (n === 1) return one;
+  if (n === 2) return two;
+  return `${int(n)} ${many}`;
+}
+
+/** «قبل الموعد بيوم، ٦ م» — بلغة إيمان لا بالدقائق. */
+function autoLabel(t) {
+  if (!t.auto_enabled || !t.auto_trigger) return '';
+  const head = AUTO_SHORT[t.auto_trigger] || '';
+  if (!['before_appt', 'after_done'].includes(t.auto_trigger)) return head;
+  const m = Number(t.auto_offset_min) || 0;
+  const span = m % 1440 === 0 && m >= 1440
+    ? (m / 1440 === 1 ? 'بيوم' : m / 1440 === 2 ? 'بيومين' : `بـ${m / 1440} أيام`)
+    : m % 60 === 0 && m >= 60
+      ? (m / 60 === 1 ? 'بساعة' : m / 60 === 2 ? 'بساعتين' : `بـ${m / 60} ساعات`)
+      : `بـ${m} دقيقة`;
+  const at = t.auto_at_hour == null ? ''
+    : `، ${t.auto_at_hour % 12 === 0 ? 12 : t.auto_at_hour % 12} ${t.auto_at_hour < 12 ? 'ص' : 'م'}`;
+  return `${head} ${span}${at}`;
+}
+
 function renderMessages() {
   const T = S.templates || [];
+  const s = S.settings || {};
+  const live = !!s.wa_auto_enabled && !!s.wa_phone_id;
+  const on = T.filter((t) => t.auto_enabled && t.auto_trigger);
+  const hr = (h) => `${(h % 12 === 0 ? 12 : h % 12)} ${h < 12 ? 'ص' : 'م'}`;
+
   view.innerHTML = `
     <div class="sec-head"><h2>رسائل التواصل</h2><span class="rule"></span>
       <span class="count">${int(T.length)}</span></div>
@@ -1591,11 +1677,39 @@ function renderMessages() {
       <span>هذه القائمة تظهر لكِ عند الضغط على <b>تواصل</b> في بطاقة أي عميلة.
         ما بين قوسين معقوفين يُبدَّل تلقائيًّا باسمها وتاريخها ومبالغها.</span></div>
 
+    <div class="card mb">
+      <p class="label">الإرسال التلقائي</p>
+      ${live
+        ? `<p class="hint" style="margin-top:0">مربوطة برقم واتساب — الرسائل المفعّلة تخرج وحدها.</p>`
+        : `<div class="note mb" style="margin-top:0">${icon('bell', 18)}
+             <span><b>وضع المعاينة.</b> لم يُربط رقم واتساب بعد، فلا تخرج رسالة إلى أحد.
+               تُجدول كما لو كانت حقيقية وتظهر لكِ في السجلّ أسفل الصفحة — فترين
+               ماذا كان سيصل ومتى قبل أن يصل.</span></div>`}
+      <div class="rowline" style="border:0;padding:6px 0 0">
+        <span class="grow"><span class="t">${on.length ? `${arCount(on.length, 'رسالة تلقائية مفعّلة', 'رسالتان تلقائيّتان مفعّلتان', 'رسائل تلقائية مفعّلة')}` : 'لا رسالة تلقائية بعد'}</span>
+          <span class="s">${on.length ? esc(on.map(autoLabel).join(' · ')) : 'افتحي أي رسالة أدناه واختاري متى تُرسل وحدها.'}</span></span>
+      </div>
+      <div class="split" style="margin-top:12px">
+        <div class="field" style="margin:0"><label class="label" for="wa-qf">لا تُرسل بعد</label>
+          <select class="input" id="wa-qf">
+            ${Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${Number(s.wa_quiet_from ?? 22) === h ? 'selected' : ''}>${hr(h)}</option>`).join('')}
+          </select></div>
+        <div class="field" style="margin:0"><label class="label" for="wa-qt">وتستأنف الساعة</label>
+          <select class="input" id="wa-qt">
+            ${Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${Number(s.wa_quiet_to ?? 9) === h ? 'selected' : ''}>${hr(h)}</option>`).join('')}
+          </select></div>
+      </div>
+      <p class="hint" style="margin:6px 0 0">رسالةٌ يحلّ موعدها في هذه الساعات تُؤجَّل، فلا توقظ عميلة.</p>
+      <div id="wa-err"></div>
+      <button class="btn mb" id="wa-save" style="margin-top:10px">حفظ ساعات الهدوء</button>
+    </div>
+
     <div class="card mb"><div class="list" id="tplList">
       ${T.length ? T.map((t) => `
         <div class="rowline">
           <span class="grow"><span class="t">${esc(t.title)}</span>
             <span class="s">${esc(String(t.body).replace(/\s+/g, ' ').slice(0, 64))}…</span></span>
+          ${t.auto_enabled && t.auto_trigger ? `<span class="pill ok">${esc(autoLabel(t))}</span>` : ''}
           ${t.pinned ? '<span class="pill">مثبّتة</span>' : ''}
           <span class="pill quiet">${t.builtin ? 'مدمجة' : 'خاصة بكِ'}</span>
           <button class="iconbtn" data-tpl="${esc(t.id)}" aria-label="تعديل" data-icon="edit"></button>
@@ -1603,12 +1717,66 @@ function renderMessages() {
         : '<p class="hint" style="margin:0">لا رسائل بعد.</p>'}
     </div></div>
 
-    <button class="btn btn-primary mb" id="tplNew">${icon('plus', 18)} رسالة تواصل جديدة</button>`;
+    <button class="btn btn-primary mb" id="tplNew">${icon('plus', 18)} رسالة تواصل جديدة</button>
+
+    <div class="sec-head"><h2>سجلّ الإرسال التلقائي</h2><span class="rule"></span></div>
+    <div class="card mb"><div class="list" id="obList">
+      <p class="hint" style="margin:0">جارٍ التحميل…</p>
+    </div></div>`;
   hydrateIcons(view);
 
   view.querySelectorAll('[data-tpl]').forEach((b) => b.onclick = () =>
     openTemplate(T.find((x) => x.id === b.dataset.tpl)));
   document.getElementById('tplNew').onclick = () => openTemplate(null);
+
+  document.getElementById('wa-save').onclick = async () => {
+    const btn = document.getElementById('wa-save'); btn.disabled = true;
+    try {
+      await admin.saveSettings({
+        wa_quiet_from: Number(document.getElementById('wa-qf').value),
+        wa_quiet_to:   Number(document.getElementById('wa-qt').value),
+      });
+      await admin.rescheduleAuto();
+      toast('حُفظت', 'ok'); reload();
+    } catch (e) {
+      btn.disabled = false;
+      document.getElementById('wa-err').innerHTML = note(isOffline(e) ? NET_MSG : e.message);
+    }
+  };
+
+  loadOutbox();
+}
+
+/* السجلّ يُحمَّل بعد الرسم لا معه: بطؤه لا يجب أن يؤخّر ما تحتاجه إيمان. */
+async function loadOutbox() {
+  const box = document.getElementById('obList');
+  if (!box) return;
+  let rows = [];
+  try { rows = await admin.outbox(60); }
+  catch (e) { box.innerHTML = `<p class="hint" style="margin:0">تعذّر تحميل السجلّ — ${esc(e.message)}</p>`; return; }
+  if (!document.getElementById('obList')) return;
+  if (!rows.length) {
+    box.innerHTML = `<p class="hint" style="margin:0">لا شيء بعد. أوّل حجزٍ يصل بعد تفعيل رسالةٍ تلقائية يظهر هنا.</p>`;
+    return;
+  }
+  box.innerHTML = rows.map((r) => {
+    const L = OUTBOX_LABEL[r.status] || { t: r.status, c: 'quiet' };
+    const when = new Date(r.due_at);
+    const stamp = `${fmtDateRelative(isoDate(when))} ${fmtTime(`${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`)}`;
+    return `<div class="rowline">
+      <span class="grow"><span class="t">${esc(r.client_name)} — ${esc(r.title)}</span>
+        <span class="s">${esc(stamp)}${r.error ? ` · ${esc(r.error)}` : ''}</span></span>
+      <span class="pill ${L.c}">${L.t}</span>
+      ${r.body ? `<button class="iconbtn" data-ob="${esc(r.id)}" aria-label="عرض النصّ" data-icon="search"></button>` : ''}
+    </div>`;
+  }).join('');
+  hydrateIcons(box);
+  box.querySelectorAll('[data-ob]').forEach((b) => b.onclick = () => {
+    const r = rows.find((x) => x.id === b.dataset.ob);
+    showSheet(esc(r.title), `
+      <div class="card mb"><p class="label">إلى ${esc(r.client_name)} — ${esc(prettyPhone(r.to_phone))}</p>
+        <p class="hint" style="white-space:pre-wrap;margin:0">${esc(r.body)}</p></div>`);
+  });
 }
 
 function openTemplate(t) {
@@ -1635,6 +1803,38 @@ function openTemplate(t) {
       <input type="checkbox" id="t-pin" ${t.pinned ? 'checked' : ''}>
     </div>
 
+    <div class="card mb">
+      <p class="label">الإرسال التلقائي</p>
+      <p class="hint" style="margin-top:0">اختاري متى تخرج هذه الرسالة وحدها إلى العميلة
+        — بدون أن تفتحي اللوحة.</p>
+      <div class="field"><label class="label" for="t-trig">متى تُرسل؟</label>
+        <select class="input" id="t-trig">
+          ${AUTO_TRIGGERS.map((x) => `<option value="${x.v}" ${(t.auto_enabled ? (t.auto_trigger || '') : '') === x.v ? 'selected' : ''}>${x.label}</option>`).join('')}
+        </select></div>
+      <div id="t-timing" hidden>
+        <div class="split">
+          <div class="field" style="margin:0"><label class="label" for="t-num">المدّة</label>
+            <input class="input ltr" id="t-num" type="number" min="1" max="60" inputmode="numeric"
+                   value="${(() => { const m = Number(t.auto_offset_min) || 1440;
+                                     return m % 1440 === 0 ? m / 1440 : m % 60 === 0 ? m / 60 : m; })()}"></div>
+          <div class="field" style="margin:0"><label class="label" for="t-unit">الوحدة</label>
+            <select class="input" id="t-unit">
+              ${(() => { const m = Number(t.auto_offset_min) || 1440;
+                         const u = m % 1440 === 0 ? 1440 : m % 60 === 0 ? 60 : 1;
+                         return [[1440, 'يوم'], [60, 'ساعة'], [1, 'دقيقة']]
+                           .map(([v, l]) => `<option value="${v}" ${u === v ? 'selected' : ''}>${l}</option>`).join(''); })()}
+            </select></div>
+        </div>
+        <div class="field" style="margin:12px 0 0"><label class="label" for="t-hour">ترسل الساعة
+          <span class="opt">(حتى لا تصل فجرًا)</span></label>
+          <select class="input" id="t-hour">
+            <option value="">في وقتها بالضبط</option>
+            ${Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${Number(t.auto_at_hour) === h ? 'selected' : ''}>${(h % 12 === 0 ? 12 : h % 12)} ${h < 12 ? 'ص' : 'م'}</option>`).join('')}
+          </select></div>
+      </div>
+      <p class="hint" id="t-auto-sum" style="margin:10px 0 0"></p>
+    </div>
+
     <div id="t-err"></div>
     <div class="btn-row">
       ${isNew ? '' : '<button class="btn btn-danger" id="t-del">إخفاء</button>'}
@@ -1658,6 +1858,32 @@ function openTemplate(t) {
     preview();
   });
 
+  /* التوقيت يخصّ المُطلِقات الزمنية وحدها: «فور التأكيد» لا مدّة له. */
+  const autoFields = () => {
+    const v = g('t-trig').value;
+    const timed = ['before_appt', 'after_done'].includes(v);
+    g('t-timing').hidden = !timed;
+    g('t-auto-sum').textContent = !v
+      ? 'هذه الرسالة تُرسلينها بيدك من بطاقة العميلة.'
+      : `ستُرسل تلقائيًا: ${autoLabel(readAuto())}.`;
+  };
+  const readAuto = () => {
+    const v = g('t-trig').value;
+    if (!v) return { auto_enabled: false, auto_trigger: null, auto_offset_min: 0, auto_at_hour: null };
+    const timed = ['before_appt', 'after_done'].includes(v);
+    return {
+      auto_enabled: true,
+      auto_trigger: v,
+      auto_offset_min: timed
+        ? Math.min(43200, Math.max(1, Number(g('t-num').value) || 1) * Number(g('t-unit').value))
+        : 0,
+      auto_at_hour: timed && g('t-hour').value !== '' ? Number(g('t-hour').value) : null,
+    };
+  };
+  ['t-trig', 't-num', 't-unit', 't-hour'].forEach((id) => { g(id).onchange = autoFields; });
+  g('t-num').oninput = autoFields;
+  autoFields();
+
   g('t-save').onclick = async () => {
     const title = g('t-title').value.trim(), body = g('t-body').value.trim();
     if (title.length < 2) { g('t-err').innerHTML = note('اكتبي اسمًا للرسالة.'); return; }
@@ -1665,7 +1891,11 @@ function openTemplate(t) {
     const btn = g('t-save'); btn.disabled = true; btn.textContent = 'جارٍ الحفظ…';
     try {
       await admin.saveTemplate({ ...(t.id ? { id: t.id } : {}), title, body,
-        pinned: g('t-pin').checked, sort: Number(t.sort) || 100, builtin: !!t.builtin, active: true });
+        pinned: g('t-pin').checked, sort: Number(t.sort) || 100, builtin: !!t.builtin, active: true,
+        ...readAuto() });
+      // التوقيت الجديد يسري على الحجوزات القائمة لا القادمة وحدها، وإلّا
+      // بدا التعديل نافذًا وهو لم ينفذ إلّا على ما لم يُحجز بعد.
+      try { await admin.rescheduleAuto(); } catch { /* الحفظ تمّ؛ الجدولة تُعاد لاحقًا */ }
       closeSheet(sheet); toast('حُفظت الرسالة', 'ok'); reload();
     } catch (e) {
       btn.disabled = false; btn.textContent = 'حفظ الرسالة';
@@ -1993,6 +2223,19 @@ function renderSettings() {
           <input class="input ltr" id="set-adv" type="number" min="1" max="730" inputmode="numeric"
                  value="${Number(s.max_advance_days ?? 120)}"></div>
       </div>
+      <label class="toggle" style="margin-top:4px"><input type="checkbox" id="set-shutmo" ${s.show_closed_months !== false ? 'checked' : ''}>
+        <span class="grow"><span class="t">أظهري للعميلة الشهور التي لم تُفتح بعد</span>
+        <span class="s">تستطيع العميلة تصفّح ما بعد «أبعد حجز» فترى الشهر رماديًا وعليه سببه،
+          بدل أن يقف بها السهم بلا تفسير.</span></span><span class="sw"></span></label>
+      <div class="field" id="set-shutword-wrap" style="margin:10px 0 0" ${s.show_closed_months !== false ? '' : 'hidden'}>
+        <label class="label" for="set-shutword">صيغة الرسالة</label>
+        <select class="input" id="set-shutword">
+          ${[['غير مفتوحة', 'غير مفتوحة — لم أفتحها بعد'],
+             ['غير متاحة', 'غير متاحة — لا أستقبل فيها']]
+            .map(([v, t]) => `<option value="${v}" ${(s.closed_month_word || 'غير مفتوحة') === v ? 'selected' : ''}>${t}</option>`).join('')}
+        </select>
+        <p class="hint" style="margin:6px 0 0" id="set-shutprev"></p>
+      </div>
     </div>
 
     <div class="card mb">
@@ -2099,6 +2342,22 @@ function renderSettings() {
         ${icon('trash', 18)} حذف الحجوزات في النطاق</button>
     </div>`;
 
+  /* الشهور المغلقة: الصيغة تُخفى حين لا تُعرض الرسالة أصلًا، ومعاينتُها
+     تُكتب كما تراها العميلة تمامًا — مذكَّرةً مع «هذا الشهر». */
+  {
+    const cb = document.getElementById('set-shutmo');
+    const wrap = document.getElementById('set-shutword-wrap');
+    const sel = document.getElementById('set-shutword');
+    const prev = document.getElementById('set-shutprev');
+    const W = { 'غير مفتوحة': ['غير مفتوح', ' بعد'], 'غير متاحة': ['غير متاح', ''] };
+    const paint = () => {
+      wrap.hidden = !cb.checked;
+      const [m, tail] = W[sel.value] || W['غير مفتوحة'];
+      prev.textContent = `تقرأ العميلة: «هذا الشهر ${m} للحجز${tail}.»`;
+    };
+    cb.onchange = paint; sel.onchange = paint; paint();
+  }
+
   document.getElementById('copyPub').onclick = async () => {
     try { await navigator.clipboard.writeText(document.getElementById('pubLink').value); toast('نُسخ الرابط', 'ok'); }
     catch { document.getElementById('pubLink').select(); }
@@ -2137,6 +2396,8 @@ function renderSettings() {
         slot_step_min: Number(document.getElementById('set-step').value),
         min_lead_hours: Number(document.getElementById('set-lead').value),
         max_advance_days: Number(document.getElementById('set-adv').value),
+        show_closed_months: document.getElementById('set-shutmo').checked,
+        closed_month_word: document.getElementById('set-shutword').value,
         whatsapp_phone: wa ? normalisePhone(wa) : null,
         driver_phone: drv ? normalisePhone(drv) : null,
         group_discount_amount: grp,

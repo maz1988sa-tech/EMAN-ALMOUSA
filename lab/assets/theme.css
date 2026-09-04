@@ -1,0 +1,1052 @@
+/* ==========================================================================
+   لوحة إيمان آل موسى — لغةٌ بصريّة واحدة
+
+   هذا الملف نقلٌ حرفيّ لنموذج «ضوء اليوم» المعتمد: بطاقاتٌ زجاجيّة تطفو
+   على مشهدٍ يتبع ساعة الجهاز، لا أسطحٌ صمّاء فوق خلفيّة. القيم مأخوذة من
+   النموذج كما هي — الشفافيّة والانحناء والمقاسات — فلا تفترق الشاشة عن
+   الورقة التي وُوفق عليها.
+
+   طبقتان من الزجاج: السطح على المشهد يأخذ --glass، وما يجلس داخل سطحٍ
+   آخر يأخذ --glass-2. جمعهما هو ما يجعل النموذج مقروءًا، وإهماله هو ما
+   جعل النسخة السابقة تختفي فوق الخلفيّة.
+   ========================================================================== */
+
+:root {
+  --r-xl: 28px;  --r-card: 26px; --r-lg: 24px;
+  --r: 18px;     --r-mid: 18px;  --r-sm: 12px;
+  --r-btn: 999px; --r-pill: 999px;
+  --tap: 46px;
+  --page: 470px;
+  --ease: cubic-bezier(.4,.15,.2,1);
+
+  --sh:   none;
+  --sh-2: 0 18px 44px rgba(20, 10, 7, .16);
+  --sh-3: 0 -10px 40px rgba(20, 10, 7, .18);
+
+  /* ريدكس برو للعناوين والأرقام، وIBM Plex Arabic لما يُقرأ سطرًا سطرًا.
+     هذا هو «الخط ج» الذي اختِير من بين الثلاثة في النموذج. */
+  --fd: 'Readex Pro', 'Tajawal', system-ui, sans-serif;
+  --fs: 'Readex Pro', 'Tajawal', system-ui, sans-serif;
+  --ft: 'IBM Plex Sans Arabic', 'Tajawal', system-ui, -apple-system, sans-serif;
+  --fw-d: 600;
+}
+
+/* ══ مشهدٌ واحد، أربعة أضواء ═══════════════════════════════════════════
+   القيم من النموذج حرفيًّا. الأسماء القديمة (--rose و --surface و --cream)
+   تبقى مرادفاتٍ لأنّ في الصفحة نداءاتٍ عليها؛ الجديد هو --accent و--chip.
+   ═════════════════════════════════════════════════════════════════════ */
+
+:root, [data-time="dawn"] {
+  --sky-a:#F9E7D8; --sky-b:#F2D9CF; --sky-c:#DCE1E7;
+  --hill-1:#E4CFC0; --hill-2:#D3BCAF; --hill-3:#BFA79A;
+  --ink:#3A2A26; --ink-2:#6E5A53; --ink-3:#93807A;
+  --accent:#B87550; --gold:#B08A3C;
+  --glass:rgba(255,255,255,.34); --glass-2:rgba(255,255,255,.22);
+  --glass-line:rgba(255,255,255,.72); --glass-sh:0 16px 40px rgba(88,58,44,.13);
+  --chip:rgba(255,255,255,.46);
+  --tint:rgba(255,255,255,.60);
+  --c-done:#2E7A52; --c-open:#A8802F; --c-lost:#9C4636;
+  --danger-solid:#8E3A2C; --alert:#C9372A;
+  --ok:#4C7A5A; --ok-bg:rgba(120,170,135,.24);
+  --warn:#9A6524; --warn-bg:rgba(214,168,90,.24);
+  --danger:#A44B3C; --danger-bg:rgba(196,110,95,.2);
+}
+[data-time="noon"] {
+  --sky-a:#E8F0F3; --sky-b:#F4EADD; --sky-c:#E9DCC8;
+  --hill-1:#E0D2BB; --hill-2:#CDBB9F; --hill-3:#B6A183;
+  --ink:#33261D; --ink-2:#6B5A48; --ink-3:#94836F;
+  --accent:#AE6E45; --gold:#A8802F;
+  --glass:rgba(255,255,255,.36); --glass-2:rgba(255,255,255,.23);
+  --glass-line:rgba(255,255,255,.78); --glass-sh:0 16px 40px rgba(90,70,44,.14);
+  --chip:rgba(255,255,255,.48);
+  --tint:rgba(255,255,255,.62);
+  --c-done:#2E7A52; --c-open:#A8802F; --c-lost:#9C4636;
+  --danger-solid:#8E3A2C; --alert:#C9372A;
+  --ok:#467052; --ok-bg:rgba(110,160,125,.24);
+  --warn:#8C5F1E; --warn-bg:rgba(206,163,84,.26);
+  --danger:#9C4636; --danger-bg:rgba(190,104,88,.2);
+}
+[data-time="dusk"] {
+  --sky-a:#F8C58F; --sky-b:#DE8768; --sky-c:#8A5675;
+  --hill-1:#B87470; --hill-2:#8E5A66; --hill-3:#63415A;
+  --ink:#33201E; --ink-2:#6A4640; --ink-3:#8E655C;
+  --accent:#A8482F; --gold:#9A6B22;
+  --glass:rgba(255,248,242,.33); --glass-2:rgba(255,248,242,.21);
+  --glass-line:rgba(255,240,228,.66); --glass-sh:0 16px 42px rgba(70,32,40,.22);
+  --chip:rgba(255,246,238,.44);
+  --tint:rgba(255,250,244,.58);
+  --c-done:#2E7A52; --c-open:#A8802F; --c-lost:#9C4636;
+  --danger-solid:#8E3A2C; --alert:#C9372A;
+  --ok:#3F6B4E; --ok-bg:rgba(120,165,132,.28);
+  --warn:#8A5518; --warn-bg:rgba(212,164,80,.3);
+  --danger:#93382A; --danger-bg:rgba(190,96,80,.26);
+}
+[data-time="night"] {
+  --sky-a:#1B1E3A; --sky-b:#2A2447; --sky-c:#3E2B49;
+  --hill-1:#2E2A4C; --hill-2:#241F3D; --hill-3:#1A1730;
+  --ink:#F3ECF2; --ink-2:#C2B4C6; --ink-3:#96879C;
+  --accent:#E0A177; --gold:#E5C68C;
+  --glass:rgba(255,250,255,.13); --glass-2:rgba(255,250,255,.08);
+  --glass-line:rgba(255,250,255,.20); --glass-sh:0 18px 46px rgba(0,0,0,.42);
+  --chip:rgba(255,250,255,.10);
+  --tint:rgba(42,36,66,.58);
+  --c-done:#45A876; --c-open:#CFA130; --c-lost:#D65F4A;
+  --danger-solid:#7E3226; --alert:#C9372A;
+  --ok:#8FD0A6; --ok-bg:rgba(90,160,115,.22);
+  --warn:#E0BE7C; --warn-bg:rgba(190,150,80,.22);
+  --danger:#E39E90; --danger-bg:rgba(180,100,90,.24);
+  --sh-2: 0 18px 44px rgba(0,0,0,.5);
+  --sh-3: 0 -10px 40px rgba(0,0,0,.55);
+}
+
+/* مرادفات الأسماء القديمة — نداءٌ واحد فائت يكسر لونًا، فتُترك موصولة. */
+:root, [data-time] {
+  --rose: var(--accent); --rose-deep: var(--accent);
+  --cream: var(--sky-b); --surface: var(--glass); --surface-2: var(--glass-2);
+  --blush: var(--chip); --blush-2: var(--chip); --blush-deep: var(--accent);
+  --espresso: var(--ink);
+  --line: var(--glass-line); --line-2: var(--glass-line);
+  --ok-line: transparent; --warn-line: transparent; --danger-line: transparent;
+  --info: var(--ink-2); --info-bg: var(--chip);
+}
+/* ── المشهد ───────────────────────────────────────────────────────── */
+.scene{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.scene .sky{position:absolute;inset:0;transition:background 1s ease;
+  background:linear-gradient(178deg,var(--sky-a) 0%,var(--sky-b) 46%,var(--sky-c) 100%)}
+.scene .layer{position:absolute;inset:0;opacity:0;transition:opacity 1s ease}
+.scene .layer.on{opacity:1}
+.scene svg{position:absolute;inset:0;width:100%;height:100%}
+
+@keyframes sc-glide{from{transform:translate3d(-14vw,0,0)}to{transform:translate3d(114vw,-4vh,0)}}
+@keyframes sc-drift{from{transform:translate3d(-8vw,0,0)}to{transform:translate3d(108vw,0,0)}}
+@keyframes sc-twink{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes sc-sway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+@keyframes sc-float{0%,100%{transform:translate3d(0,0,0);opacity:.35}50%{transform:translate3d(3vw,-5vh,0);opacity:1}}
+@keyframes sc-halo{0%,100%{opacity:.55}50%{opacity:.95}}
+.sc-bird{animation:sc-glide 26s linear infinite}
+.sc-bird.b{animation-duration:34s;animation-delay:-9s}
+.sc-bird.c{animation-duration:30s;animation-delay:-18s}
+.sc-cloud{animation:sc-drift 90s linear infinite}
+.sc-cloud.b{animation-duration:130s;animation-delay:-40s}
+.sc-canopy{animation:sc-sway 9s ease-in-out infinite;transform-origin:50% 92%}
+.sc-star{animation:sc-twink 4s ease-in-out infinite}
+.sc-orb{animation:sc-halo 7s ease-in-out infinite}
+.sc-fly{animation:sc-float 11s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){
+  .sc-bird,.sc-cloud,.sc-canopy,.sc-star,.sc-orb,.sc-fly{animation:none!important}
+}
+
+
+/* ── الزجاج: تعريفٌ واحد ترثه كل الأسطح ──────────────────────────── */
+/* الزجاج وحده يمرّر لون المشهد خلفه، فتخضرّ بطاقةٌ تصادف أن تجلس فوق
+   الشجرة ويصعب قراءة ما فيها. طبقةٌ بيضاء تحت الزجاج تُبقي الشفافيّة
+   وتمنع اللون من العبور: يبقى المشهد ضوءًا لا صبغة. */
+.glassy, .card, .arch, .empty, .bk, .stat, .appbar .bar, .appbar .tabs, .panebar {
+  background-image: linear-gradient(var(--tint), var(--tint));
+  background-color: var(--glass);
+  border: 1px solid var(--glass-line);
+  box-shadow: var(--glass-sh);
+  -webkit-backdrop-filter: blur(13px) saturate(1.45);
+  backdrop-filter: blur(13px) saturate(1.45);
+  transition: background .6s var(--ease), border-color .6s var(--ease);
+}
+
+/* السمة hidden تُهزَم أمام أي display صريح — تُثبَّت هنا لكل الصفحة. */
+[hidden] { display: none !important; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { direction: rtl; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-height: 100vh;
+  background: var(--sky-b);
+  color: var(--ink);
+  font-family: var(--ft);
+  font-size: 15px; line-height: 1.7;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 1s var(--ease), color .6s var(--ease);
+}
+body::before { display: none; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: var(--glass-line); border-radius: 3px; }
+
+.ic { flex-shrink: 0; display: block; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--ink-3); }
+.center { text-align: center; }
+.hide { display: none !important; }
+.mt { margin-top: 10px; }
+.mb { margin-bottom: 12px; }
+.gap { height: 10px; }
+
+/* ── إطار الورقة ───────────────────────────────────────── */
+.shell { position: relative; z-index: 1; max-width: var(--page); margin: 0 auto;
+         padding: 0 15px 40px; }
+.shell.login { padding-top: 8vh; }
+.list { display: flex; flex-direction: column; }
+.row { display: flex; gap: 8px; }
+.split, .grid2, .pg-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── Type ──────────────────────────────────────────────── */
+h1, h2, h3, h4 { margin: 0; font-weight: 700; text-wrap: balance; }
+h1 { font-family: var(--fd); font-weight: var(--fw-d);
+     font-size: clamp(26px, 7.4vw, 35px); line-height: 1.25; letter-spacing: -.01em; }
+h2 { font-family: var(--ft); font-weight: 700; font-size: 16px; letter-spacing: -.01em; }
+h3 { font-family: var(--fd); font-weight: var(--fw-d); font-size: 20px; }
+p  { margin: 0; }
+a  { color: var(--accent); }
+
+.eyebrow { direction: ltr; font: 500 9.5px/1 var(--fd); letter-spacing: .42em;
+           color: var(--accent); text-transform: uppercase; }
+.ribbon { display: block; width: fit-content; margin: 30px auto 6px; direction: ltr;
+          color: var(--accent); font: 500 10px/1 var(--fd); letter-spacing: .42em;
+          text-transform: uppercase; padding: 6px 0 10px;
+          border-bottom: 1px solid var(--glass-line); }
+.ribbon-sub { text-align: center; color: var(--ink-3); font-size: 13px;
+              margin: 0 auto 18px; max-width: 44ch; text-wrap: balance; }
+
+/* ── شريط التطبيق: علامةٌ واسمٌ وساعة ─────────────────── */
+/* الشريط يلتصق بالأعلى لأنّ صفحات اللوحة طويلة، ولا يصحّ أن تصعد إيمان
+   إلى رأس الصفحة لتبدّل تبويبًا. وحتى لا يمرّ المحتوى حادًّا في الفراغ
+   بين الحبّتين، يُطمَس ما خلف الشريط كلّه لا ما خلفهما وحدهما. */
+.appbar { position: sticky; top: 0; z-index: 40; padding: 12px 15px 9px;
+          max-width: var(--page); margin: 0 auto;
+          -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+          -webkit-mask-image: linear-gradient(#000 76%, transparent);
+          mask-image: linear-gradient(#000 76%, transparent); }
+.appbar .tabs { margin-bottom: 0; }
+.appbar .bar { display: flex; align-items: center; gap: 11px;
+               padding: 9px 12px; border-radius: var(--r-card); margin-bottom: 9px; }
+.appbar > * { -webkit-mask-image: none; mask-image: none; }
+.appbar .brandmark { width: 38px; height: 38px; border-radius: 11px; flex: 0 0 auto;
+                     display: block; object-fit: contain; background: var(--glass-2);
+                     border: 1px solid var(--glass-line); padding: 4px; }
+.appbar .brand { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; }
+.appbar .name { min-width: 0; line-height: 1.3; }
+.appbar .name b { display: block; font-size: 14px; font-weight: 700;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.appbar .sub { display: block; font: 500 9.5px/1.4 var(--fd); direction: ltr;
+               letter-spacing: .2em; color: var(--ink-3); text-transform: uppercase; }
+.appbar .acts { display: flex; gap: 6px; flex: 0 0 auto; }
+.appbar .clock { font-size: 11.5px; color: var(--ink-2); background: var(--chip);
+                 border: 1px solid var(--glass-line); padding: 4px 10px;
+                 border-radius: var(--r-pill); font-variant-numeric: tabular-nums;
+                 white-space: nowrap; }
+
+/* ── تبويبات ───────────────────────────────────────────── */
+.appbar .tabs { display: flex; gap: 2px; padding: 5px; border-radius: var(--r-pill);
+                overflow-x: auto; scrollbar-width: none; }
+.appbar .tabs::-webkit-scrollbar { display: none; }
+.tab { flex: 1 0 auto; border: 0; background: transparent; cursor: pointer;
+       color: var(--ink-3); font-family: var(--ft); font-size: 12.5px; font-weight: 500;
+       padding: 8px 11px; border-radius: var(--r-pill); white-space: nowrap;
+       display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+       transition: background .2s var(--ease), color .2s var(--ease); }
+.tab svg { width: 15px; height: 15px; }
+.tab[aria-current="page"] { background: var(--accent); color: #FFF; }
+/* عدّاد الطلبات: أحمرُ ينبض. هو الشيء الوحيد في الشريط الذي يطلب فعلًا،
+   وكان يذوب في التبويب المختار حين يصير أبيضَ شفّافًا فوق لون الهوية.
+   الحلقة البيضاء تفصله عن أرضيّته، والنبض يقول إنّ أحدًا ينتظر. */
+.tab .dot { background: var(--alert); color: #FFF; border-radius: var(--r-pill);
+            font-size: 10px; font-weight: 700; line-height: 1.7; padding: 0 5px;
+            min-width: 17px; text-align: center; font-variant-numeric: tabular-nums;
+            animation: dot-pulse 2s var(--ease) infinite; }
+.tab[aria-current="page"] .dot { background: var(--alert);
+            outline: 1.6px solid rgba(255,255,255,.78); }
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(1);
+             box-shadow: 0 0 0 0 color-mix(in srgb, var(--alert) 52%, transparent); }
+  60%      { transform: scale(1.12);
+             box-shadow: 0 0 0 7px color-mix(in srgb, var(--alert) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .tab .dot { animation: none; } }
+
+/* أقسام الإعدادات: الشريط نفسه بمقاسٍ أصغر. */
+.panebar { display: flex; gap: 2px; margin: 14px 0 4px; padding: 4px;
+           border-radius: var(--r-pill); overflow-x: auto; scrollbar-width: none; }
+.panebar::-webkit-scrollbar { display: none; }
+.panetab { flex: 1 0 auto; border: 0; background: transparent; color: var(--ink-3);
+           font-family: var(--ft); font-size: 12px; font-weight: 500; padding: 7px 12px;
+           border-radius: var(--r-pill); cursor: pointer; white-space: nowrap;
+           transition: background .2s var(--ease), color .2s var(--ease); }
+.panetab[aria-current="true"] { background: var(--accent); color: #FFF; }
+
+/* ── بطاقة التحيّة ─────────────────────────────────────── */
+.greet { padding: 20px 20px 18px; margin-bottom: 12px; border-radius: var(--r-card);
+         background: var(--glass); border: 1px solid var(--glass-line);
+         box-shadow: var(--glass-sh);
+         -webkit-backdrop-filter: blur(13px) saturate(1.45);
+         backdrop-filter: blur(13px) saturate(1.45); }
+.greet .kick { font-size: 10.5px; letter-spacing: .2em; color: var(--accent);
+               margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.greet .kick::after { content: ""; width: 5px; height: 5px; border-radius: 50%;
+                      background: var(--accent); }
+
+/* بيت الغزل: شطرانِ يفصل بينهما نجمٌ صغير، واسمُ الشاعر همسًا تحتهما.
+   بخطّ العناوين لا بخطّ الواجهة — الشعر يُقرأ متمهّلًا لا يُمسَح بالعين. */
+.greet .bayt { margin-bottom: 12px; padding-bottom: 11px;
+               border-bottom: 1px solid var(--glass-line); }
+.greet .bayt span { display: block; font-family: var(--fd); font-weight: 400;
+                    font-size: 13.5px; line-height: 1.95; color: var(--ink-2);
+                    text-wrap: balance; }
+.greet .bayt i { display: block; width: 4px; height: 4px; margin: 3px 0 3px 0;
+                 border-radius: 50%; background: var(--accent); opacity: .5; }
+.greet .bayt b { display: block; margin-top: 7px; font-family: var(--ft);
+                 font-weight: 500; font-size: 10.5px; letter-spacing: .12em;
+                 color: var(--accent); }
+/* زرّ النسخ في ركن البطاقة العلويّ: أيقونةٌ بلا كلمة. البيت هو البطل،
+   والزرّ خدمةٌ تُطلب متى احتيجت لا تنادي على نفسها في سطره. */
+.greet { position: relative; }
+.greet .by-copy { position: absolute; inset-block-start: 13px; inset-inline-end: 13px;
+                  width: 32px; height: 32px; display: grid; place-items: center;
+                  border-radius: 50%; cursor: pointer;
+                  border: 1px solid var(--glass-line); background: var(--glass-2);
+                  color: var(--ink-3);
+                  transition: color .2s var(--ease), border-color .2s var(--ease),
+                              background .2s var(--ease); }
+.greet .by-copy svg { width: 15px; height: 15px; }
+.greet .by-copy:hover { color: var(--accent); border-color: var(--accent); }
+.greet .by-copy.done { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }
+/* والبيت لا يمرّ تحت الزرّ: يُترك له ركنه. */
+.greet .bayt span:first-of-type { padding-inline-end: 40px; }
+@media (max-width: 380px) { .greet .bayt span { font-size: 12.5px; } }
+.greet h1 { margin: 0 0 7px; }
+.greet p { color: var(--ink-2); font-size: 14.5px; line-height: 1.65; }
+.greet p b { color: var(--ink); font-weight: 700; }
+/* الرقم الذي ينتظر ردًّا يكبر وينبض؛ وما عداه من أرقام التحيّة يكبر ولا
+   ينبض. النبض دعوةٌ إلى فعل، ولا يصحّ أن يدعو إلى «اكتملت كلّها». */
+.greet p b { font-family: var(--fd); font-weight: var(--fw-d); font-size: 1.2em;
+             color: var(--accent); }
+.greet p b.live { animation: greet-pulse 2.6s var(--ease) infinite; }
+@keyframes greet-pulse {
+  0%, 100% { opacity: 1;   text-shadow: none; }
+  50%      { opacity: .62; text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .greet p b.live { animation: none; } }
+
+/* ── الإحصاءات ─────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+.stat { padding: 14px 15px 15px; border-radius: var(--r-card); }
+.stat .k, .stat .l { display: block; font-size: 11.5px; color: var(--ink-3); margin-bottom: 2px; }
+.stat .v { display: block; font-family: var(--fd); font-size: 25px; font-weight: var(--fw-d);
+           line-height: 1.15; font-variant-numeric: tabular-nums; }
+.stat .v em { font-style: normal; font-size: 14px; color: var(--ink-3); }
+.stat .s { display: block; font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+
+/* ── ترويسة قسم ────────────────────────────────────────── */
+.sec-head { display: flex; align-items: center; gap: 10px; margin: 22px 4px 11px; }
+.sec-head:first-child { margin-top: 0; }
+.sec-head .rule { flex: 1; height: 1px; background: var(--glass-line); }
+.sec-head .count { font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* ── الأسطح ────────────────────────────────────────────── */
+.card { padding: 15px 16px; border-radius: var(--r-card); margin-bottom: 10px; }
+
+/* القوس والحالة الفارغة تجلسان على المشهد مباشرة، فتأخذان الطبقتين معًا:
+   --glass أرضيّةً و--glass-2 فوقها. طبقةٌ واحدة تختفي فوق الخلفيّة. */
+.arch, .empty {
+  border-radius: var(--r-card); padding: 24px 20px 20px; text-align: center;
+  background-image: linear-gradient(var(--tint), var(--tint)),
+                    linear-gradient(var(--glass-2), var(--glass-2));
+  background-color: var(--glass); margin-bottom: 12px;
+}
+.arch h2, .arch h3 { font-family: var(--fd); font-weight: var(--fw-d); font-size: 20px;
+                     margin: 0 0 5px; }
+.arch p, .empty p { margin: 0; font-size: 13px; color: var(--ink-2); }
+.empty .badge, .arch .badge { margin: 0 auto 11px; }
+
+.badge { width: 52px; height: 52px; border-radius: 50%; background: var(--chip);
+         color: var(--accent); display: grid; place-items: center; flex-shrink: 0; }
+.badge.lg { width: 56px; height: 56px; }
+.badge.on-surface { background: var(--chip); }
+
+/* ── سطور نقطيّة ───────────────────────────────────────── */
+.leader { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; font-size: 13px; }
+.leader .k { color: var(--ink-2); }
+.leader .d { flex: 1; border-bottom: 1px dotted var(--glass-line); transform: translateY(-4px); }
+.leader .v { font-family: var(--fd); font-weight: var(--fw-d); font-size: 15px;
+             font-variant-numeric: tabular-nums; }
+.leader .v.due  { color: var(--danger); }
+.leader .v.paid { color: var(--ok); }
+
+/* ══ بطاقة الحجز ═══════════════════════════════════════════════════
+   زرّ الإنجاز أوّل ما تصله الإبهام، والمبلغ في طرفها الآخر يُقرأ بلمحة.
+   الخدمات شاراتٌ بأيقوناتها، والأفعال الثلاثة أسفلها بلا فتح التفاصيل.
+   ═══════════════════════════════════════════════════════════════════ */
+.bk { padding: 14px 15px; border-radius: var(--r-card); margin-bottom: 10px;
+      position: relative; }
+.bk.dim { opacity: .62; }
+.bk-top { display: flex; align-items: flex-start; gap: 11px; }
+.bk-main { display: flex; align-items: flex-start; gap: 11px; flex: 1; min-width: 0;
+           background: transparent; border: 0; padding: 0; margin: 0; cursor: pointer;
+           font-family: inherit; color: inherit; text-align: start; }
+
+.tick { flex: 0 0 auto; width: var(--tap); height: var(--tap); border-radius: 50%;
+        cursor: pointer; border: 1.5px solid var(--glass-line); background: var(--glass-2);
+        display: grid; place-items: center; color: var(--ink-3); padding: 0;
+        transition: border-color .25s var(--ease), color .25s var(--ease),
+                    background .25s var(--ease), transform .25s var(--ease); }
+.tick:hover, .tick:focus-visible { border-color: var(--ok); color: var(--ok); transform: scale(1.05); }
+.tick svg { width: 20px; height: 20px; }
+/* أيقونة الخدمة داخل القرص الساكن أكبر من علامة الإنجاز: حبرُها ضيّقٌ
+   طويل (١٢٫٨ من ٢٤ عرضًا) فتُقرأ أصغر ممّا هي وسط دائرةٍ بـ٤٦. */
+.tick.still svg { width: 26px; height: 26px; }
+.tick.still { cursor: default; }
+.tick.still:hover { border-color: var(--glass-line); color: var(--ink-3); transform: none; }
+.bk.done .tick { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.bk.done .who b .nm { text-decoration: line-through; opacity: .6; }
+
+.who { flex: 1; min-width: 0; }
+/* الاسم سطرٌ قائم بذاته، وعلامة المصدر تجلس في آخره — فلا يصحّ أن يكون
+   الاسم نفسه كتلةً تشغل السطر كلّه فتدفع العلامة إلى سطرٍ تحته. */
+.who b { display: block; font-size: 16px; font-weight: 700; line-height: 1.35; }
+.who .nm { display: inline; font-size: inherit; font-weight: inherit; }
+.who .meta, .who .when { display: block; font-size: 12px; color: var(--ink-2); margin-top: 1px; }
+.money { text-align: left; flex: 0 0 auto; direction: ltr; }
+.money .t { display: block; font-family: var(--fd); font-size: 18px; font-weight: var(--fw-d);
+            font-variant-numeric: tabular-nums; line-height: 1.2; }
+.money .r { display: block; font-size: 11px; color: var(--accent);
+            font-variant-numeric: tabular-nums; }
+.money .r.paid { color: var(--ok); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+
+/* شارة الخدمة: أيقونتها وعددها، بدل رقمٍ مجرّد لا يقول أيّ خدمة */
+.svcb { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px;
+        padding: 4px 10px 4px 8px; border-radius: var(--r-pill); background: var(--chip);
+        border: 1px solid var(--glass-line); color: var(--ink-2); white-space: nowrap; }
+.svcb svg { width: 15px; height: 15px; color: var(--accent); flex: 0 0 auto; }
+/* «×٣» عددٌ يسبقه رمز الضرب: يُعزل عن اتجاه السطر وإلا انقلب إلى «٣×». */
+.svcb b { font-family: var(--fd); font-weight: var(--fw-d); font-size: 13px;
+          color: var(--ink); font-variant-numeric: tabular-nums;
+          direction: ltr; unicode-bidi: isolate; }
+
+/* أفعالٌ سريعة من البطاقة نفسها، فلا تُفتح التفاصيل لمكالمة */
+/* الأفعال الثلاثة صفٌّ واحد بمقاسٍ واحد. كانت العناصر ثلاثةَ وسومٍ
+   مختلفة — a وbutton وspan — فيأخذ الزرّ حشوَ المتصفّح ويقصر الـspan عن
+   جارَيه: فرقٌ صغير يقرأه الحسّ قبل العين على أنّه «معطّل». المقاس هنا
+   مصرَّح به فلا يتركه المتصفّح لاجتهاده. */
+.qacts { display: flex; align-items: stretch; gap: 7px; margin-top: 11px;
+         padding-top: 11px; border-top: 1px solid var(--glass-line); }
+.qact { flex: 1 1 0; min-width: 0; height: 40px; min-height: 40px; padding: 0 8px;
+        border-radius: var(--r-pill); cursor: pointer;
+        font-family: var(--ft); font-size: 12.5px; font-weight: 500;
+        border: 1px solid var(--glass-line); background: var(--glass-2); color: var(--ink);
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        white-space: nowrap; text-decoration: none;
+        transition: background .2s var(--ease), border-color .2s var(--ease); }
+.qact:hover { background: var(--glass); border-color: var(--accent); }
+.qact svg { width: 16px; height: 16px; color: var(--accent); }
+/* زرّ الإرسال في قائمة التواصل: إطارٌ أبيض مصمت. القائمة كلّها صفوفٌ
+   متشابهة، والأبيض هو ما يفصل الفعل عن الاسم في لمحة. */
+.qact.send { flex: 0 0 auto; padding: 0 16px; height: 38px; min-height: 38px;
+             background: #FFF;
+             border-color: color-mix(in srgb, var(--ink-3) 26%, transparent);
+             color: var(--ink); font-weight: 500;
+             box-shadow: 0 2px 6px rgba(60, 40, 30, .10); }
+.qact.send:hover { background: #FFF; border-color: var(--accent); }
+.qact.send svg { color: var(--accent); }
+[data-time="night"] .qact.send { background: #FBF6FA; color: #2B1C16;
+                                 border-color: rgba(0, 0, 0, .18); }
+[data-time="night"] .qact.send svg { color: #A8562F; }
+
+/* الموقع غير المضاف يظهر بإطارٍ مقطّع: موجودٌ دائمًا، معطّل المعنى لا الوصول */
+/* الموقع الناقص: المقاس نفسه، والإطار المقطّع وحده يقول إنّه غير مضاف.
+   تصغيرُه كان يقول «معطّل» وهو ليس كذلك — هو غيابُ معلومةٍ لا غيابُ فعل. */
+.qact.empty { border-style: dashed; color: var(--ink-3); background: transparent;
+              cursor: default; }
+.qact.empty svg { color: var(--ink-3); }
+
+/* سؤال العربون: يُسأل داخل البطاقة لا في نافذة النظام، فيبقى الاسم
+   والمبلغ أمام العين وهي تجيب. */
+.ask { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--glass-line); }
+.ask p { margin: 0 0 10px; font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+.ask p b { color: var(--ink); font-weight: 700; }
+.ask .row .btn { font-size: 13px; padding: 9px 12px; min-height: 40px; }
+
+/* ── شارات الحالة ──────────────────────────────────────── */
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px;
+        font-weight: 500; padding: 4px 10px; border-radius: var(--r-pill);
+        white-space: nowrap; background: var(--chip);
+        border: 1px solid var(--glass-line); color: var(--ink-2); }
+.pill.pending   { background: var(--warn-bg);   color: var(--warn);   border-color: transparent; }
+.pill.confirmed { background: var(--ok-bg);     color: var(--ok);     border-color: transparent; }
+.pill.done      { background: var(--ok-bg);     color: var(--ok);     border-color: transparent; }
+.pill.cancelled,
+.pill.rejected,
+.pill.no_show   { background: var(--danger-bg); color: var(--danger); border-color: transparent; }
+.pill.quiet     { background: transparent; color: var(--ink-3); }
+/* علامة المصدر بجانب الاسم: أيقونةٌ وحدها. الفرق في الشكل — سلسلةٌ أو
+   قلم — لا في اللون، واللون تشديدٌ لا معنًى قائمٌ بذاته. */
+.srcmark { display: inline-flex; align-items: center; margin-inline-start: 7px;
+           vertical-align: -3px; text-decoration: none; }
+.srcmark svg { width: 16px; height: 16px; display: block; }
+.srcmark.client { color: var(--accent); }
+.srcmark.admin  { color: var(--ink-3); opacity: .75; }
+h3 .srcmark svg { width: 18px; height: 18px; }
+.chip svg { flex: 0 0 auto; }
+.chip[aria-pressed="true"] svg { color: #FFF; }
+
+/* ── أزرار ─────────────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+       width: 100%; min-height: 42px; padding: 10px 18px; border-radius: var(--r-btn);
+       border: 1px solid var(--glass-line); background: var(--glass-2); color: var(--ink);
+       font-family: var(--ft); font-size: 13.5px; font-weight: 500; cursor: pointer;
+       text-decoration: none;
+       transition: background .2s var(--ease), border-color .2s var(--ease), transform .12s; }
+.btn:hover:not([disabled]) { background: var(--glass); }
+.btn:active { transform: scale(.985); }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.btn svg { color: var(--accent); }
+.btn-primary { background: var(--accent); border-color: transparent; color: #FFF; font-weight: 700; }
+.btn-primary:hover:not([disabled]) { background: var(--accent); filter: brightness(.94); }
+.btn-primary svg { color: #FFF; }
+.btn-ok      { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); font-weight: 700; }
+.btn-ok svg  { color: var(--ok); }
+.btn-soft    { background: var(--chip); }
+.btn-ghost   { background: var(--glass-2); }
+.btn-danger  { background: var(--danger-bg); border-color: var(--danger); color: var(--danger);
+               font-weight: 700; }
+.btn-danger svg { color: var(--danger); }
+.btn-row { display: flex; gap: 8px; }
+.btn-row .btn { flex: 1; }
+.btn.xs { padding: 7px 11px; font-size: 12.5px; min-height: 0; }
+
+.iconbtn { width: 38px; height: 38px; border-radius: 50%; background: var(--glass-2);
+           border: 1px solid var(--glass-line); color: var(--ink-2); display: grid;
+           place-items: center; cursor: pointer; flex-shrink: 0; text-decoration: none;
+           transition: background .18s, color .18s, border-color .18s; }
+.iconbtn:hover { background: var(--glass); color: var(--accent); border-color: var(--accent); }
+.iconbtn.accent { color: var(--accent); }
+
+/* ── حقول ──────────────────────────────────────────────── */
+.field { margin-bottom: 12px; }
+.label { display: block; font-size: 12.5px; color: var(--ink-2); margin-bottom: 5px;
+         font-weight: 500; }
+.label .opt { color: var(--ink-3); font-weight: 400; }
+.label .req { color: var(--danger); }
+.input, select.input, textarea.input {
+  width: 100%; min-height: 44px; padding: 10px 13px; border-radius: var(--r-mid);
+  border: 1px solid var(--glass-line); background: var(--glass-2); color: var(--ink);
+  font-family: var(--ft); font-size: 16px; outline: none;
+  transition: border-color .18s, background .18s;
+  -webkit-appearance: none; appearance: none;
+}
+.input:focus { border-color: var(--accent); background: var(--chip); }
+.input::placeholder { color: var(--ink-3); }
+.input.ltr { direction: ltr; text-align: right; }
+textarea.input { min-height: 78px; resize: vertical; line-height: 1.6; }
+select.input {
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%),
+                    linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position: 16px calc(50% - 2px), 21px calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+  padding-inline-start: 36px;
+}
+.hint { font-size: 12px; color: var(--ink-3); margin-top: 5px; line-height: 1.6; }
+.err  { font-size: 13px; color: var(--danger); margin-top: 6px; }
+
+/* ── صفوف قوائم ────────────────────────────────────────── */
+.rowline { display: flex; align-items: center; gap: 11px; padding: 12px 0;
+           border-bottom: 1px solid var(--glass-line); }
+.rowline:last-child { border-bottom: 0; }
+.rowline .grow { flex: 1; min-width: 0; }
+.rowline .t { display: block; font-size: 14.5px; font-weight: 700; }
+.rowline .s { display: block; font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+
+.stepper { display: flex; align-items: center; border: 1px solid var(--glass-line);
+           border-radius: var(--r-pill); overflow: hidden; background: var(--glass-2);
+           flex: 0 0 auto; }
+.stepper button { width: 34px; height: 34px; border: 0; background: transparent;
+                  color: var(--ink); font-size: 17px; cursor: pointer;
+                  font-family: var(--fd); display: grid; place-items: center; }
+.stepper button:hover { color: var(--accent); }
+.stepper .val { min-width: 32px; text-align: center; font-family: var(--fd);
+                font-weight: var(--fw-d); font-size: 15px; font-variant-numeric: tabular-nums; }
+
+/* مفتاحٌ يُقلب: أوضح من مربّع اختيارٍ حين يكون الأثر فوريًّا. */
+.toggle { display: flex; align-items: center; gap: 11px; padding: 12px 0;
+          border-bottom: 1px solid var(--glass-line); }
+.toggle:last-child { border-bottom: 0; }
+.toggle .grow { flex: 1; min-width: 0; }
+.toggle .t { display: block; font-size: 14px; font-weight: 700; line-height: 1.4; }
+.toggle .s { display: block; font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+.sw { width: 46px; height: 27px; border-radius: var(--r-pill); background: var(--glass-2);
+      border: 1px solid var(--glass-line); position: relative; cursor: pointer;
+      flex: 0 0 auto; padding: 0; }
+.sw::after { content: ""; position: absolute; top: 2px; inset-inline-end: 2px;
+             width: 21px; height: 21px; border-radius: 50%; background: var(--ink-3);
+             transition: all .22s var(--ease); }
+.sw[aria-checked="true"] { background: var(--ok-bg); border-color: var(--ok); }
+.sw[aria-checked="true"]::after { inset-inline-end: calc(100% - 23px); background: var(--ok); }
+/* مربّع الاختيار الأصلي يبقى ليقرأه المتصفّح والبرمجة، ويُخفى بصريًّا
+   خلف المفتاح — فلا تتغيّر سطرٌ واحد ممّا يقرأ .checked. */
+.toggle input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+.toggle input:checked ~ .sw { background: var(--ok-bg); border-color: var(--ok); }
+.toggle input:checked ~ .sw::after { inset-inline-end: calc(100% - 23px); background: var(--ok); }
+.toggle input:focus-visible ~ .sw { outline: 2px solid var(--accent); outline-offset: 2px; }
+label.toggle { cursor: pointer; }
+
+/* ── لوحٌ يُختار ───────────────────────────────────────── */
+.choice { display: flex; align-items: center; gap: 11px; width: 100%; padding: 12px 14px;
+          border-radius: var(--r-mid); background: var(--glass-2);
+          border: 1px solid var(--glass-line); color: var(--ink); font-family: var(--ft);
+          font-size: 14.5px; text-align: start; cursor: pointer;
+          transition: border-color .18s, background .18s; }
+.choice:hover { border-color: var(--accent); }
+.choice[aria-pressed="true"] { border-color: var(--accent); background: var(--chip); }
+.choice .t { display: block; font-weight: 700; line-height: 1.45; }
+.choice .s { display: block; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+.choice .grow { flex: 1; min-width: 0; }
+
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.slot { min-height: 44px; border-radius: var(--r-mid); cursor: pointer;
+        background: var(--glass-2); border: 1px solid var(--glass-line); color: var(--ink);
+        font-family: var(--fd); font-weight: var(--fw-d); font-size: 15px;
+        font-variant-numeric: tabular-nums; transition: border-color .18s, background .18s; }
+.slot:hover { border-color: var(--accent); }
+.slot[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: #FFF; }
+
+.daystrip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: none; }
+.daystrip::-webkit-scrollbar { display: none; }
+.daystrip .day { flex: 0 0 auto; width: 66px; padding: 10px 6px; border-radius: var(--r-mid);
+                 background: var(--glass-2); border: 1px solid var(--glass-line);
+                 cursor: pointer; text-align: center; font-family: var(--ft);
+                 color: var(--ink); transition: all .18s; }
+.daystrip .day .dow  { display: block; font-size: 11.5px; color: var(--ink-3); line-height: 1.4; }
+.daystrip .day .dnum { display: block; font-family: var(--fd); font-size: 20px;
+                       font-weight: var(--fw-d); line-height: 1.2; }
+.daystrip .day .free { display: block; font-size: 10.5px; color: var(--ok); font-weight: 700;
+                       line-height: 1.4; unicode-bidi: isolate; }
+.daystrip .day[aria-pressed="true"] { background: var(--accent); border-color: transparent; }
+.daystrip .day[aria-pressed="true"] .dow,
+.daystrip .day[aria-pressed="true"] .dnum,
+.daystrip .day[aria-pressed="true"] .free { color: #FFF; }
+.daystrip .day[disabled] { opacity: .38; cursor: not-allowed; }
+.daystrip .day[disabled] .free { color: var(--ink-3); font-weight: 400; }
+
+/* ── التقويم الشهري ────────────────────────────────────── */
+.calhead { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+           margin-bottom: 10px; }
+.calhead b { font-family: var(--fd); font-size: 16px; font-weight: var(--fw-d); }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.cal .dow { text-align: center; font-size: 10.5px; color: var(--ink-3); padding-bottom: 5px; }
+.cal .cd { position: relative; aspect-ratio: 1; border-radius: 12px;
+           border: 1px solid transparent; background: var(--glass-2); cursor: pointer;
+           font-family: var(--fd); font-weight: var(--fw-d); font-size: 15px;
+           font-variant-numeric: tabular-nums; color: var(--ink);
+           display: flex; flex-direction: column; align-items: center; justify-content: center;
+           gap: 3px; transition: all .18s var(--ease); }
+.cal .cd.blank { border: 0; background: none; cursor: default; }
+.cal .cd:hover:not(.blank) { border-color: var(--accent); }
+.cal .cd[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: #FFF; }
+.cal .cd.today { border-color: var(--accent); }
+.cal .dots { display: flex; gap: 2px; height: 4px; }
+.cal .dots i { width: 4px; height: 4px; border-radius: 50%; display: block; }
+.cal .cd[aria-pressed="true"] .dots i { background: #FFF; }
+.cal .d-pending { background: var(--warn); }
+.cal .d-confirmed { background: var(--accent); }
+.cal .d-done { background: var(--ok); }
+
+/* ── أشرطة الدخل ───────────────────────────────────────── */
+.bars { display: flex; flex-direction: column; gap: 12px; }
+.bars .bar .t { display: flex; justify-content: space-between; font-size: 12.5px;
+                margin-bottom: 5px; }
+.bars .bar .t b { font-family: var(--fd); font-weight: var(--fw-d);
+                  font-variant-numeric: tabular-nums; }
+.bars .bar .track { height: 7px; background: color-mix(in srgb, var(--ink-3) 18%, transparent);
+                    border-radius: var(--r-pill); overflow: hidden; }
+.bars .bar .fill { height: 100%; background: var(--accent); border-radius: var(--r-pill); }
+/* المقارنة بين الخدمات مقدارٌ لا هويّة: لونٌ واحد يتدرّج، لا لونٌ لكل
+   خدمة. وكان هذا يرث --glass-line الأبيض فيختفي الشريط في مساره. */
+.bars .bar.muted .fill { background: color-mix(in srgb, var(--accent) 58%, transparent); }
+.bars .bar.ok  .fill { background: var(--ok); }
+.bars .bar.bad .fill { background: var(--danger); }
+
+/* ── ملاحظات ───────────────────────────────────────────── */
+.note { display: flex; gap: 9px; align-items: flex-start; border-radius: var(--r-mid);
+        padding: 12px 14px; font-size: 13px; line-height: 1.6; background: var(--chip);
+        border: 1px solid var(--glass-line); color: var(--ink-2); margin-bottom: 12px; }
+.note.ok     { background: var(--ok-bg);     color: var(--ok);     border-color: transparent; }
+.note.warn   { background: var(--warn-bg);   color: var(--warn);   border-color: transparent; }
+.note.danger { background: var(--danger-bg); color: var(--danger); border-color: transparent; }
+.note b { color: inherit; }
+
+/* ── الورقة المنبثقة ───────────────────────────────────── */
+/* بلا حجاب: حين تُفتح ورقة تتنحّى الصفحة فيظهر خلفها مشهدُ الساعة نفسه.
+   الحجاب الغامق كان يسحب الدفء من الزجاج فوقه ويطمس البطاقات طمسًا
+   رماديًّا؛ وهذا يجعل الورقة زجاجًا على سماءٍ حقيقيّة — وهي اللغة التي
+   بُنيت عليها اللوحة كلّها. زجاج الورقة نفسه يأخذ لونه من المشهد. */
+.sheet { position: fixed; inset: 0; z-index: 90; background: transparent;
+         -webkit-backdrop-filter: none; backdrop-filter: none;
+         display: flex; align-items: flex-end; justify-content: center;
+         opacity: 0; pointer-events: none; transition: opacity .24s; }
+
+.shell, .appbar { transition: opacity .3s var(--ease), transform .3s var(--ease); }
+body.sheeting .shell,
+body.sheeting .appbar { opacity: 0; transform: scale(.985); pointer-events: none; }
+.sheet[open], .sheet.open { opacity: 1; pointer-events: auto; }
+.sheet-body { width: 100%; max-width: var(--page); max-height: 92vh; overflow-y: auto;
+              border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--sh-3);
+              transform: translateY(100%);
+              transition: transform .28s cubic-bezier(.4,0,.2,1);
+              padding-bottom: max(16px, env(safe-area-inset-bottom));
+              background-image: linear-gradient(var(--tint), var(--tint)),
+                                linear-gradient(var(--glass-2), var(--glass-2));
+              background-color: var(--glass); border: 1px solid var(--glass-line);
+              -webkit-backdrop-filter: blur(20px) saturate(1.6);
+              backdrop-filter: blur(20px) saturate(1.6); }
+.sheet.open .sheet-body { transform: translateY(0); }
+.sheet-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center;
+              justify-content: space-between; gap: 11px; padding: 15px 17px;
+              border-bottom: 1px solid var(--glass-line);
+              background-image: linear-gradient(var(--tint), var(--tint)),
+                                linear-gradient(var(--glass-2), var(--glass-2));
+              background-color: var(--glass);
+              -webkit-backdrop-filter: blur(20px) saturate(1.6);
+              backdrop-filter: blur(20px) saturate(1.6); }
+.sheet-head h2 { flex: 1; font-size: 17px; font-weight: 700; }
+.sheet-content { padding: 16px 17px 18px; }
+/* داخل الورقة الأسطح تجلس على زجاجٍ لا على المشهد، فتأخذ الطبقة الثانية. */
+.sheet-content .card { background-image: none; background-color: var(--glass-2); }
+.sheet-content .arch { background-image: none; background-color: var(--glass-2); }
+
+/* ── الرسائل ───────────────────────────────────────────── */
+.msg { display: flex; gap: 11px; align-items: flex-start; padding: 13px 0;
+       border-bottom: 1px solid var(--glass-line); }
+.msg:last-child { border-bottom: 0; }
+.msg .grow { flex: 1; min-width: 0; }
+.msg b { display: block; font-size: 14.5px; font-weight: 700; }
+.msg p { margin: 3px 0 0; font-size: 12px; color: var(--ink-3); line-height: 1.6; }
+
+/* ── إشعارات عابرة ─────────────────────────────────────── */
+.toast-stack { position: fixed; z-index: 120;
+               inset-block-end: max(16px, env(safe-area-inset-bottom));
+               inset-inline: 0; display: flex; flex-direction: column; align-items: center;
+               gap: 8px; pointer-events: none; padding: 0 16px; }
+.toast { background: var(--ink); color: var(--sky-b); border-radius: var(--r-pill);
+         padding: 11px 20px; font-size: 14px; font-weight: 500; box-shadow: var(--sh-2);
+         display: flex; align-items: center; gap: 8px; max-width: 100%;
+         animation: toast-in .28s cubic-bezier(.4,0,.2,1); }
+.toast.ok     { background: var(--ok);     color: #FFF; }
+.toast.danger { background: var(--danger); color: #FFF; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.skeleton { background: linear-gradient(90deg, var(--glass-2) 25%, var(--glass) 50%, var(--glass-2) 75%);
+            background-size: 220% 100%; animation: shimmer 1.3s linear infinite;
+            border-radius: var(--r-card); height: 76px; margin-bottom: 10px; }
+@keyframes shimmer { to { background-position: -220% 0; } }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+           overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ── متفرّقات ──────────────────────────────────────────── */
+.recent { display: flex; align-items: center; gap: 8px; background: var(--glass-2);
+          border: 1px solid var(--glass-line); border-radius: var(--r-mid);
+          padding: 11px 14px; margin-bottom: 14px; color: var(--ink);
+          text-decoration: none; font-size: 14px; font-weight: 500; }
+.recent:hover { border-color: var(--accent); }
+.recent .chev { margin-inline-start: auto; opacity: .5; transform: scaleX(-1); }
+
+/* منطقة الحذف: كانت غشاوةً حمراء على الزجاج، فيعبرها المشهد ويصير
+   نصّها رماديًّا على وردي — لا يُقرأ، وهو أخطر نصٍّ في اللوحة. صارت
+   سطحًا مصمتًا: أبيضُ على أحمر داكن (تباين ٧٫٥:١)، ويبدو الخطر خطرًا.
+   والشفافية هنا ليست مكسبًا: هذا الصندوق يجب أن يوقف العين لا يذوب. */
+.danger-zone {
+  background-image: none !important;
+  background-color: var(--danger-solid) !important;
+  border-color: color-mix(in srgb, #000 22%, var(--danger-solid)) !important;
+  color: #FFF;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  box-shadow: 0 14px 34px rgba(70, 24, 16, .28);
+}
+.danger-zone .hint { color: rgba(255, 255, 255, .84); }
+.danger-zone .hint b { color: #FFF; font-weight: 700; }
+.danger-zone .label { color: rgba(255, 255, 255, .9); }
+.danger-zone .label b { color: #FFF; }
+/* الحقول تبقى فاتحةً على السطح الداكن: أبيضُ على أحمر يُقرأ، ونصٌّ يُكتب
+   على أحمر لا يُقرأ. */
+/* background-color لا الاختصار: الاختصار يمسح موضع الخلفية ومقاسها،
+   فيكبر مثلّثا سهم القائمة حتى يبتلعا الحقل. */
+.danger-zone .input {
+  background-color: rgba(255, 255, 255, .92); color: #2B1C16;
+  border-color: rgba(255, 255, 255, .5);
+}
+.danger-zone .input::placeholder { color: #8A7568; }
+.danger-zone select.input {
+  background-image: linear-gradient(45deg, transparent 50%, #6D584C 50%),
+                    linear-gradient(135deg, #6D584C 50%, transparent 50%);
+}
+/* زرّ الحذف أبيضُ مصمت على السطح الأحمر: أعلى تباينٍ في اللوحة كلّها،
+   ويليق بفعلٍ لا رجعة فيه. */
+.danger-zone .btn-danger {
+  background: #FFF; border-color: #FFF; color: var(--danger-solid); font-weight: 700;
+}
+.danger-zone .btn-danger svg { color: var(--danger-solid); }
+.danger-zone .btn-danger:hover:not([disabled]) { background: #FFF; filter: brightness(.94); }
+.danger-zone .btn-danger[disabled] { opacity: .5; }
+.danger-zone .note { background: rgba(255, 255, 255, .16); border-color: transparent;
+                     color: #FFF; }
+
+.chiprow { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.chiprow::-webkit-scrollbar { display: none; }
+.chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+        border: 1px solid var(--glass-line); background: var(--glass-2); color: var(--ink-2);
+        font-family: var(--ft); font-size: 12.5px; font-weight: 500; padding: 7px 13px;
+        min-height: 36px; border-radius: var(--r-pill); cursor: pointer;
+        transition: background .18s, border-color .18s, color .18s; }
+.chip:hover { border-color: var(--accent); }
+.chip i { font-style: normal; font-size: 11px; font-variant-numeric: tabular-nums;
+          color: var(--ink-3); background: var(--chip); border-radius: var(--r-pill);
+          padding: 1px 6px; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: #FFF; }
+.chip[aria-pressed="true"] i { background: rgba(255,255,255,.2); color: #FFF; }
+
+.steps { display: flex; gap: 6px; margin-bottom: 18px; }
+.steps i { flex: 1; height: 3px; border-radius: 2px; background: var(--glass-line);
+           transition: background .3s; }
+.steps i.on { background: var(--accent); }
+
+.priceline { display: flex; align-items: center; gap: 10px; padding: 0 0 10px; margin-top: -4px; }
+.priceline .label { margin: 0; flex: 1; }
+.priceline .input { width: 110px; min-height: 38px; padding: 7px 10px; text-align: center; }
+.priceline[hidden] { display: none; }
+
+.bkrow { flex-wrap: wrap; row-gap: 8px; }
+.bkacts { display: flex; gap: 6px; flex: 0 0 auto; }
+
+.linkbox { display: flex; align-items: center; gap: 8px; background: var(--glass-2);
+           border: 1px solid var(--glass-line); border-radius: var(--r-mid); padding: 8px 12px; }
+
+/* خطّ الزمن في الأجندة: نقطةٌ لكل موعد وخيطٌ بينها. */
+.tl { position: relative; }
+
+@media (max-width: 400px) {
+  .bkrow .grow { flex: 1 0 100%; }
+  .bkacts { flex: 1 0 100%; }
+  .bkacts .btn { flex: 1; }
+  .tab { font-size: 11.5px; padding: 8px 8px; }
+  .qact { font-size: 11.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+
+/* ══ تقرير الدخل: ثلاث صيغ ═════════════════════════════════════════
+   الألوان الثلاثة مقيسة لا مختارة بالنظر (انظر التعليق في admin.html).
+   مع كل صيغةٍ عنوانٌ مباشر بجانب اللون، فلا يُحمَّل اللون وحده معنى.
+   ═══════════════════════════════════════════════════════════════════ */
+.viewseg { display: flex; gap: 2px; padding: 3px; margin: 0 4px 10px;
+           border-radius: var(--r-pill); background: var(--glass-2);
+           border: 1px solid var(--glass-line); width: fit-content; margin-inline-start: auto; }
+.viewseg button { border: 0; background: transparent; cursor: pointer; color: var(--ink-3);
+                  font-family: var(--ft); font-size: 11.5px; font-weight: 500;
+                  padding: 5px 13px; border-radius: var(--r-pill);
+                  transition: background .2s var(--ease), color .2s var(--ease); }
+.viewseg button[aria-pressed="true"] { background: var(--accent); color: #FFF; }
+
+/* أ · أرقام */
+.stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stats3 .stat { background-image: none; background-color: transparent; border: 0;
+                box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+                padding: 0; }
+.stats3 .stat + .stat { border-inline-start: 1px solid var(--glass-line);
+                        padding-inline-start: 10px; }
+.stats3 .k { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.stats3 .dt { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+.stats3 .v { font-size: 19px; }
+.stats3 .s { font-size: 10.5px; }
+
+/* ب · حلقة */
+.ringwrap { position: relative; width: 150px; margin: 2px auto 4px; }
+.ring { display: block; width: 100%; height: auto; }
+.ringmid { position: absolute; inset: 0; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; gap: 1px; pointer-events: none; }
+.ringmid b { font-family: var(--fd); font-weight: var(--fw-d); font-size: 21px;
+             font-variant-numeric: tabular-nums; line-height: 1.1; }
+.ringmid span { font-size: 10px; color: var(--ink-3); }
+.legend { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+.lg { display: flex; align-items: baseline; gap: 8px; padding: 5px 0;
+      border-bottom: 1px solid var(--glass-line); font-size: 12.5px; }
+.lg:last-child { border-bottom: 0; }
+.lg i { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 auto; align-self: center; }
+.lg .n { color: var(--ink-2); }
+.lg b { margin-inline-start: auto; font-family: var(--fd); font-weight: var(--fw-d);
+        font-size: 14px; font-variant-numeric: tabular-nums; }
+.lg .c { color: var(--ink-3); font-size: 11px; min-width: 52px; text-align: left; }
+
+/* ج · شبكة الشهر */
+.heat { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.heat .hd { text-align: center; font-size: 9.5px; color: var(--ink-3); padding-bottom: 3px; }
+.heat .hc { aspect-ratio: 1; border-radius: 7px; display: grid; place-items: center;
+            font-family: var(--fd); font-size: 10.5px; font-variant-numeric: tabular-nums;
+            color: var(--ink); background: color-mix(in srgb, var(--accent) calc(var(--a, 0) * 100%), transparent);
+            border: 1px solid var(--glass-line); }
+.heat .hc.zero { color: var(--ink-3); background: var(--glass-2); }
+.heat .hc.blank { border: 0; background: none; }
+.heatfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            margin-top: 10px; font-size: 11px; color: var(--ink-3); }
+.heatfoot .scale { display: inline-flex; align-items: center; gap: 3px; }
+.heatfoot .scale i { width: 11px; height: 11px; border-radius: 3px;
+                     background: color-mix(in srgb, var(--accent) calc(var(--a) * 100%), transparent);
+                     border: 1px solid var(--glass-line); }
+
+@media (max-width: 380px) {
+  .stats3 .v { font-size: 17px; }
+  .stats3 .k { font-size: 10px; }
+}
+
+
+/* ══ إطار وسائط الخدمة ═════════════════════════════════════════════
+   المعاينة بنسبة رابط الحجز نفسها، فما تراه هنا هو ما تراه العميلة.
+   التموضع يُخزَّن نسبةً مئويّة لا بالبكسل: الإطار يتغيّر عرضه بين
+   الجوّال والحاسوب، والنسبة تصمد.
+   ═══════════════════════════════════════════════════════════════════ */
+.frame { border-radius: var(--r-mid); border: 1px dashed var(--glass-line);
+         background: var(--glass-2); aspect-ratio: 16/10; display: grid;
+         place-items: center; overflow: hidden; position: relative; }
+.frame.img { aspect-ratio: 4/3; }
+.frame .ph { display: flex; flex-direction: column; align-items: center; gap: 8px;
+             color: var(--ink-3); font-size: 12px; text-align: center; padding: 0 20px; }
+.frame .ph svg { color: var(--accent); opacity: .75; }
+.frame video, .frame img { position: absolute; inset: 0; width: 100%; height: 100%;
+                           object-fit: cover;
+                           object-position: var(--x, 50%) var(--y, 50%);
+                           transform: scale(var(--z, 1)); transform-origin: var(--x, 50%) var(--y, 50%); }
+.frame:has(video), .frame:has(img) { border-style: solid; }
+
+/* المزلاج: مسارٌ رفيع وإبهامٌ بلون الهوية — لا مظهر النظام الافتراضي. */
+input[type="range"].input { -webkit-appearance: none; appearance: none; min-height: 38px;
+                            padding: 0 10px; background: transparent; border-color: transparent; }
+input[type="range"].input::-webkit-slider-runnable-track {
+  height: 5px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--ink-3) 22%, transparent); }
+input[type="range"].input::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); border: 2px solid #FFF; margin-top: -6.5px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+input[type="range"].input::-moz-range-track {
+  height: 5px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--ink-3) 22%, transparent); }
+input[type="range"].input::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%; background: var(--accent);
+  border: 2px solid #FFF; }
+
+
+/* ══ فراشة ═════════════════════════════════════════════════════════
+   ساكنُ المشهد الوحيد الذي يغادره: تطير من الخلفيّة إلى حافّة بطاقة
+   فتحطّ عليها كأنّها جدار، ثمّ تمضي. لا تلتقط لمسًا ولا تحجب نصًّا،
+   وتسكن متى طُلب تقليل الحركة أو غابت النافذة أو فُتحت ورقة.
+   ══════════════════════════════════════════════════════════════════ */
+/* left/top لا inset-inline-start: الإحداثيّات تُحسب بالبكسل من يسار
+   الشاشة، والمرسى المنطقيّ يقلبها إلى اليمين في صفحةٍ عربيّة فتطير
+   الفراشة خارج الشاشة. */
+/* ── الفراشة زرًّا ────────────────────────────────────────────────────
+   في سطر التحيّة بجانب اسمها لا عائمةً في ركن الشاشة: القرص العائم يزاحم
+   ما تحته ويتبعها وهي تقرأ. وتمضي مع الصفحة إذا نزلت، لأنّ في آخرها
+   زرَّ إضافةٍ آخر. */
+/* النصّ يأخذ عرضه، والزرّ يتوسّط ما بقي — طولًا وعرضًا. */
+.greet-row  { display: flex; align-items: stretch; gap: 10px; }
+.greet-text { flex: 0 1 auto; min-width: 0; }
+.greet-act  { flex: 1 1 auto; min-width: 62px; display: grid; place-items: center; }
+.greet-row h1 { margin: 0; }
+
+.bfly { flex: none; padding: 0; cursor: pointer;
+        width: 50px; height: 50px; border-radius: 50%;
+        display: grid; place-items: center;
+        background-image: linear-gradient(var(--tint), var(--tint));
+        background-color: var(--glass-2);
+        border: 1px solid var(--glass-line);
+        box-shadow: var(--glass-sh);
+        transition: transform .22s var(--ease), border-color .22s var(--ease); }
+.bfly:hover  { transform: scale(1.06); border-color: var(--accent); }
+.bfly:active { transform: scale(.94); }
+.bfly:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; }
+.bfly svg { display: block; width: 32px; height: 28px; overflow: visible; }
+
+.bfly .w path      { fill: url(#bflyG); stroke: var(--glass-line); stroke-width: .85;
+                     stroke-linejoin: round; }
+.bfly .w path.lo   { opacity: .88; }
+.bfly .w path.vn   { fill: none; stroke: var(--glass-line); stroke-width: .8;
+                     opacity: .4; stroke-linecap: round; }
+.bfly .bd { fill: var(--ink); opacity: .72; }
+.bfly .an { fill: none; stroke: var(--ink); stroke-width: 1.15; opacity: .5;
+            stroke-linecap: round; }
+
+/* تتنفّس بجناحيها: انطباقٌ وانفراج، لا رفرفةً دائمة تشدّ العين. */
+.bfly .w { transform-box: fill-box; transform-origin: var(--ox) 50%;
+           animation: bfly-breathe 4.2s var(--ease) infinite; }
+.bfly .wl { --ox: 100%; }
+.bfly .wr { --ox: 0%; animation-delay: .2s; }
+@keyframes bfly-breathe {
+  0%, 100% { transform: scaleX(1)   rotate(0deg); }
+  48%      { transform: scaleX(.4)  rotate(-1.5deg); }
+}
+/* وعند اللمس ترفرف رفرفةً سريعة ثمّ تهدأ، فتُحسّ اللمسة. */
+.bfly.flutter .w { animation: bfly-flap .13s linear 9; }
+@keyframes bfly-flap { 0%,100% { transform: scaleX(1); } 50% { transform: scaleX(.16); } }
+
+[data-time="night"] .bfly .bd,
+[data-time="night"] .bfly .an { fill: #F5E4C6; stroke: #F5E4C6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bfly .w { animation: none; }
+  .bfly:hover, .bfly:active { transform: none; }
+}
+
+/* ── فرد أم مجموعة ───────────────────────────────────────────────── */
+.kindrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kind { display: flex; flex-direction: column; align-items: center; gap: 4px;
+        padding: 18px 10px; border-radius: var(--r); cursor: pointer;
+        background-image: linear-gradient(var(--tint), var(--tint));
+        background-color: var(--glass-2);
+        border: 1px solid var(--glass-line); color: var(--ink);
+        font-family: var(--ft); text-align: center; }
+.kind svg { width: 22px; height: 22px; color: var(--accent); }
+.kind b { font-family: var(--fd); font-weight: var(--fw-d); font-size: 14px; }
+.kind span { font-size: 11.5px; color: var(--ink-2); line-height: 1.5; }
+.kind:hover, .kind:focus-visible { border-color: var(--accent); }
+
+/* ── بطاقة عميلةٍ داخل ورقة المجموعة ─────────────────────────────── */
+.pcard { border: 1px solid var(--glass-line); border-radius: var(--r);
+         background-image: linear-gradient(var(--tint), var(--tint));
+         background-color: var(--glass-2); overflow: hidden; margin-bottom: 10px; }
+.pcard.open { border-color: var(--accent); }
+.phead { display: flex; align-items: center; gap: 9px; width: 100%;
+         padding: 11px 12px; border: 0; background: none; cursor: pointer;
+         font-family: var(--ft); text-align: start; color: var(--ink); }
+.phead .pnum { width: 24px; height: 24px; border-radius: 50%; flex: none;
+               background: var(--accent); color: #FFF; display: grid;
+               place-items: center; font-family: var(--fd); font-size: 12px; }
+.phead .pw { flex: 1; min-width: 0; }
+.phead .pt { display: block; font-family: var(--fd); font-weight: var(--fw-d);
+             font-size: 14px; line-height: 1.45; }
+.phead .ps { display: block; font-size: 11.5px; color: var(--ink-2); line-height: 1.5;
+             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phead .pv { font-family: var(--fd); font-size: 14px; font-variant-numeric: tabular-nums; }
+.pbody { padding: 0 12px 12px; }
+/* سطر الفاتورة: الخدمة مرّةً واحدة، والعدد وسعرُ الوحدة همسًا تحتها. */
+.qty { font-style: normal; font-size: 12px; color: var(--ink-3);
+       font-variant-numeric: tabular-nums; margin-inline-start: 6px;
+       white-space: nowrap; }
+.who-list { display: block; font-style: normal; font-size: 11.5px;
+            color: var(--ink-3); line-height: 1.6; margin-top: 1px; }
+
+.pfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+          flex-wrap: wrap; padding-top: 2px; }
+.pcard .rmp { border: 0; background: none; color: var(--danger); cursor: pointer;
+              font-family: var(--ft); font-size: 12.5px; padding: 6px 0; }
+.pcard .rmp.copy { color: var(--ink-2); display: inline-flex; align-items: center; gap: 5px; }
+.pcard .rmp.copy svg { width: 14px; height: 14px; }
+.pcard .rmp.copy:hover { color: var(--accent); }
+/* مجموع الورقة يبقى في آخرها ولا يطفو: كان لاصقًا بأسفل الشاشة فيغطّي
+   حقول البطاقة وهي تكتب. تراه حين تصل إليه، لا فوق ما تكتبه. */
+.gsum { position: static; }
