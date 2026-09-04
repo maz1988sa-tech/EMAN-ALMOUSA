@@ -264,9 +264,11 @@ button{border:0;background:none;cursor:pointer}
 .mpick .mo.now{border-color:var(--clay);background:var(--clay);color:#fff}
 /* الشطبُ خبرٌ لا زينة: يخصُّ ما لم يُفتح بعد وحده. والشهر الذي مضى
    يخفت ولا يُشطب — وإلّا صار السطر أسفل اللوح كذبًا عليه. */
-.mpick .mo[disabled]{opacity:.5;cursor:default}
+.mpick .mo[disabled]{opacity:.55;cursor:default}
+/* الشطبُ بلونٍ غير لون الحرف، وإلّا حسبته العينُ جزءًا من الكلمة
+   العربية لا خطًّا فوقها. */
 .mpick .mo.shut{text-decoration:line-through;text-decoration-thickness:1.5px;
-  text-decoration-color:rgba(43,28,22,.62)}
+  text-decoration-color:rgba(176,112,92,.85)}
 .mpick .note{margin:13px 0 0;font-size:11.5px;line-height:1.6;color:var(--muted);
   text-align:center}
 
