@@ -38,8 +38,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=40">
-<link rel="stylesheet" href="assets/theme.css?v=40">
+<link rel="stylesheet" href="assets/fonts.css?v=42">
+<link rel="stylesheet" href="assets/theme.css?v=42">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -200,7 +200,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=40"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=42"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -234,7 +234,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=40';
+import { icon, hydrateIcons } from './assets/icons.js?v=42';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -244,7 +244,7 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=40';
+} from './assets/db.js?v=42';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -401,6 +401,7 @@ const SETTING_PANES = [
   { id: 'hours',    label: 'أوقات العمل', icon: 'clock' },
   { id: 'services', label: 'الخدمات',     icon: 'lipstick' },
   { id: 'msgs',     label: 'الرسائل',     icon: 'whatsapp' },
+  { id: 'visits',   label: 'الزوّار',      icon: 'chart' },
 ];
 
 const S = {
@@ -580,7 +581,7 @@ function render() {
 function renderSettingsTab() {
   const pane = SETTING_PANES.find((p) => p.id === S.settingsPane) || SETTING_PANES[0];
   ({ general: renderSettings, hours: renderHours,
-     services: renderServices, msgs: renderMessages }[pane.id])();
+     services: renderServices, msgs: renderMessages, visits: renderVisits }[pane.id])();
 
   view.insertAdjacentHTML('afterbegin', `
     <div class="panebar">
@@ -1661,6 +1662,148 @@ function autoLabel(t) {
   const at = t.auto_at_hour == null ? ''
     : `، ${t.auto_at_hour % 12 === 0 ? 12 : t.auto_at_hour % 12} ${t.auto_at_hour < 12 ? 'ص' : 'م'}`;
   return `${head} ${span}${at}`;
+}
+
+/* ── الزوّار ─────────────────────────────────────────────────────────
+   ثلاثة أسئلة لا أكثر: كم جاء، وكم بقي، وكم حجز. والرقم وحده لا يُفهم —
+   يُقرَن بما يفسّره: الزائر بالجلسة، والبقاء بالوسيط لا بالمتوسّط وحده،
+   والحجز بنسبته من الزوّار.
+
+   ولا يُعرض سطرُ زائرٍ واحد: الحصائل مجموعةً، فما لا يُعرض لا يُساء
+   استعماله. */
+const VIS_RANGES = [
+  { v: 'today', label: 'اليوم' },
+  { v: 'm',     label: 'هذا الشهر' },
+  { v: 'p',     label: 'الشهر الماضي' },
+  { v: 'd90',   label: 'آخر ٩٠ يومًا' },
+  { v: 'all',   label: 'منذ البداية' },
+];
+
+function visRange(v) {
+  const t = parseDate(today());
+  const iso = (d) => isoDate(d);
+  const first = (y, m) => new Date(y, m, 1);
+  switch (v) {
+    case 'today': return [today(), today()];
+    case 'p': {
+      const a = first(t.getFullYear(), t.getMonth() - 1);
+      return [iso(a), iso(new Date(t.getFullYear(), t.getMonth(), 0))];
+    }
+    case 'd90': return [addDays(today(), -89), today()];
+    case 'all': return ['2020-01-01', today()];
+    default:    return [iso(first(t.getFullYear(), t.getMonth())), today()];
+  }
+}
+
+/** «٣ د ٢٠ ث» — الثواني الخام لا تُقرأ. */
+function dur(sec) {
+  const n = Math.max(0, Math.round(Number(sec) || 0));
+  if (n < 60) return `${n} ثانية`;
+  const m = Math.floor(n / 60), r = n % 60;
+  if (m < 60) return r ? `${m} د ${r} ث` : `${m} دقيقة`;
+  return `${Math.floor(m / 60)} س ${m % 60} د`;
+}
+const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : 0);
+
+let visRangeSel = 'm';
+
+function renderVisits() {
+  view.innerHTML = `
+    <div class="sec-head"><h2>الزوّار</h2><span class="rule"></span></div>
+    <div class="note mb">${icon('chart', 18)}
+      <span>عدٌّ بلا تعرّف: لا اسم ولا رقم ولا موقع — معرّفٌ عشوائيّ يصنعه
+        متصفّح الزائرة ويبقى عندها. تُعرَض الحصائل مجموعةً، ولا يُحفظ سطرٌ
+        يدلّ على أحد.</span></div>
+
+    <div class="chiprow mb" id="visRange">
+      ${VIS_RANGES.map((r) => `<button class="chip" type="button" data-vr="${r.v}"
+        ${r.v === visRangeSel ? 'aria-pressed="true"' : ''}>${r.label}</button>`).join('')}
+    </div>
+
+    <div id="visBody"><div class="card"><p class="hint" style="margin:0">جارٍ الحساب…</p></div></div>
+
+    <div class="sec-head"><h2>شهرًا بعد شهر</h2><span class="rule"></span></div>
+    <div id="visMonths"><div class="card"><p class="hint" style="margin:0">…</p></div></div>`;
+  hydrateIcons(view);
+
+  view.querySelectorAll('[data-vr]').forEach((b) => b.onclick = () => {
+    visRangeSel = b.dataset.vr; render(); window.scrollTo({ top: 0 });
+  });
+
+  loadVisits();
+}
+
+async function loadVisits() {
+  const [from, to] = visRange(visRangeSel);
+  const box = document.getElementById('visBody');
+  let v = null, months = [];
+  try {
+    [v, months] = await Promise.all([admin.visits(from, to), admin.visitsMonthly(12)]);
+  } catch (e) {
+    if (box) box.innerHTML = `<div class="card"><p class="hint" style="margin:0">تعذّر الحساب — ${esc(e.message)}</p></div>`;
+    return;
+  }
+  if (!document.getElementById('visBody')) return;
+
+  const n = (x) => int(Number(x) || 0);
+  const visitors = Number(v?.visitors) || 0;
+  const sessions = Number(v?.sessions) || 0;
+  const booked   = Number(v?.booked) || 0;
+  const bounced  = Number(v?.bounced) || 0;
+  const reached  = Number(v?.reached_form) || 0;
+
+  if (!sessions) {
+    box.innerHTML = `<div class="card"><p class="hint" style="margin:0">
+      لا زيارات في هذه الفترة بعد. أوّل من تفتح الصفحة تظهر هنا.</p></div>`;
+  } else {
+    box.innerHTML = `
+      <div class="stats">
+        <div class="stat"><span class="k">زائرات</span><span class="v">${n(visitors)}</span>
+          <span class="s">${n(v?.new_visitors)} جديدة · ${n(sessions)} زيارة</span></div>
+        <div class="stat"><span class="k">حجزن</span><span class="v">${n(booked)}<em> · ${pct(booked, visitors)}٪</em></span>
+          <span class="s">من كل ${n(visitors)} زائرة</span></div>
+        <div class="stat"><span class="k">متوسّط البقاء</span><span class="v">${esc(dur(v?.avg_seconds))}</span>
+          <span class="s">الوسيط ${esc(dur(v?.med_seconds))}</span></div>
+        <div class="stat"><span class="k">دخلن وخرجن</span><span class="v">${pct(bounced, sessions)}<em>٪</em></span>
+          <span class="s">${n(bounced)} لم تتجاوز الشاشة الأولى</span></div>
+      </div>
+
+      <div class="card mb">
+        <p class="label">من الزيارة إلى الحجز</p>
+        <div class="bars">
+        ${[['فتحن الصفحة', sessions, ''],
+           ['بلغن بيانات الحجز', reached, 'muted'],
+           ['أتممن الحجز', booked, 'ok']].map(([t, val, cls]) => `
+          <div class="bar ${cls}">
+            <div class="t"><span>${t}</span><b>${n(val)} · ${pct(val, sessions)}٪</b></div>
+            <div class="track"><div class="fill" style="width:${pct(val, sessions)}%"></div></div>
+          </div>`).join('')}
+        </div>
+        <p class="hint" style="margin:8px 0 0">«دخلن وخرجن» من لم تتجاوز الشاشة
+          الأولى. والنسبة الأخيرة هي ما يهمّ: من كلّ ${n(sessions)} زيارة،
+          ${n(booked)} صارت حجزًا.</p>
+      </div>`;
+  }
+
+  const mb = document.getElementById('visMonths');
+  if (!mb) return;
+  if (!months.length) {
+    mb.innerHTML = `<div class="card"><p class="hint" style="margin:0">لا شيء بعد.</p></div>`;
+    return;
+  }
+  const MON = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس',
+               'سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  mb.innerHTML = `<div class="card"><div class="list">
+    ${months.map((m) => {
+      const [y, mo] = String(m.ym).split('-').map(Number);
+      const vs = Number(m.visitors) || 0, bk = Number(m.booked) || 0;
+      return `<div class="rowline">
+        <span class="grow"><span class="t">${MON[(mo || 1) - 1]} ${y}</span>
+          <span class="s">${int(vs)} زائرة · ${int(m.sessions)} زيارة · بقاء ${esc(dur(m.avg_seconds))}</span></span>
+        <span class="pill ${bk ? 'ok' : 'quiet'}">${int(bk)} حجز</span>
+      </div>`;
+    }).join('')}
+  </div></div>`;
 }
 
 function renderMessages() {

@@ -358,6 +358,50 @@ export async function checkReceipt(path, serviceIds) {
   return data === 'ok' || data === 'bad' || data === 'wait' ? data : 'wait';
 }
 
+/* ــ عدّ الزوّار ــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
+   معرّفٌ عشوائيّ يصنعه المتصفّح ويحفظه عنده: لا اسم ولا عنوان شبكة ولا
+   بصمة. إن مسحته العميلة صارت زائرةً جديدة، وهذا مقبول — المطلوب مقياسٌ
+   لا هويّة. وكلُّ نداءٍ هنا يبتلع خطأه: عدُّ الزوّار لا يُعطّل حجزًا. */
+const VID_KEY = 'eman_vid';
+
+function visitorId() {
+  try {
+    let v = localStorage.getItem(VID_KEY);
+    if (v && v.length >= 8) return { vid: v, fresh: false };
+    v = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random())
+      .replace(/[^a-zA-Z0-9-]/g, '');
+    localStorage.setItem(VID_KEY, v);
+    return { vid: v, fresh: true };
+  } catch {
+    return null;   // تخزينٌ ممنوع ⇒ لا عدّ. ولا تُصنع هويّةٌ بديلة.
+  }
+}
+
+export async function trackVisit() {
+  const who = visitorId();
+  if (!who) return null;
+  let host = null;
+  try { host = document.referrer ? new URL(document.referrer).hostname : null; } catch { /* لا شيء */ }
+  if (host && host === location.hostname) host = null;   // تنقّلٌ داخليّ ليس إحالة
+  try {
+    const { data } = await sb.rpc('track_visit', {
+      p_vid: who.vid, p_new: who.fresh, p_ref: host,
+      p_device: matchMedia('(pointer: coarse)').matches ? 'mobile' : 'desktop',
+    });
+    return data || null;
+  } catch { return null; }
+}
+
+export async function trackPing(id, step) {
+  if (!id) return;
+  try { await sb.rpc('track_ping', { p_id: id, p_step: Number(step) || 0 }); } catch { /* لا شيء */ }
+}
+
+export async function trackBooked(id) {
+  if (!id) return;
+  try { await sb.rpc('track_booked', { p_id: id }); } catch { /* لا شيء */ }
+}
+
 export async function createBooking(payload) {
   const { data, error } = await sb.rpc('create_booking', {
     p_client_name:  payload.name,
@@ -690,6 +734,18 @@ export const admin = {
     // المدمجة تُخفى ولا تُحذف: حذفها يعني ضياع نصٍّ لا تملك استعادته.
     const { error } = await sb.from('message_templates').update({ active: false }).eq('id', id);
     if (error) throw error;
+  },
+
+  /** حصائل الزوّار — مجموعةً لا سطرًا سطرًا. */
+  async visits(from, to) {
+    const { data, error } = await sb.rpc('admin_visits', { p_from: from, p_to: to });
+    if (error) throw error;
+    return (Array.isArray(data) ? data[0] : data) || null;
+  },
+  async visitsMonthly(months = 12) {
+    const { data, error } = await sb.rpc('admin_visits_monthly', { p_months: months });
+    if (error) throw error;
+    return data || [];
   },
 
   /* ــ الرسائل التلقائية ــــــــــــــــــــــــــــــــــــــــــــــــــ */

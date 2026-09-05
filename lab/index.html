@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=40">
+<link rel="stylesheet" href="assets/fonts.css?v=42">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=40">
+<link rel="stylesheet" href="assets/client-theme.css?v=42">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -459,9 +459,10 @@ import {
   createBooking, getBookingByToken, requestCancel,
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositFor, verifyReceipt, checkReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
+  trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=40';
+} from './assets/db.js?v=42';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -568,6 +569,7 @@ function go(n) {
   deck.style.transform = `translate3d(0,${-n * 100}%,0)`;
   veil.classList.remove('flash'); void veil.offsetWidth; veil.classList.add('flash');
   paint(); app.classList.remove('menu-open'); playVideos();
+  trackStep(n);
   setTimeout(() => { busy = false; }, 600);
 }
 /* المتصفح يمرّر أقرب حاوية قابلة للتمرير ليُظهر الحقل الذي لمسته العميلة،
@@ -578,6 +580,37 @@ app.addEventListener('scroll', () => {
 }, { passive: true });
 
 window.__goto = go;
+
+/* ــ عدّ الزوّار ــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
+   ثلاثة أشياء تُعرَف: كم زائرًا، وكم بقي، وكم حجز. وتُعرَف بالعدّ لا
+   بالتتبّع — لا اسم ولا عنوان شبكة ولا بصمة، ولا يُقرأ في اللوحة سطرٌ
+   واحد بل الحصائل مجموعةً.
+
+   والمختبر لا يُحسب: تجاربُنا ليست زيارات. وكذلك المتصفّح الآليّ. */
+const visit = { id: null, step: 0 };
+
+async function startTracking() {
+  if (window.__LAB__ || navigator.webdriver) return;
+  if (document.documentElement.classList.contains('tracking-mode')) return;  // صفحة متابعة حجز
+  visit.id = await trackVisit();
+  if (!visit.id) return;
+
+  // نبضةٌ كلَّ عشرين ثانية ما دامت الصفحة مرئية: الفرق بين من فتح وأغلق
+  // ومن قرأ وتصفّح لا يُعرف إلّا بالزمن.
+  setInterval(() => {
+    if (document.visibilityState === 'visible') trackPing(visit.id, visit.step);
+  }, 20000);
+  // وعند الانصراف نبضةٌ أخيرة، فلا يضيع آخر ما بقيته.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') trackPing(visit.id, visit.step);
+  });
+}
+
+function trackStep(n) {
+  if (!visit.id || n <= visit.step) return;
+  visit.step = n;
+  trackPing(visit.id, n);
+}
 
 const TH = 42, MAXT = 800;
 let x0 = 0, y0 = 0, t0 = 0, track = false;
@@ -1395,6 +1428,7 @@ async function submit() {
       receiptPath: state.receiptPath,
     });
     remember(result);
+    trackBooked(visit.id);
     state.booking = result;
     showBooked(result);
     closeSheet(); go(4); clearReceipt(); showPane('form');
@@ -1678,6 +1712,9 @@ async function renderTracking(token) {
     showError(err);
     paint();
   }
+  // بعد أن تقف الصفحة على قدميها: العدُّ آخرُ ما يُشغَّل ولا يُنتظر، فلا
+  // يؤخّر ظهور شيءٍ ولا يُسقط الصفحة إن تعذّر.
+  startTracking();
 })();
 
 /* أدوات اختبار */

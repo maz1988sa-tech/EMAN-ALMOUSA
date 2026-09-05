@@ -31,19 +31,38 @@ remote = subprocess.run(['git', '-C', str(REPO), 'rev-parse',
 # للجذر حالان صحيحتان لا واحدة: إمّا أنه ما على GitHub بالضبط — فالعمل
 # كلُّه في المختبر ولم يصل الناسَ شيء — وإمّا أنه المختبرُ نفسه، أي أنّ
 # ترقيةً جرت للتوّ. وما بينهما خطأ: جذرٌ لا هو المنشور ولا هو المُجرَّب.
-same_remote = subprocess.run(['git', '-C', str(REPO), 'diff', '--quiet', remote, '--',
-                              *ITEMS], capture_output=True).returncode == 0
-same_lab = all(
+# الحارس الحقيقيّ ليس «الجذر يساوي كذا اليوم» — فبين ترقيةٍ ورفعها يتقدّم
+# المختبر فيختلفان بحقّ. الحارس أنّ **الجذر لا يتغيّر إلّا نسخًا من
+# المختبر**: يُنظَر إلى الكومت الذي غيّر الجذر آخر مرّة، فإن كان الجذر
+# فيه يطابق المختبر فالنسخة محضٌ ولا يد فيها.
+last = subprocess.run(['git', '-C', str(REPO), 'log', '-1', '--format=%H', '--', *ITEMS],
+                      capture_output=True, text=True).stdout.strip()
+drift = []
+for i in ITEMS:
+    a = subprocess.run(['git', '-C', str(REPO), 'rev-parse', f'{last}:{i}'],
+                       capture_output=True, text=True).stdout.strip()
+    b = subprocess.run(['git', '-C', str(REPO), 'rev-parse', f'{last}:lab/{i}'],
+                       capture_output=True, text=True).stdout.strip()
+    if not a or a != b:
+        drift.append(i)
+rec("الجذر لم يتغيّر إلّا نسخًا من المختبر", not drift,
+    f"@{last[:8]} — {drift[:3] if drift else 'مطابق'}")
+
+# ولا يُترك الجذر معدَّلًا خارج كومت: تغييرٌ لم يُسجَّل يفلت من كلّ حارس.
+dirty = subprocess.run(['git', '-C', str(REPO), 'status', '--porcelain', '--', *ITEMS],
+                       capture_output=True, text=True).stdout.strip()
+rec("ولا تغييرَ في الجذر خارج كومت", not dirty, dirty[:60])
+# وحين يتقدّم المختبر على الجذر وجب أن يحمل إصدار أصولٍ أحدث، وإلّا خدم
+# المتصفّح ملفَّه المحفوظ بعد الترقية.
+lab_same = all(
     (filecmp.cmp(LAB / i, REPO / i, shallow=False) if (REPO / i).is_file()
      else not filecmp.dircmp(LAB / i, REPO / i).diff_files)
     for i in ITEMS)
-rec("الجذر إمّا المنشور وإمّا المختبر المرقّى — لا ثالث",
-    same_remote or same_lab,
-    f"origin={same_remote} lab={same_lab} @{remote[:8]}")
-if same_remote and not same_lab:
+if not lab_same:
     lab_v = set(re.findall(r'\?v=(\d+)', (LAB / 'index.html').read_text(encoding='utf-8')))
     root_v = set(re.findall(r'\?v=(\d+)', (REPO / 'index.html').read_text(encoding='utf-8')))
-    rec("وحين يتقدّم المختبر يحمل إصدارًا أحدث", lab_v and root_v and lab_v != root_v,
+    rec("والمختبر المتقدّم يحمل إصدارًا أحدث",
+        bool(lab_v) and bool(root_v) and max(map(int, lab_v)) > max(map(int, root_v)),
         f"lab={sorted(lab_v)} root={sorted(root_v)}")
 
 # ── ٢) الترقية نسخٌ محض: نجرّبها على نسخةٍ من المستودع لا عليه

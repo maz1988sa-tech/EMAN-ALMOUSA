@@ -195,6 +195,30 @@
           }
           if (fn === 'get_public_settings') return ok([SETTINGS]);
 
+          /* ــ عدّ الزوّار ــــــــــــــــــــــــــــــــــــــــــــــــ */
+          if (fn === 'track_visit') {
+            (window.__TRACK = window.__TRACK || []).push(['visit', args]);
+            return ok('vis-1');
+          }
+          if (fn === 'track_ping' || fn === 'track_booked') {
+            (window.__TRACK = window.__TRACK || []).push([fn.replace('track_', ''), args]);
+            return ok(null);
+          }
+          if (fn === 'admin_visits') {
+            return ok(window.__VISITS === null ? [{ visitors:0, sessions:0, new_visitors:0,
+              bounced:0, reached_form:0, booked:0, avg_seconds:0, med_seconds:0 }]
+              : [window.__VISITS || { visitors:40, sessions:52, new_visitors:31,
+                  bounced:18, reached_form:16, booked:12,
+                  avg_seconds:154, med_seconds:96 }]);
+          }
+          if (fn === 'admin_visits_monthly') {
+            return ok(window.__VISITS_M || [
+              { ym:'2026-09', visitors:40, sessions:52, booked:12, avg_seconds:154 },
+              { ym:'2026-08', visitors:63, sessions:88, booked:19, avg_seconds:131 },
+              { ym:'2026-07', visitors:22, sessions:26, booked:4,  avg_seconds:97 },
+            ]);
+          }
+
           /* حكم الإيصال: يُملى من الفحص عبر window.__RECEIPT__ ليُجرَّب
              القبولُ والرفض والانتظار بلا قراءةٍ حقيقية للصورة. */
           if (fn === 'check_receipt') {

@@ -113,3 +113,7 @@ async def main():
 
 asyncio.run(main())
 print(f"\n=== {ok}/{ok+fail} passed ===")
+
+# طقمٌ لا يُخرج رمز فشل يمرّ في المُشغِّل وهو ساقط — وهذا أخطر من
+# السقوط نفسه، إذ يُطمئن كذبًا.
+sys.exit(1 if fail else 0)

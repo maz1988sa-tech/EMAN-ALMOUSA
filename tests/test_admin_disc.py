@@ -30,7 +30,8 @@ async def main():
 
         await pg.click('[data-tab="settings"]'); await pg.wait_for_timeout(600)
         panes = await pg.eval_on_selector_all(".panetab","e=>e.map(x=>x.textContent.trim())")
-        rec("أربعة أقسام تحت الإعدادات", panes==["عام","أوقات العمل","الخدمات","الرسائل"], str(panes))
+        rec("أقسام الإعدادات بترتيبها",
+            panes[:4]==["عام","أوقات العمل","الخدمات","الرسائل"] and len(panes)>=4, str(panes))
         grp = await pg.eval_on_selector("#set-grp","e=>e.value")
         rec("حقل خصم المجموعة يقرأ الإعدادات", grp=="100", f"value={grp!r}")
 

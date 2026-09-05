@@ -205,7 +205,7 @@ async def main():
                   panes:document.querySelectorAll('.panetab').length};}""")
         rec("الخيار مفتاحٌ يُقلب لا مربّع", sw and sw["sw"] and sw["hidden"], str(sw and sw["sw"]))
         rec("المفتاح المفعّل يخضرّ", sw and (not sw["on"] or sw["bg"] == sw["okbg"]), str(sw and sw["bg"]))
-        rec("شريط أقسام الإعدادات ظاهر", sw and sw["panes"] == 4, str(sw and sw["panes"]))
+        rec("شريط أقسام الإعدادات ظاهر", sw and sw["panes"] >= 4, str(sw and sw["panes"]))
         await pg.screenshot(path=f"{OUT}/fit-settings.png", full_page=True)
 
         # ── لا سطح شفّافٌ يختفي فوق المشهد ──────────────────────────
@@ -596,3 +596,7 @@ async def main():
 
 asyncio.run(main())
 print(f"\n=== {ok}/{ok+fail} passed ===")
+
+# طقمٌ لا يُخرج رمز فشل يمرّ في المُشغِّل وهو ساقط — وهذا أخطر من
+# السقوط نفسه، إذ يُطمئن كذبًا.
+sys.exit(1 if fail else 0)
