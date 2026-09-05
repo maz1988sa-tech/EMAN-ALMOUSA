@@ -517,20 +517,28 @@ const people    = () => flatPicked().length;
    وجهها لا وجه غيرها. المجموعة المثبَّتة في الشيفرة تبقى احتياطًا لما لم
    تُرفع له وسيطة بعد. `frame` هو ما ضبطته صاحبة العمل: موضعٌ نسبيّ
    وتكبير، فيُقصّ الإطار كما رأته لا كما تصادف. */
-const mediaFor = (s, i) => {
-  if (s && s.media_path) {
-    const url = mediaUrl(s.media_path), poster = s.poster_path ? mediaUrl(s.poster_path) : '';
-    const frame = { x: Number(s.media_x ?? 50), y: Number(s.media_y ?? 50), z: Number(s.media_zoom ?? 1) };
-    return s.media_kind === 'video'
-      ? { video: url, poster: poster || '', thumb: poster || '', frame }
-      : { video: '', poster: url, thumb: url, frame };
+const mediaFor = (s) => {
+  /* الاحتياط يُختار بالاسم لا بالترتيب: كان `UI.media[i]` يعطي الخدمة
+     الثانية وجهَ «السهرة» لمجرّد موقعها، فتلبس خدمةٌ وجهَ غيرها. */
+  const fb = (s && UI.media.find((m) => m.match.test(s.name))) || UI.fallback;
+  if (!s) return fb;
+  const frame = { x: Number(s.media_x ?? 50), y: Number(s.media_y ?? 50), z: Number(s.media_zoom ?? 1) };
+
+  if (s.media_kind === 'video' && s.media_path) {
+    const url = mediaUrl(s.media_path);
+    const poster = s.poster_path ? mediaUrl(s.poster_path) : '';
+    /* لا يُترك الملصق فارغًا أبدًا: `url('')` تُخرج بطاقةً صمّاء، وهذا
+       ما رآه الناس. وإن لم تُرفع صورة فالحيادُ أصدق من وجهِ خدمةٍ أخرى. */
+    return { video: url || '', poster: poster || UI.fallback.poster,
+             thumb: poster || UI.fallback.thumb, frame };
   }
-  if (s && s.poster_path) {
-    const url = mediaUrl(s.poster_path);
-    return { video: '', poster: url, thumb: url,
-             frame: { x: Number(s.media_x ?? 50), y: Number(s.media_y ?? 50), z: Number(s.media_zoom ?? 1) } };
-  }
-  return UI.media.find((m) => m.match.test(s.name)) || UI.media[i] || UI.fallback;
+
+  /* صورةٌ بلا فيديو: تُقبل من `media_path` حين رُفعت صورةً، ومن
+     `poster_path` حين رُفعت ملصقًا ثم أُزيل الفيديو. */
+  const still = (s.media_path && s.media_kind !== 'video') ? mediaUrl(s.media_path)
+              : s.poster_path ? mediaUrl(s.poster_path) : '';
+  if (still) return { video: '', poster: still, thumb: still, frame };
+  return fb;
 };
 const frameStyle = (m) => m.frame
   ? `object-position:${m.frame.x}% ${m.frame.y}%;transform:scale(${m.frame.z});` : '';
@@ -677,7 +685,7 @@ function renderServices() {
     return;
   }
   svcRail.innerHTML = state.services.map((s, i) => {
-    const m = mediaFor(s, i);
+    const m = mediaFor(s);
     const fs = frameStyle(m);
     const bg = m.video
       ? `<video class="bg" muted loop playsinline preload="metadata" poster="${m.poster}" style="${fs}"><source src="${m.video}"></video>`
@@ -1093,12 +1101,12 @@ function sync() {
   const chipT = el('chipThumb');
   chipT.className = `thumbs${c.length > 1 ? ' pair' : ''}`;
   chipT.innerHTML = c.length
-    ? c.map((s) => `<i class="th" style="background-image:url('${mediaFor(s, state.services.indexOf(s)).thumb}')"></i>`).join('')
+    ? c.map((s) => `<i class="th" style="background-image:url('${mediaFor(s).thumb}')"></i>`).join('')
     : '<i class="th empty"></i>';
 
   const arts = el('sumThumb');
   arts.className = `arts${c.length > 1 ? ' pair' : ''}`;
-  arts.innerHTML = c.map((s) => `<figure class="art" style="background-image:url('${mediaFor(s, state.services.indexOf(s)).thumb}')">${
+  arts.innerHTML = c.map((s) => `<figure class="art" style="background-image:url('${mediaFor(s).thumb}')">${
     state.counts[s.id] > 1 ? `<b dir="ltr">×${state.counts[s.id]}</b>` : ''}</figure>`).join('');
 
   const disc = groupDiscount();

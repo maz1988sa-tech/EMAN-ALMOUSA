@@ -2149,26 +2149,82 @@ function openMsgMenu(b, back = false) {
   hydrateIcons(sheet);
 }
 
+/** سطر خدمة في القائمة. المخفيّة تُعرض باهتةً ومعها زرّ إعادة الإظهار،
+ *  ويُذكر إن كانت تحمل وسيطةً لن يراها أحد ما دامت مخفيّة. */
+function svcRow(s, hidden = false) {
+  const media = s.media_path || s.poster_path;
+  const notes = [fmtDuration(s.duration_min)];
+  if (!hidden && !s.bookable_by_client) notes.push('غير ظاهرة للعميلات');
+  if (media && (hidden || !s.bookable_by_client)) notes.push('وسيطة مرفوعة لا تظهر للعميلات');
+  return `
+    <div class="rowline"${hidden ? ' style="opacity:.72"' : ''}>
+      <span class="badge" data-icon="${esc(s.icon)}" data-icon-size="18" style="width:36px;height:36px"></span>
+      <span class="grow"><span class="t">${esc(s.name)}</span>
+        <span class="s">${notes.join(' · ')}</span></span>
+      <span class="v num" style="font-family:var(--fd);font-weight:700">${money(s.price)}</span>
+      ${hidden ? `<button class="btn btn-ghost" data-showsvc="${s.id}" style="padding:6px 12px">إظهار</button>` : ''}
+      <button class="iconbtn" data-editsvc="${s.id}" aria-label="تعديل ${esc(s.name)}" data-icon="edit"></button>
+    </div>`;
+}
+
 function renderServices() {
   view.innerHTML = `
     <div class="sec-head" style="margin-top:18px"><h2>الخدمات والأسعار</h2><span class="rule"></span></div>
     <p class="muted mb">المدة هنا هي ما يبني الأوقات المتاحة للعميلة.</p>
     <div class="card mb">
-      ${S.services.filter((s) => s.active).map((s) => `
-        <div class="rowline">
-          <span class="badge" data-icon="${esc(s.icon)}" data-icon-size="18" style="width:36px;height:36px"></span>
-          <span class="grow"><span class="t">${esc(s.name)}</span>
-            <span class="s">${fmtDuration(s.duration_min)}${s.bookable_by_client ? '' : ' · غير ظاهرة للعميلات'}</span></span>
-          <span class="v num" style="font-family:var(--fd);font-weight:700">${money(s.price)}</span>
-          <button class="iconbtn" data-editsvc="${s.id}" aria-label="تعديل ${esc(s.name)}" data-icon="edit"></button>
-        </div>`).join('') || '<p class="muted center" style="padding:12px 0">لا خدمات.</p>'}
+      ${S.services.filter((s) => s.active).map((s) => svcRow(s)).join('')
+        || '<p class="muted center" style="padding:12px 0">لا خدمات.</p>'}
     </div>
-    <button class="btn btn-ghost" id="addSvc">${icon('plus', 18)} إضافة خدمة</button>`;
+    <button class="btn btn-ghost" id="addSvc">${icon('plus', 18)} إضافة خدمة</button>
+    ${/* المخفيّة كانت تختفي من اللوحة أيضًا، فلا تُستعاد ولا تُرى الوسائط
+         التي رُفعت لها. تظهر هنا في قسمٍ ثانويّ ومعها طريق العودة. */
+      S.services.some((s) => !s.active) ? `
+      <div class="sec-head" style="margin-top:26px"><h2>خدمات مخفية</h2><span class="rule"></span></div>
+      <p class="muted mb">لا تظهر للعميلات ولا في الحجز اليدوي. الحجوزات السابقة عليها لم تتأثر.</p>
+      <div class="card mb">
+        ${S.services.filter((s) => !s.active).map((s) => svcRow(s, true)).join('')}
+      </div>` : ''}`;
 
   view.querySelectorAll('[data-editsvc]').forEach((b) =>
     b.onclick = () => editService(S.services.find((s) => s.id === b.dataset.editsvc)));
+  view.querySelectorAll('[data-showsvc]').forEach((b) => b.onclick = async () => {
+    const s = S.services.find((x) => x.id === b.dataset.showsvc);
+    b.disabled = true;
+    try { await admin.saveService({ ...s, active: true }); toast('عادت الخدمة للظهور', 'ok'); reload(); }
+    catch { b.disabled = false; toast('تعذّرت الإعادة', 'bad'); }
+  });
   document.getElementById('addSvc').onclick = () =>
     editService({ name: '', icon: 'sparkle', price: 0, duration_min: 45, active: true, bookable_by_client: true, sort: S.services.length + 1 });
+}
+
+/* صورةٌ تُلتقط من الفيديو نفسه.
+   السبب: `<video>` بلا ملصق يظهر إطارًا أسود — بل صمّاء — حتى يبدأ
+   التشغيل، وبعض الحاويات (MOV من الآيفون) لا تُفكّ أصلًا على أندرويد
+   فلا تبدأ أبدًا. فصار لكلّ فيديو ملصقٌ من إطاره، تراه العميلة مهما كان
+   جهازها. تُلتقط هنا في المتصفّح الذي رفع الملفّ — وهو يفكّه بالضرورة. */
+async function posterFromVideo(file) {
+  const url = URL.createObjectURL(file);
+  const v = document.createElement('video');
+  const wait = (ms, fn) => new Promise((res, rej) => {
+    const t = setTimeout(() => rej(new Error('timeout')), ms);
+    fn(() => { clearTimeout(t); res(); }, (e) => { clearTimeout(t); rej(e); });
+  });
+  try {
+    v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
+    await wait(15000, (ok, no) => { v.onloadeddata = ok; v.onerror = () => no(new Error('decode')); });
+    // بعد البداية بقليل: أوّل إطارٍ كثيرًا ما يكون أسود أو ضبابيًّا.
+    const at = Math.min(1.2, (Number(v.duration) || 2) / 4);
+    await wait(15000, (ok, no) => { v.onseeked = ok; v.onerror = () => no(new Error('seek')); v.currentTime = at; });
+    const w = v.videoWidth, h = v.videoHeight;
+    if (!w || !h) throw new Error('no_frame');
+    const k = Math.min(1, 1080 / Math.max(w, h));
+    const c = document.createElement('canvas');
+    c.width = Math.round(w * k); c.height = Math.round(h * k);
+    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    const blob = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.82));
+    if (!blob) throw new Error('no_blob');
+    return new File([blob], 'poster.jpg', { type: 'image/jpeg' });
+  } finally { v.removeAttribute('src'); v.load?.(); URL.revokeObjectURL(url); }
 }
 
 const ICON_CHOICES = ['bride', 'evening', 'lipstick', 'brush', 'mirror', 'sparkle', 'heart', 'user'];
@@ -2246,6 +2302,7 @@ function editService(s, carried = []) {
       <input type="file" id="s-imgfile" accept="${MEDIA_ACCEPT_IMAGE}" hidden>
       <p class="hint">تُستعمل خلفيةً للبطاقة إن لم يكن هناك فيديو.</p>
     </div>
+    <div id="s-unseen" class="mb"></div>
 
     <label class="toggle"><input type="checkbox" id="s-public" ${s.bookable_by_client ? 'checked' : ''}>
       <span class="grow"><span class="t">تظهر لصفحة العميلات</span>
@@ -2255,7 +2312,7 @@ function editService(s, carried = []) {
         <span class="s">يُطبَّق تلقائيًا من شخصين فأكثر، بالمبلغ المحدَّد في الإعدادات</span></span><span class="sw"></span></label>
     <div id="s-err"></div>
     <div class="btn-row">
-      ${s.id ? '<button class="btn btn-danger" id="s-del">إخفاء</button>' : ''}
+      ${s.id && s.active !== false ? '<button class="btn btn-danger" id="s-del">إخفاء</button>' : ''}
       <button class="btn btn-primary" id="s-save">حفظ</button>
     </div>`);
 
@@ -2275,7 +2332,22 @@ function editService(s, carried = []) {
   };
   const orphans = [...carried];
 
+  /* الوسيطة تُرفع وتُعاين هنا، ثم لا تظهر للعميلة لأنّ الخدمة نفسها
+     محجوبة عنها. لا يُترك ذلك ليُكتشف من الصفحة: يُقال في مكانه. */
+  const sayUnseen = () => {
+    const box = document.getElementById('s-unseen'); if (!box) return;
+    const pub = document.getElementById('s-public');
+    const has = !!(M.path || M.poster);
+    const off = s.id && s.active === false;
+    box.innerHTML = !has ? ''
+      : off ? note('هذه الخدمة مخفيّة، فلن ترى العميلات هذه الوسيطة. أظهريها من قائمة الخدمات.')
+      : (pub && !pub.checked)
+        ? note('«تظهر لصفحة العميلات» موقوفة، فلن تظهر هذه الوسيطة في رابط الحجز.')
+        : '';
+  };
+
   const paint = () => {
+    sayUnseen();
     document.querySelectorAll('[data-prev], [data-poster] img').forEach((el) => {
       el.style.setProperty('--x', `${M.x}%`);
       el.style.setProperty('--y', `${M.y}%`);
@@ -2292,8 +2364,18 @@ function editService(s, carried = []) {
       btn.disabled = true; const label = btn.textContent; btn.textContent = 'جارٍ الرفع…';
       try {
         const up = await uploadServiceMedia(f, want);
-        if (want === 'video') { if (M.path) orphans.push(M.path); M.kind = 'video'; M.path = up.path; }
-        else { if (M.poster) orphans.push(M.poster); M.poster = up.path; }
+        if (want === 'video') {
+          if (M.path) orphans.push(M.path);
+          M.kind = 'video'; M.path = up.path;
+          // بلا ملصقٍ تظهر البطاقة صمّاء عند العميلة، فيُلتقط من الفيديو.
+          if (!M.poster) {
+            btn.textContent = 'جارٍ التقاط الصورة…';
+            try {
+              const pu = await uploadServiceMedia(await posterFromVideo(f), 'image');
+              M.poster = pu.path;
+            } catch { /* تعذّر الالتقاط: الحارس في mediaFor يضع خلفيةً حياديّة */ }
+          }
+        } else { if (M.poster) orphans.push(M.poster); M.poster = up.path; }
         redraw();
       } catch (err) {
         document.getElementById('s-err').innerHTML = note(err.message || 'تعذّر الرفع');
@@ -2343,6 +2425,8 @@ function editService(s, carried = []) {
       o.setAttribute('aria-pressed', String(o === b)));
     paint();
   });
+  const pubEl = document.getElementById('s-public');
+  if (pubEl) pubEl.addEventListener('change', sayUnseen);
   const zoomEl = document.getElementById('s-zoom');
   if (zoomEl) zoomEl.oninput = () => { M.zoom = Number(zoomEl.value); paint(); };
   const vyEl = document.getElementById('s-vy');
@@ -2371,7 +2455,8 @@ function editService(s, carried = []) {
       group_discount: document.getElementById('s-group').checked,
       media_kind: M.kind, media_path: M.path, poster_path: M.poster,
       media_x: M.x, media_y: M.y, media_zoom: M.zoom,
-      active: true, sort: s.sort ?? 0,
+      // الحفظ لا يُعيد خدمةً مخفيّة إلى الظهور؛ لذلك زرُّ «إظهار» في القائمة.
+      active: s.active !== false, sort: s.sort ?? 0,
     });
     // ما استُبدل قبل الحفظ لم يعد يشير إليه شيء، فيُمحى بدل أن يتراكم.
     if (orphans.length) await removeServiceMedia(orphans).catch(() => {});

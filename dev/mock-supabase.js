@@ -112,7 +112,11 @@
                    message_templates: TEMPLATES }[name] || [];
     const q = {
       _rows: rows.slice(),
-      select() { return q; }, eq() { return q; }, in() { return q; }, gte() { return q; },
+      select() { return q; },
+      /* كان `eq` لا يرشّح شيئًا، فيرى المتصفّح في الفحص صفوفًا لا تصله في
+         الحقيقة — ومنها خدمةٌ مخفيّة. محاكٍ يكذب يُعطّل التغطية بصمت. */
+      eq(col, val) { q._rows = q._rows.filter((r) => r && r[col] === val); return q; },
+      in() { return q; }, gte() { return q; },
       lte() { return q; }, ilike() { return q; }, order() { return q; }, limit() { return q; },
       insert(v) { return { select: () => ({ maybeSingle: () => ok(Array.isArray(v) ? v[0] : v) }) , then:(r)=>r({data:v,error:null}) }; },
       update(v) { return { eq: () => ({ select: () => ({ maybeSingle: () => ok({ ...rows[0], ...v }) }), then:(r)=>r({data:v,error:null}) }), then:(r)=>r({data:v,error:null}) }; },
