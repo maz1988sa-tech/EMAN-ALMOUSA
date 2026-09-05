@@ -3,6 +3,15 @@
 نظام حجوزات سحابي بواجهتين: صفحة عامة تحجز منها العميلة، ولوحة تحكم خاصة
 تصل إليها الطلبات وتؤكّدها.
 
+> **قبل أيّ تعديل اقرأ [`CLAUDE.md`](CLAUDE.md)** — دليل التشغيل: قاعدة
+> «المختبر أوّلًا»، وحدود القاعدة والأسرار، وأعطابٌ وقعت ولا تُعاد.
+> ولمن يريد فحصًا متكاملًا: [`docs/audit-brief.md`](docs/audit-brief.md).
+>
+> ```bash
+> pip install playwright && python3 -m playwright install chromium
+> python3 tests/sync.py && python3 tests/run.py
+> ```
+
 ## الملفات
 
 | الملف | الغرض |

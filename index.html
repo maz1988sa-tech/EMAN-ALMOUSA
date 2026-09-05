@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=39">
+<link rel="stylesheet" href="assets/fonts.css?v=40">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=39">
+<link rel="stylesheet" href="assets/client-theme.css?v=40">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -461,7 +461,7 @@ import {
   uploadReceipt, depositFor, verifyReceipt, checkReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=39';
+} from './assets/db.js?v=40';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -1283,17 +1283,31 @@ async function uploadAndCheck() {
   chk('', '');
   gate();
 
-  let verdict = 'wait';
+  /* عطبان لا واحد: رفعٌ لم يتمّ، وحكمٌ لم يُعرف. الأوّل يُقال صراحةً —
+     ليس فيه سرٌّ يُبنى عليه تحايل، وسكوتُه يترك العميلة أمام زرٍّ مقفلٍ
+     بلا تفسير. والثاني يُترك للخادم عند الإرسال. */
+  let verdict = 'wait', upFailed = false;
   try {
     const file = await shrinkForOcr(state.receiptFile);
     state.receiptPath = await uploadReceipt(file);
-    await verifyReceipt(state.receiptPath);
-    // الحكم من القاعدة لا من المتصفّح، والعربون يُحسب هناك من الخدمات.
-    verdict = await checkReceipt(state.receiptPath, flatPicked().map((s) => s.id));
   } catch {
-    // تعذّر الرفع أو الاتصال: ليس اتّهامًا لصاحبة الإيصال. يُترك الحكم
-    // للخادم عند الإرسال، ولا تُمنع من المحاولة.
-    verdict = 'wait';
+    upFailed = true;
+  }
+  if (!upFailed) {
+    try {
+      await verifyReceipt(state.receiptPath);
+      // الحكم من القاعدة لا من المتصفّح، والعربون يُحسب هناك من الخدمات.
+      verdict = await checkReceipt(state.receiptPath, flatPicked().map((s) => s.id));
+    } catch {
+      verdict = 'wait';   // تعذّر الفحص لا يُتّهم به صاحبة الإيصال
+    }
+  }
+
+  if (upFailed) {
+    state.receiptPath = null; state.receiptCheck = null;
+    rcptModal('off');
+    chk('bad', 'تعذّر رفع الإيصال — تحقّقي من الاتصال وأعيدي المحاولة');
+    gate(); return;
   }
 
   state.receiptCheck = { verdict };
