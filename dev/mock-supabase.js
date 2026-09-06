@@ -166,15 +166,35 @@
           }
           if (fn === 'orphan_receipts') return ok([]);
           if (fn === 'admin_snapshot') {
-            return ok({ taken_at: new Date().toISOString(),
-                        counts: { bookings: BOOKINGS.length, services: SERVICES.length,
-                                  rules: RULES.length, overrides: OVERRIDES.length,
-                                  templates: TEMPLATES.length },
-                        bookings: BOOKINGS.map((b, i) => ({ ...b,
-                          receipt_path: i < 2 ? `pending/r${i + 1}.jpg` : null })),
-                        services: SERVICES, availability_rules: RULES,
-                        date_overrides: OVERRIDES, message_templates: TEMPLATES,
-                        settings: SETTINGS });
+            /* شكل اللقطة الحقيقيّة (النسخة ٢): كلّ جدولٍ يُحفَظ له مفتاح،
+               وكلُّ مفتاحٍ له عدّاده. محاكٍ أفقرُ من القاعدة يُخفي نقصًا. */
+            const OUTBOX = [{ id: 'ob-1', booking_id: 'b1', template_id: 't1',
+                              trigger_kind: 'on_confirmed', to_phone: '966501234567',
+                              status: 'preview', body: 'نصّ', created_at: new Date().toISOString() }];
+            const REFC   = [{ period: '202608', n: 5 }, { period: '202609', n: 2 }];
+            const VISITS = [{ id: 'v1', vid: 'abcd1234', max_step: 3, booked: false },
+                            { id: 'v2', vid: 'efgh5678', max_step: 0, booked: true }];
+            const LOG    = [{ id: 'l1', booking_id: 'b1', actor: 'admin', action: 'confirm' }];
+            const SCANS  = [{ path: 'pending/r1.jpg', iban_hit: true, numbers: [500], engine: 'ocrspace' }];
+            const snap = {
+              version: 2, taken_at: new Date().toISOString(),
+              settings: SETTINGS,
+              bookings: BOOKINGS.map((b, i) => ({ ...b,
+                receipt_path: i < 2 ? `pending/r${i + 1}.jpg` : null })),
+              booking_items: BOOKINGS.flatMap((b) => b.booking_items || []),
+              services: SERVICES, availability_rules: RULES, date_overrides: OVERRIDES,
+              message_templates: TEMPLATES, message_outbox: OUTBOX,
+              ref_counters: REFC, visits: VISITS, activity_log: LOG, receipt_scans: SCANS,
+            };
+            snap.counts = {
+              bookings: snap.bookings.length, booking_items: snap.booking_items.length,
+              services: SERVICES.length, rules: RULES.length, overrides: OVERRIDES.length,
+              message_templates: TEMPLATES.length, message_outbox: OUTBOX.length,
+              ref_counters: REFC.length, visits: VISITS.length,
+              activity_log: LOG.length, receipt_scans: SCANS.length,
+              receipts: 2,
+            };
+            return ok(snap);
           }
           if (fn === 'available_slots') {
             const dur = args.p_duration_min || 45;
@@ -221,6 +241,16 @@
               { ym:'2026-08', visitors:63, sessions:88, booked:19, avg_seconds:131 },
               { ym:'2026-07', visitors:22, sessions:26, booked:4,  avg_seconds:97 },
             ]);
+          }
+
+          /* الاستعادة: تردّ ما «عاد» من كل جدول، كما تفعل القاعدة. */
+          if (fn === 'admin_restore_snapshot') {
+            (window.__RESTORE = window.__RESTORE || []).push(args);
+            return ok(window.__RESTORE_RESULT || {
+              services: 0, rules: 0, overrides: 0, bookings: 3, booking_items: 5,
+              message_templates: 2, message_outbox: 4, ref_counters: 2, visits: 6,
+              activity_log: 3, receipt_scans: 1, settings_restored: false,
+            });
           }
 
           /* حكم الإيصال: يُملى من الفحص عبر window.__RECEIPT__ ليُجرَّب

@@ -38,8 +38,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=42">
-<link rel="stylesheet" href="assets/theme.css?v=42">
+<link rel="stylesheet" href="assets/fonts.css?v=43">
+<link rel="stylesheet" href="assets/theme.css?v=43">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -200,7 +200,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=42"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=43"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -234,7 +234,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=42';
+import { icon, hydrateIcons } from './assets/icons.js?v=43';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -244,7 +244,7 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=42';
+} from './assets/db.js?v=43';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -2468,6 +2468,23 @@ const note = (msg) => `<div class="note danger mb">${icon('close', 18)}<span>${e
 
 /* رسالة تنجو من إعادة رسم الشاشة. الاستعادة تُنعش البيانات فتُعاد الشاشة
    مرّتين، وكان التقرير يُمحى بيده قبل أن يُقرأ. يبقى حتى تنتقل من الشاشة. */
+/* أسماء ما تحمله النسخة. تُقرأ من الحصيلة نفسها لا من قائمةٍ ثانية،
+   فجدولٌ يُضاف إلى اللقطة يظهر هنا بلا تعديلٍ آخر. وما كان صفرًا لا
+   يُذكر: «عاد ٠ زيارة» ضجيجٌ لا خبر. */
+const BK_NAMES = {
+  bookings: 'حجز', booking_items: 'بند', services: 'خدمة', rules: 'قاعدة وقت',
+  overrides: 'استثناء', message_templates: 'رسالة', message_outbox: 'رسالة مُرسَلة',
+  ref_counters: 'عدّاد', visits: 'زيارة', activity_log: 'حدث', receipt_scans: 'فحص إيصال',
+};
+function countLine(counts) {
+  if (!counts) return '';
+  return Object.entries(BK_NAMES)
+    .map(([k, label]) => [Number(counts[k] || 0), label])
+    .filter(([n]) => n > 0)
+    .map(([n, label]) => `${int(n)} ${label}`)
+    .join(' · ');
+}
+
 let bkFlash = '';
 
 /* ── Settings ─────────────────────────────────────────────────────────── */
@@ -2595,6 +2612,11 @@ function renderSettings() {
     <div class="sec-head"><h2>النسخ الاحتياطي</h2><span class="rule"></span></div>
     <p class="muted mb">نسخة كاملة تُحفظ في سحابة المنصّة باسم تاريخها.
       الاستعادة تُرجع المحذوف ولا تمسّ حجزًا قائمًا.</p>
+    <div class="note mb">${icon('check', 18)}<span>تحمل النسخة كلَّ شيء:
+      الإعدادات والخدمات وأوقات العمل والاستثناءات، والحجوزات وبنودها وإيصالاتها،
+      والرسائل وإعدادات إرسالها وسجلّ ما أُرسل، وعدّاد أرقام الحجوزات، وعدّ الزوّار،
+      وسجلّ الأحداث. ولا تحمل شيئين عن قصد: حسابات الدخول، ونصّ الإيصال
+      المقروء — والصور نفسها محفوظة معها.</span></div>
     <div class="btn-row mb">
       <button class="btn btn-primary" id="bkNew">${icon('wallet', 18)} أنشئي نسخة الآن</button>
     </div>
@@ -2841,11 +2863,10 @@ function renderSettings() {
       bkMsg.innerHTML = '';
       try {
         const r = await backups.restore(name);
-        const back = Number(r.bookings || 0);
+        const line = countLine(r);
         bkFlash = `<div class="note ok mb">${icon('check', 18)}<span>${
-          back ? `عاد ${int(back)} ${back === 1 ? 'حجز' : back <= 10 ? 'حجوزات' : 'حجزًا'}`
-               : 'لا شيء ناقص — كل ما في النسخة موجود بالفعل'
-        }${Number(r.receipts_restored) ? ` و${int(r.receipts_restored)} إيصالًا` : ''}.</span></div>`;
+          line ? `عاد: ${line}` : 'لا شيء ناقص — كل ما في النسخة موجود بالفعل'
+        }${Number(r.receipts_restored) ? ` · ${int(r.receipts_restored)} صورة إيصال` : ''}.</span></div>`;
         bkMsg.innerHTML = bkFlash; hydrateIcons(bkMsg);
         toast('تمّت الاستعادة', 'ok');
         reload();
@@ -2861,10 +2882,9 @@ function renderSettings() {
     const was = b.innerHTML; b.textContent = 'جارٍ أخذ النسخة…'; bkMsg.innerHTML = '';
     try {
       const r = await backups.create();
-      const c = r.counts || {};
       bkFlash = `<div class="note ok mb">${icon('check', 18)}<span>حُفظت النسخة —
-        ${int(c.bookings || 0)} حجز و${int(c.services || 0)} خدمة${
-        r.receipts_total ? ` و${int(r.receipts_copied)} من ${int(r.receipts_total)} إيصال` : ''}.</span></div>`;
+        ${countLine(r.counts)}${
+        r.receipts_total ? ` · ${int(r.receipts_copied)} من ${int(r.receipts_total)} صورة إيصال` : ''}.</span></div>`;
       bkMsg.innerHTML = bkFlash; hydrateIcons(bkMsg);
       drawBackups();
     } catch (e) {

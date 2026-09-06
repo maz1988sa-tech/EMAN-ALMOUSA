@@ -882,27 +882,19 @@ export const admin = {
     return () => sb.removeChannel(ch);
   },
 
-  /** Everything, as one JSON file. localStorage taught this system the hard
-   *  way that a store with no export is a store you will eventually lose. */
+  /** كلُّ شيء في ملفٍّ واحد.
+   *
+   *  كان هذا يقرأ ستّة جداول بنفسه، واللقطة السحابية تقرأ ستّةً أخرى —
+   *  فكان لكلمة «نسخة كاملة» معنيان. والأسوأ أنّ ما لا سياسةَ قراءةٍ له
+   *  (الزوّار، وفحوص الإيصال، وعدّاد الأرقام) لا يصل المتصفّح أصلًا،
+   *  فكان يخرج فارغًا بلا شكوى.
+   *
+   *  فصار المصدر واحدًا: `admin_snapshot` في القاعدة. ما يُنزَّل هو نفسه
+   *  ما يُحفَظ في السحابة، بايتًا ببايت. */
   async exportAll() {
-    const [bookings, items, services, rules, overrides, settings] = await Promise.all([
-      sb.from('bookings').select('*'),
-      sb.from('booking_items').select('*'),
-      sb.from('services').select('*'),
-      sb.from('availability_rules').select('*'),
-      sb.from('date_overrides').select('*'),
-      sb.from('settings').select('*'),
-    ]);
-    return {
-      exported_at: new Date().toISOString(),
-      schema: 1,
-      bookings: bookings.data || [],
-      booking_items: items.data || [],
-      services: services.data || [],
-      availability_rules: rules.data || [],
-      date_overrides: overrides.data || [],
-      settings: settings.data || [],
-    };
+    const { data, error } = await sb.rpc('admin_snapshot');
+    if (error) throw error;
+    return { ...data, exported_at: new Date().toISOString() };
   },
 };
 

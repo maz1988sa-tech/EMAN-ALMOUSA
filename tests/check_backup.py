@@ -2,7 +2,7 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import harness as _H
-import asyncio, os, sys, http.server, socketserver, threading, functools
+import json, asyncio, os, sys, http.server, socketserver, threading, functools
 from playwright.async_api import async_playwright
 ROOT=str(_H.ROOT); OUT=f"{_H.SHOTS}"
 class H(http.server.SimpleHTTPRequestHandler):
@@ -43,8 +43,37 @@ async def main():
         rec("اللقطة تُطلب من القاعدة", "admin_snapshot" in rpc, str(rpc))
         msg = await pg.inner_text("#bkMsg")
         rec("تقرير النسخة يذكر ما حُفظ", "حُفظت النسخة" in msg and "حجز" in msg, msg.strip()[:70])
+        # ما وراء الحجوزات: كان يُحفظ ولا يُذكر، فيُظنّ بالنسخة النقص.
+        rec("والتقرير يذكر ما وراء الحجوزات",
+            all(w in msg for w in ("رسالة", "زيارة", "عدّاد")), msg.strip()[:110])
         rows = await pg.eval_on_selector_all("#bkList .bkrow","e=>e.length")
         rec("النسخة تظهر في القائمة", rows==1, "صفوف=%d" % rows)
+
+        # ── ما يُنزَّل هو ما يُحفَظ: مصدرٌ واحد لكلمة «نسخة كاملة» ──────────
+        blob = await pg.evaluate("""async () => {
+          const saved = [];
+          const realURL = URL.createObjectURL;
+          URL.createObjectURL = (b) => { saved.push(b); return realURL(b); };
+          document.getElementById('btnBackup').click();
+          await new Promise((r) => setTimeout(r, 900));
+          URL.createObjectURL = realURL;
+          return saved.length ? await saved[saved.length - 1].text() : null;
+        }""")
+        try:
+            data = json.loads(blob) if blob else {}
+        except Exception:
+            data = {}
+        WANT = ["settings", "services", "availability_rules", "date_overrides",
+                "bookings", "booking_items", "message_templates", "message_outbox",
+                "ref_counters", "visits", "activity_log", "receipt_scans"]
+        miss = [k for k in WANT if k not in data]
+        rec("الملفّ المنزَّل يحمل كلَّ جدول", not miss, "ناقص: " + (", ".join(miss) or "لا شيء"))
+        rec("ولا يحمل حسابات الدخول ولا نصّ الإيصال",
+            "admins" not in data and "raw_text" not in (blob or ""),
+            "admins" if "admins" in data else "raw_text" if "raw_text" in (blob or "") else "نظيف")
+        rec("والملفّ من اللقطة نفسها لا من قراءةٍ ثانية",
+            (await pg.evaluate("()=>(window.__RPC||[]).filter(r=>r.name==='admin_snapshot').length")) >= 2,
+            "نداءات اللقطة")
         label = await pg.inner_text("#bkList .bkrow .t")
         rec("الصف يحمل تاريخًا مقروءًا", any(m in label for m in
             ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]),
@@ -94,6 +123,8 @@ async def main():
         await pg.wait_for_timeout(1200)
         rmsg = await pg.inner_text("#bkMsg")
         rec("تقرير الاستعادة يذكر ما عاد", "عاد" in rmsg or "لا شيء ناقص" in rmsg, rmsg.strip()[:70])
+        rec("وتقرير الاستعادة يشمل ما وراء الحجوزات",
+            all(w in rmsg for w in ("رسالة", "زيارة")), rmsg.strip()[:120])
         await pg.screenshot(path=f"{OUT}/backup-restored.png", full_page=True)
 
         await pg.evaluate("""()=>{const t=[...document.querySelectorAll('.tab')]
