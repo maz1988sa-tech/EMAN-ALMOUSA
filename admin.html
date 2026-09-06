@@ -1710,11 +1710,6 @@ let visRangeSel = 'm';
 function renderVisits() {
   view.innerHTML = `
     <div class="sec-head"><h2>الزوّار</h2><span class="rule"></span></div>
-    <div class="note mb">${icon('chart', 18)}
-      <span>عدٌّ بلا تعرّف: لا اسم ولا رقم ولا موقع — معرّفٌ عشوائيّ يصنعه
-        متصفّح الزائرة ويبقى عندها. تُعرَض الحصائل مجموعةً، ولا يُحفظ سطرٌ
-        يدلّ على أحد.</span></div>
-
     <div class="chiprow mb" id="visRange">
       ${VIS_RANGES.map((r) => `<button class="chip" type="button" data-vr="${r.v}"
         ${r.v === visRangeSel ? 'aria-pressed="true"' : ''}>${r.label}</button>`).join('')}

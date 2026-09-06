@@ -8,7 +8,7 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import harness as _H
-import asyncio, os, http.server, socketserver, threading, functools
+import re, asyncio, os, http.server, socketserver, threading, functools
 from playwright.async_api import async_playwright
 
 ROOT = str(_H.ROOT)
@@ -151,7 +151,8 @@ async def main():
         rec("وشهرًا بعد شهر", "أغسطس 2026" in m and "يوليو 2026" in m)
         rec("ولا يُعرض سطرُ زائرةٍ بعينها",
             "eman_vid" not in m and "vid-" not in m and "@" not in m)
-        rec("الخصوصية مشروحة للمالكة", "بلا تعرّف" in m or "لا اسم" in m)
+        rec("ولا يُذكر معرّفٌ ولا رقمٌ في الشاشة",
+            not re.search(r'\b05\d{8}\b', m) and 'vid' not in m.lower())
 
         # الفترات تُبدَّل
         await pg3.evaluate("()=>document.querySelector('[data-vr=\"today\"]').click()")
