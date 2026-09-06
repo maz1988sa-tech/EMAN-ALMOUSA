@@ -1,15 +1,23 @@
-/* Service worker.
+/* عاملُ الخدمة.
 
-   The shell — markup, styles, fonts, icons, the database client — is cached
-   on install and served cache-first, so the app opens instantly and keeps
-   working in a client's home with no signal.
+   القشرة — الصفحة والأنماط والخطوط والأيقونات وعميل القاعدة — تُحفظ عند
+   التنصيب، فتفتح المنصّة فورًا وتعمل في بيت العميلة حيث لا شبكة.
 
-   Data is never cached: every Supabase call goes to the network, because a
-   stale appointment list is worse than an honest error. When the network is
-   gone, the page's own error state explains it.
+   والبيانات لا تُحفظ أبدًا: كلّ نداء إلى Supabase يذهب إلى الشبكة، فقائمةُ
+   مواعيدَ قديمة أسوأ من خطأٍ صريح.
+
+   ── المستند حالةٌ خاصّة، وهذا أوقعنا ──
+   الأصول تحمل بصمةً في مسارها (`?v=`)، فالمحفوظُ منها لا يُخلَط بالجديد.
+   أمّا `index.html` و `admin.html` فمساراتها ثابتة، فكان المحفوظ يُخدَم
+   أوّلًا ويُحدَّث في الخلفية — أي أنّ **أوّل زيارة بعد كلّ نشرٍ ترى
+   النسخة السابقة**. ظهر ذلك حين نُشر عدُّ الزوّار: فُتحت الصفحة فلم
+   تُسجَّل زيارة، لأنّ الصفحة التي فُتحت لم تكن تعرف العدّ بعد.
+
+   فصار المستند من الشبكة أوّلًا، والمحفوظ احتياطًا حين تنقطع أو تُبطئ.
+   وبقيت الأصول على حالها: بصمتُها تكفيها.
 */
 
-const VERSION = 'v32';
+const VERSION = 'v33';
 const SHELL = `shell-${VERSION}`;
 
 const ASSETS = [
@@ -101,8 +109,46 @@ self.addEventListener('fetch', (event) => {
   // Anything that is not our own origin is data (Supabase) — always live.
   if (url.origin !== self.location.origin) return;
 
+  /* المستند: تنقّلٌ، أو الجذر، أو ملفّ .html صريح. */
+  const isDoc = request.mode === 'navigate'
+             || url.pathname.endsWith('/')
+             || url.pathname.endsWith('.html');
+
+  if (isDoc) {
+    event.respondWith((async () => {
+      const stored = () => caches.match(request, { ignoreSearch: true });
+
+      /* الشبكة تُطلب دائمًا، والنسخةُ تُنسخ لحظةَ وصولها — قبل أن يُقرأ
+         جسمُها — فتُحفظ للمرّة القادمة بلا تنازعٍ مع ما يُعرض الآن. */
+      const net = fetch(request).then((r) => {
+        if (r && r.ok) {
+          const copy = r.clone();
+          caches.open(SHELL).then((c) => c.put(request, copy)).catch(() => {});
+        }
+        return r;
+      });
+
+      /* سباقٌ مع الوقت: شبكةٌ بطيئة في بيت العميلة لا تُبقيها أمام صفحةٍ
+         بيضاء. ثلاث ثوانٍ ثمّ يُخدَم المحفوظ — إن وُجد. */
+      const slow = new Promise((res) => setTimeout(() => res(null), 3000));
+      const won = await Promise.race([net.catch(() => null), slow]);
+      if (won && won.ok) return won;
+
+      const c = await stored();
+      if (c) return c;
+
+      /* لا محفوظ: لا مفرّ من انتظار الشبكة. */
+      const last = await net.catch(() => null);
+      if (last) return last;
+      const shell = await caches.match('./index.html');
+      if (shell) return shell;
+      throw new Error('offline and not cached');
+    })());
+    return;
+  }
+
   event.respondWith((async () => {
-    const cached = await caches.match(request, { ignoreSearch: url.pathname.endsWith('.html') });
+    const cached = await caches.match(request);
     if (cached) {
       // Refresh in the background so the next open is current.
       event.waitUntil((async () => {

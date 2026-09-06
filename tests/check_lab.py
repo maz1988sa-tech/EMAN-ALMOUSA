@@ -52,18 +52,25 @@ rec("الجذر لم يتغيّر إلّا نسخًا من المختبر", not 
 dirty = subprocess.run(['git', '-C', str(REPO), 'status', '--porcelain', '--', *ITEMS],
                        capture_output=True, text=True).stdout.strip()
 rec("ولا تغييرَ في الجذر خارج كومت", not dirty, dirty[:60])
-# وحين يتقدّم المختبر على الجذر وجب أن يحمل إصدار أصولٍ أحدث، وإلّا خدم
-# المتصفّح ملفَّه المحفوظ بعد الترقية.
-lab_same = all(
-    (filecmp.cmp(LAB / i, REPO / i, shallow=False) if (REPO / i).is_file()
-     else not filecmp.dircmp(LAB / i, REPO / i).diff_files)
-    for i in ITEMS)
-if not lab_same:
+# ‏`?v=` بصمةُ الأصول لا عدّادُ إصدارات: يُرفع حين يتغيّر شيءٌ في
+# ‏`assets/` وحده. أمّا الصفحات و`sw.js` فمساراتها ثابتة ويأتي المتصفّح
+# بها من الشبكة، فلا تُلزَم برفعه — وإلزامُها كان يُسقط الطقم بلا عطب.
+same = lambda i: (filecmp.cmp(LAB / i, REPO / i, shallow=False) if (REPO / i).is_file()
+                  else not filecmp.dircmp(LAB / i, REPO / i).diff_files)
+if not same('assets'):
     lab_v = set(re.findall(r'\?v=(\d+)', (LAB / 'index.html').read_text(encoding='utf-8')))
     root_v = set(re.findall(r'\?v=(\d+)', (REPO / 'index.html').read_text(encoding='utf-8')))
-    rec("والمختبر المتقدّم يحمل إصدارًا أحدث",
+    rec("وأصولٌ تغيّرت في المختبر تحمل بصمةً أحدث",
         bool(lab_v) and bool(root_v) and max(map(int, lab_v)) > max(map(int, root_v)),
         f"lab={sorted(lab_v)} root={sorted(root_v)}")
+
+# وعاملُ الخدمة: تغيُّره بلا رفع `VERSION` يُبقي القشرة القديمة محفوظة
+# عند التفعيل، فتتراكم أصولٌ لا مرجع لها.
+if not same('sw.js'):
+    ver = lambda f: set(re.findall(r"VERSION\s*=\s*'([^']+)'", f.read_text(encoding='utf-8')))
+    lv, rv = ver(LAB / 'sw.js'), ver(REPO / 'sw.js')
+    rec("وعاملُ خدمةٍ تغيّر يحمل VERSION جديدًا", bool(lv) and bool(rv) and lv != rv,
+        f"lab={sorted(lv)} root={sorted(rv)}")
 
 # ── ٢) الترقية نسخٌ محض: نجرّبها على نسخةٍ من المستودع لا عليه
 with tempfile.TemporaryDirectory() as tmp:
