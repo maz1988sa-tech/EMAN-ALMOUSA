@@ -34,7 +34,7 @@ echo "› فحص التطابق…"
 fail=0
 for it in "${ITEMS[@]}"; do
   if ! diff -rq "lab/$it" "$it" >/dev/null 2>&1; then
-    echo "  ✗ يختلف: $it"; diff -rq "lab/$it" "$it" | head -5; fail=1
+    echo "  ✗ يختلف: $it"; diff -rq "lab/$it" "$it" 2>&1 | head -5 || true; fail=1
   fi
 done
 

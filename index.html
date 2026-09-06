@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=40">
+<link rel="stylesheet" href="assets/fonts.css?v=42">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=40">
+<link rel="stylesheet" href="assets/client-theme.css?v=42">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -459,9 +459,10 @@ import {
   createBooking, getBookingByToken, requestCancel,
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositFor, verifyReceipt, checkReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
+  trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=40';
+} from './assets/db.js?v=42';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -516,20 +517,28 @@ const people    = () => flatPicked().length;
    وجهها لا وجه غيرها. المجموعة المثبَّتة في الشيفرة تبقى احتياطًا لما لم
    تُرفع له وسيطة بعد. `frame` هو ما ضبطته صاحبة العمل: موضعٌ نسبيّ
    وتكبير، فيُقصّ الإطار كما رأته لا كما تصادف. */
-const mediaFor = (s, i) => {
-  if (s && s.media_path) {
-    const url = mediaUrl(s.media_path), poster = s.poster_path ? mediaUrl(s.poster_path) : '';
-    const frame = { x: Number(s.media_x ?? 50), y: Number(s.media_y ?? 50), z: Number(s.media_zoom ?? 1) };
-    return s.media_kind === 'video'
-      ? { video: url, poster: poster || '', thumb: poster || '', frame }
-      : { video: '', poster: url, thumb: url, frame };
+const mediaFor = (s) => {
+  /* الاحتياط يُختار بالاسم لا بالترتيب: كان `UI.media[i]` يعطي الخدمة
+     الثانية وجهَ «السهرة» لمجرّد موقعها، فتلبس خدمةٌ وجهَ غيرها. */
+  const fb = (s && UI.media.find((m) => m.match.test(s.name))) || UI.fallback;
+  if (!s) return fb;
+  const frame = { x: Number(s.media_x ?? 50), y: Number(s.media_y ?? 50), z: Number(s.media_zoom ?? 1) };
+
+  if (s.media_kind === 'video' && s.media_path) {
+    const url = mediaUrl(s.media_path);
+    const poster = s.poster_path ? mediaUrl(s.poster_path) : '';
+    /* لا يُترك الملصق فارغًا أبدًا: `url('')` تُخرج بطاقةً صمّاء، وهذا
+       ما رآه الناس. وإن لم تُرفع صورة فالحيادُ أصدق من وجهِ خدمةٍ أخرى. */
+    return { video: url || '', poster: poster || UI.fallback.poster,
+             thumb: poster || UI.fallback.thumb, frame };
   }
-  if (s && s.poster_path) {
-    const url = mediaUrl(s.poster_path);
-    return { video: '', poster: url, thumb: url,
-             frame: { x: Number(s.media_x ?? 50), y: Number(s.media_y ?? 50), z: Number(s.media_zoom ?? 1) } };
-  }
-  return UI.media.find((m) => m.match.test(s.name)) || UI.media[i] || UI.fallback;
+
+  /* صورةٌ بلا فيديو: تُقبل من `media_path` حين رُفعت صورةً، ومن
+     `poster_path` حين رُفعت ملصقًا ثم أُزيل الفيديو. */
+  const still = (s.media_path && s.media_kind !== 'video') ? mediaUrl(s.media_path)
+              : s.poster_path ? mediaUrl(s.poster_path) : '';
+  if (still) return { video: '', poster: still, thumb: still, frame };
+  return fb;
 };
 const frameStyle = (m) => m.frame
   ? `object-position:${m.frame.x}% ${m.frame.y}%;transform:scale(${m.frame.z});` : '';
@@ -568,6 +577,7 @@ function go(n) {
   deck.style.transform = `translate3d(0,${-n * 100}%,0)`;
   veil.classList.remove('flash'); void veil.offsetWidth; veil.classList.add('flash');
   paint(); app.classList.remove('menu-open'); playVideos();
+  trackStep(n);
   setTimeout(() => { busy = false; }, 600);
 }
 /* المتصفح يمرّر أقرب حاوية قابلة للتمرير ليُظهر الحقل الذي لمسته العميلة،
@@ -578,6 +588,37 @@ app.addEventListener('scroll', () => {
 }, { passive: true });
 
 window.__goto = go;
+
+/* ــ عدّ الزوّار ــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
+   ثلاثة أشياء تُعرَف: كم زائرًا، وكم بقي، وكم حجز. وتُعرَف بالعدّ لا
+   بالتتبّع — لا اسم ولا عنوان شبكة ولا بصمة، ولا يُقرأ في اللوحة سطرٌ
+   واحد بل الحصائل مجموعةً.
+
+   والمختبر لا يُحسب: تجاربُنا ليست زيارات. وكذلك المتصفّح الآليّ. */
+const visit = { id: null, step: 0 };
+
+async function startTracking() {
+  if (window.__LAB__ || navigator.webdriver) return;
+  if (document.documentElement.classList.contains('tracking-mode')) return;  // صفحة متابعة حجز
+  visit.id = await trackVisit();
+  if (!visit.id) return;
+
+  // نبضةٌ كلَّ عشرين ثانية ما دامت الصفحة مرئية: الفرق بين من فتح وأغلق
+  // ومن قرأ وتصفّح لا يُعرف إلّا بالزمن.
+  setInterval(() => {
+    if (document.visibilityState === 'visible') trackPing(visit.id, visit.step);
+  }, 20000);
+  // وعند الانصراف نبضةٌ أخيرة، فلا يضيع آخر ما بقيته.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') trackPing(visit.id, visit.step);
+  });
+}
+
+function trackStep(n) {
+  if (!visit.id || n <= visit.step) return;
+  visit.step = n;
+  trackPing(visit.id, n);
+}
 
 const TH = 42, MAXT = 800;
 let x0 = 0, y0 = 0, t0 = 0, track = false;
@@ -644,7 +685,7 @@ function renderServices() {
     return;
   }
   svcRail.innerHTML = state.services.map((s, i) => {
-    const m = mediaFor(s, i);
+    const m = mediaFor(s);
     const fs = frameStyle(m);
     const bg = m.video
       ? `<video class="bg" muted loop playsinline preload="metadata" poster="${m.poster}" style="${fs}"><source src="${m.video}"></video>`
@@ -1060,12 +1101,12 @@ function sync() {
   const chipT = el('chipThumb');
   chipT.className = `thumbs${c.length > 1 ? ' pair' : ''}`;
   chipT.innerHTML = c.length
-    ? c.map((s) => `<i class="th" style="background-image:url('${mediaFor(s, state.services.indexOf(s)).thumb}')"></i>`).join('')
+    ? c.map((s) => `<i class="th" style="background-image:url('${mediaFor(s).thumb}')"></i>`).join('')
     : '<i class="th empty"></i>';
 
   const arts = el('sumThumb');
   arts.className = `arts${c.length > 1 ? ' pair' : ''}`;
-  arts.innerHTML = c.map((s) => `<figure class="art" style="background-image:url('${mediaFor(s, state.services.indexOf(s)).thumb}')">${
+  arts.innerHTML = c.map((s) => `<figure class="art" style="background-image:url('${mediaFor(s).thumb}')">${
     state.counts[s.id] > 1 ? `<b dir="ltr">×${state.counts[s.id]}</b>` : ''}</figure>`).join('');
 
   const disc = groupDiscount();
@@ -1395,6 +1436,7 @@ async function submit() {
       receiptPath: state.receiptPath,
     });
     remember(result);
+    trackBooked(visit.id);
     state.booking = result;
     showBooked(result);
     closeSheet(); go(4); clearReceipt(); showPane('form');
@@ -1678,6 +1720,9 @@ async function renderTracking(token) {
     showError(err);
     paint();
   }
+  // بعد أن تقف الصفحة على قدميها: العدُّ آخرُ ما يُشغَّل ولا يُنتظر، فلا
+  // يؤخّر ظهور شيءٍ ولا يُسقط الصفحة إن تعذّر.
+  startTracking();
 })();
 
 /* أدوات اختبار */
