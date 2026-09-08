@@ -95,7 +95,9 @@
     closed_message:'الحجز مغلق مؤقتًا، تواصلي معنا عبر واتساب.',
     require_loc_map:false, group_discount:true, group_discount_amount:100,
     deposit_rate:0.25, iban:'SA0380000000608010167519', bank_name:'الراجحي',
-    beneficiary_name:'إيمان آل موسى', receipt_ocr_required:false,
+    beneficiary_name:'إيمان آل موسى', receipt_ocr_required:false, loc_check_enabled:false,
+    outside_reject:true, outside_min:0, outside_fee:0,
+    outside_message:'هذا الموقع خارج نطاق خدمتنا.',
     instagram_url:'https://instagram.com/example',
     tiktok_url:'https://tiktok.com/@example',
     show_closed_months:true, closed_month_word:'غير مفتوحة',
@@ -251,6 +253,36 @@
               message_templates: 2, message_outbox: 4, ref_counters: 2, visits: 6,
               activity_log: 3, receipt_scans: 1, settings_restored: false,
             });
+          }
+
+          /* ــ اشتراطات الأحياء ــــــــــــــــــــــــــــــــــــــــ */
+          if (fn === 'admin_districts') {
+            return ok(window.__HOODS || [
+              { id: 1, ar: 'حي الشفا',   lat: 24.57427, lng: 46.71014,
+                reject: false, min_people: 2, fee_amount: 0, message: null, active: true },
+              { id: 2, ar: 'حي عكاظ',    lat: 24.49787, lng: 46.67131,
+                reject: true,  min_people: 0, fee_amount: 0, message: 'لا نستقبل حجوزات هنا.', active: true },
+              { id: 3, ar: 'حي العليا',  lat: 24.68687, lng: 46.68733,
+                reject: null,  min_people: null, fee_amount: null, message: null, active: null },
+              { id: 4, ar: 'حي النخيل',  lat: 24.74000, lng: 46.63000,
+                reject: false, min_people: 0, fee_amount: 150, message: 'رسوم مواصلات.', active: false },
+            ]);
+          }
+          if (fn === 'admin_set_district_rule') {
+            (window.__HOODRULE = window.__HOODRULE || []).push(args);
+            return ok((args.p_ids || []).length);
+          }
+          if (fn === 'admin_clear_district_rule') {
+            (window.__HOODCLEAR = window.__HOODCLEAR || []).push(args);
+            return ok((args.p_ids || []).length);
+          }
+          if (fn === 'admin_import_districts') {
+            (window.__HOODIMP = window.__HOODIMP || []).push((args.p_rows || []).length);
+            return ok({ imported: (args.p_rows || []).length, districts: 4, rules_kept: 2 });
+          }
+          if (fn === 'check_location') {
+            (window.__LOCCHK = window.__LOCCHK || []).push(args);
+            return ok(window.__LOC__ || { state: 'ok', checked: true, district: 'حي العليا' });
           }
 
           /* حكم الإيصال: يُملى من الفحص عبر window.__RECEIPT__ ليُجرَّب

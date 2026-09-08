@@ -402,6 +402,17 @@ export async function trackBooked(id) {
   try { await sb.rpc('track_booked', { p_id: id }); } catch { /* لا شيء */ }
 }
 
+/* فحص الموقع: يقول سببه — بخلاف حارس الإيصال الذي يكتم عمدًا. العميلة
+   لا تختار حيَّها فلا شيء يُزوَّر، وكتمانُ السبب يجعلها تظنّ بالمنصّة
+   عطبًا. والحكم هنا للعرض وحده: `create_booking` تعيده من الإحداثيّتين. */
+export async function checkLocation(lat, lng, people) {
+  const { data, error } = await sb.rpc('check_location', {
+    p_lat: lat, p_lng: lng, p_people: Number(people) || 1,
+  });
+  if (error) throw error;
+  return data || { state: 'ok', checked: false };
+}
+
 export async function createBooking(payload) {
   const { data, error } = await sb.rpc('create_booking', {
     p_client_name:  payload.name,
@@ -413,6 +424,9 @@ export async function createBooking(payload) {
     p_loc_text:     payload.locText || null,
     p_loc_map:      payload.locMap || null,
     p_notes:        payload.notes || null,
+    // الإحداثيّتان لا الحكم: القاعدة تحسبه بنفسها.
+    p_lat:          payload.lat ?? null,
+    p_lng:          payload.lng ?? null,
     p_receipt_path: payload.receiptPath || null,
   });
   if (error) throw error;
@@ -746,6 +760,51 @@ export const admin = {
     const { data, error } = await sb.rpc('admin_visits_monthly', { p_months: months });
     if (error) throw error;
     return data || [];
+  },
+
+  /* ــ اشتراطات الأحياء ــــــــــــــــــــــــــــــــــــــــــــــــــ
+
+     الحدود لا تُكتب في المستودع: تُرفع من اللوحة مرّة. فتحديثُها لاحقًا
+     استيرادٌ آخر لا نشرُ شيفرة، والشروط تبقى لأنّها تُربط بالمعرّف.     */
+
+  /** كلّ حيّ وشرطُه إن كان. */
+  async districts() {
+    const { data, error } = await sb.rpc('admin_districts');
+    if (error) throw error;
+    return data || [];
+  },
+
+  /** شرطٌ واحد على عدّة أحياء دفعةً واحدة — وهو ما تفعله صاحبة العمل. */
+  async setDistrictRule(ids, rule) {
+    const { data, error } = await sb.rpc('admin_set_district_rule', {
+      p_ids: ids, p_reject: !!rule.reject, p_min: Number(rule.min) || 0,
+      p_fee: Number(rule.fee) || 0, p_message: rule.message || null,
+      p_active: rule.active !== false,
+    });
+    if (error) throw error;
+    return Number(data) || 0;
+  },
+
+  async clearDistrictRule(ids) {
+    const { data, error } = await sb.rpc('admin_clear_district_rule', { p_ids: ids });
+    if (error) throw error;
+    return Number(data) || 0;
+  },
+
+  /** الاستيراد يُرسَل على دفعات: ملفُّ الحدود كبير، والدفعة الواحدة قد
+      تتجاوز حدَّ الطلب فتسقط كلُّها بلا سببٍ مفهوم. */
+  async importDistricts(rows, onProgress) {
+    const CHUNK = 40;
+    let imported = 0, total = 0;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const part = rows.slice(i, i + CHUNK);
+      const { data, error } = await sb.rpc('admin_import_districts', { p_rows: part });
+      if (error) throw error;
+      imported += Number(data?.imported || 0);
+      total = Number(data?.districts || total);
+      if (onProgress) onProgress(Math.min(i + CHUNK, rows.length), rows.length);
+    }
+    return { imported, districts: total };
   },
 
   /* ــ الرسائل التلقائية ــــــــــــــــــــــــــــــــــــــــــــــــــ */
