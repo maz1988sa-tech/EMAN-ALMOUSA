@@ -60,7 +60,83 @@ function fromUrl(raw: string) {
 
   m = raw.match(/[@\/](-?\d{1,2}\.\d{4,}),(-?\d{1,3}\.\d{4,})/);
   if (m) { const p = pt(num(m[1]), num(m[2])); if (p) return p; }
+
+  /* وأخيرًا رمز Plus داخل `q` — وهو ما يضعه زرّ المشاركة غالبًا.
+     ويُقرأ من النصّ **الخام**: `+` في سلسلة الاستعلام تعني مسافة، فـ
+     `searchParams` تُرجع «RM2H 3XQ» ويضيع الرمز. والعنوان المفكوك يبقى
+     للتحقّق من المدينة وحده. */
+  const q = raw.match(/[?&]q=([^&#]*)/);
+  if (q) {
+    let text = q[1];
+    try { text = decodeURIComponent(q[1].replace(/\+/g, ' ')); } catch { /* ترميز معطوب */ }
+    const p = fromPlusCode(q[1], text);
+    if (p) return p;
+  }
   return null;
+}
+
+/* رمز Plus. زرّ «مشاركة الموقع» حين يكون على دبّوسٍ أو مكانٍ بحديقة أو
+   شارع يُحوّل إلى `maps.google.com?q=RM2H+3XQ <العنوان>` — لا إحداثيّات
+   بل **رمز موقعٍ مفتوح** يرمّزها ترميزًا معكوسًا تمامًا. فليس تخمينًا من
+   الصفحة بل فكُّ ما وضعه قوقل نفسه في العنوان.
+
+   والرمز المختصر (أربعة خانات قبل `+`) حُذف رأسه، فيُستعاد بأقرب نقطةٍ
+   إلى مرجع. ومرجعُنا الرياض — فيلزم أن يقول العنوان إنّه فيها، وإلّا
+   استُعيد رمزُ جدّة عند الرياض فوقعت العميلة في حيٍّ ليس حيَّها. */
+const A = '23456789CFGHJMPQRVWX';
+const PAIR_RES = [20, 1, 0.05, 0.0025, 0.000125];
+const REF_LAT = 24.7136, REF_LNG = 46.6753;                 // مركز الرياض
+const IN_RIYADH = /الرياض|riyadh|ar[- ]?riyadh/i;
+const PLUS_RE = /(?:^|[\s+])([23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{0,5})(?:[\s+]|$)/i;
+
+function olcDigits(lat: number, lng: number, n: number) {
+  lat = Math.min(89.999999, Math.max(-90, lat));
+  lng = ((lng + 180) % 360 + 360) % 360 - 180;
+  let rLat = lat + 90, rLng = lng + 180, out = '';
+  for (let i = 0; i < 5 && out.length < n; i++) {
+    const r = PAIR_RES[i];
+    let d = Math.floor(rLat / r); out += A[d]; rLat -= d * r;
+    d = Math.floor(rLng / r); out += A[d]; rLng -= d * r;
+  }
+  return out.slice(0, n);
+}
+
+function olcBox(code: string) {
+  const c = code.replace(/\+/g, '').replace(/0+$/, '').toUpperCase();
+  let lat = -90, lng = -180, latRes = 20, lngRes = 20, i = 0;
+  for (; i + 1 < c.length && i < 10; i += 2) {
+    lat += A.indexOf(c[i]) * latRes;
+    lng += A.indexOf(c[i + 1]) * lngRes;
+    if (i < 8) { latRes /= 20; lngRes /= 20; }
+  }
+  for (; i < c.length && i < 15; i++) {
+    const d = A.indexOf(c[i]);
+    latRes /= 5; lngRes /= 4;
+    lat += Math.floor(d / 4) * latRes;
+    lng += (d % 4) * lngRes;
+  }
+  return { lat, lng, latRes, lngRes };
+}
+
+/** يفكّ رمز Plus من `rawQ` الخام، ويتحقّق من المدينة في `text` المفكوك. */
+function fromPlusCode(rawQ: string, text: string) {
+  const m = String(rawQ || '').match(PLUS_RE);
+  if (!m) return null;
+  const code = m[1].toUpperCase();
+  const pad = 8 - code.indexOf('+');
+  if (pad > 0 && !IN_RIYADH.test(text || '')) return null;
+  let lat: number, lng: number;
+  if (pad > 0) {
+    const resolution = Math.pow(20, 2 - pad / 2), half = resolution / 2;
+    const b = olcBox(olcDigits(REF_LAT, REF_LNG, pad) + code);
+    lat = b.lat + b.latRes / 2; lng = b.lng + b.lngRes / 2;
+    if (REF_LAT - lat > half) lat += resolution; else if (lat - REF_LAT > half) lat -= resolution;
+    if (REF_LNG - lng > half) lng += resolution; else if (lng - REF_LNG > half) lng -= resolution;
+  } else {
+    const b = olcBox(code);
+    lat = b.lat + b.latRes / 2; lng = b.lng + b.lngRes / 2;
+  }
+  return pt(lat, lng);
 }
 
 /* ولا يُقرأ جسمُ الصفحة. جُرّب فسقط: خادم الحافة في فرانكفورت، فقوقل
@@ -115,7 +191,12 @@ Deno.serve(async (req) => {
 
     const p = fromUrl(cur);
     if (p) return reply({ ok: true, ...p });
-    return reply({ ok: false, reason: 'no_coords' });
+
+    /* رابطٌ إلى «مكان» محفوظ عند قوقل: ينتهي إلى `ftid` وحده — معرّفُ
+       مكانٍ لا موقع. لا سبيل إلى إحداثيّاته بلا مفتاح Places مدفوع،
+       فيُميَّز السبب ليقال للعميلة ما تفعل بدل «تعذّر» غامضة. */
+    const placeOnly = /[?&]ftid=/.test(cur) && !/[?&]q=/.test(cur);
+    return reply({ ok: false, reason: placeOnly ? 'place_only' : 'no_coords' });
   } catch (e) {
     console.error('resolve_map_failed', String(e));
     return reply({ ok: false, reason: 'server_error' }, 500);

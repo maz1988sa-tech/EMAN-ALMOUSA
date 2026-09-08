@@ -424,9 +424,23 @@ export function readLatLng(url) {
   return null;
 }
 
-/** نقطةُ الرابط: من نصّه إن حملها، وإلّا فبفكّ تحويلته على الخادم. */
+/** نقطةُ الرابط: من نصّه إن حملها، وإلّا فبفكّ تحويلته على الخادم.
+ *  تردّ `{lat,lng}` أو `{reason}` — والسببُ يُقال للعميلة، فـ«رابطُ مكانٍ
+ *  محفوظ» علاجُه غير علاج «رابطٍ ناقص». */
 export async function mapPoint(url) {
   return readLatLng(url) || await resolveMapLink(url);
+}
+
+/** ما تقرؤه العميلة حين يتعذّر الفكّ — لكلّ سببٍ علاجُه. */
+export function mapPointMessage(reason) {
+  if (reason === 'place_only') {
+    return 'هذا الرابط يفتح مكانًا محفوظًا في الخرائط ولا يحمل موقعًا. '
+         + 'افتحي الخرائط، اضغطي مطوّلًا على موقعكِ حتى يظهر دبّوس أحمر، ثمّ شاركي الرابط.';
+  }
+  if (reason === 'net') {
+    return 'تعذّر الوصول إلى الخرائط الآن. تأكّدي من الاتصال وأعيدي المحاولة.';
+  }
+  return 'تعذّر قراءة موقع هذا الرابط. افتحيه في الخرائط ثمّ انسخي الرابط الكامل من شريط العنوان.';
 }
 
 /* فكُّ الرابط المختصر. زرّ «مشاركة الموقع» في تطبيق الخرائط يُخرج
@@ -436,10 +450,13 @@ export async function mapPoint(url) {
 export async function resolveMapLink(url) {
   try {
     const { data, error } = await sb.functions.invoke('resolve-map', { body: { url } });
-    if (error || !data?.ok) return null;
-    const lat = Number(data.lat), lng = Number(data.lng);
-    return (isFinite(lat) && isFinite(lng)) ? { lat, lng } : null;
-  } catch { return null; }
+    if (error) return { reason: 'net' };
+    if (data?.ok) {
+      const lat = Number(data.lat), lng = Number(data.lng);
+      if (isFinite(lat) && isFinite(lng)) return { lat, lng };
+    }
+    return { reason: data?.reason || 'no_coords' };
+  } catch { return { reason: 'net' }; }
 }
 
 /* فحص الموقع: يقول سببه — بخلاف حارس الإيصال الذي يكتم عمدًا. العميلة
@@ -835,7 +852,7 @@ export const admin = {
      العميلات. وقع مرّة أنّ التجربة الوحيدة الممكنة كانت إشعالَه. */
   async previewLocation(url, people = 1) {
     const pt = await mapPoint(url);
-    if (!pt) return { ok: false, reason: 'no_coords' };
+    if (!pt || pt.reason) return { ok: false, reason: pt?.reason || 'no_coords' };
     const r = await checkLocation(pt.lat, pt.lng, people, true);
     return { ok: true, ...pt, result: r };
   },

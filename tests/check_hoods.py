@@ -130,6 +130,24 @@ async def main():
         rec("ولا يُسأل الحكمُ بلا إحداثيات", st["sent"] == 0, f"نداءات={st['sent']}")
         await ctx.close()
 
+        # ══ «مكانٌ محفوظ»: علاجُه غير علاج الرابط الناقص ════════════════
+        # رابط مشاركة مكانٍ عند قوقل ينتهي إلى معرّفٍ لا موقع، فلا سبيل
+        # إلى إحداثيّاته. وقولُ «تعذّر» وحدها يتركها تُعيد الشيء نفسه.
+        ctx = await b.new_context(viewport={"width": 430, "height": 900},
+                                  has_touch=True, is_mobile=True, device_scale_factor=2)
+        await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
+            r.fulfill(content_type="application/javascript", body=MOCK)))
+        pg = await ctx.new_page()
+        await pg.add_init_script("window.__RESOLVE__={ok:false,reason:'place_only'};")
+        await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
+        await pg.evaluate("()=>{window.__state().settings.loc_check_enabled=true;}")
+        await fill_form(pg, SHORT)
+        st = await pg.evaluate("""()=>({blocked:document.getElementById('toPay').disabled,
+            msg:(document.getElementById('locErr').textContent||'').trim()})""")
+        rec("رابط مكانٍ محفوظ: يُقال لها ضعي دبّوسًا لا انسخي الرابط",
+            st["blocked"] and "دبّوس" in st["msg"] and "مطوّلًا" in st["msg"], st["msg"][:80])
+        await ctx.close()
+
         # ══ والمختصر إن فُكّ: يُفحص كما لو كان كاملًا ═══════════════════
         # هذا هو الرابط الذي يُخرجه زرّ المشاركة فعلًا. كان يُردّ دائمًا،
         # فبقي فحص الأحياء نظريًّا: الشرط مضبوط والرابط الشائع لا يُقرأ.

@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=46">
+<link rel="stylesheet" href="assets/fonts.css?v=47">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=46">
+<link rel="stylesheet" href="assets/client-theme.css?v=47">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -477,13 +477,14 @@ import {
   getPublicSettings, getServices, getDaysWithAvailability, getAvailableSlots,
   checkLocation,
   mapPoint,
+  mapPointMessage,
   createBooking, getBookingByToken, requestCancel,
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositFor, verifyReceipt, checkReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=46';
+} from './assets/db.js?v=47';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -1255,8 +1256,10 @@ async function runLocCheck() {
      الخادم — والمتصفّح عاجزٌ عنه لأنّ التحويلة عابرةُ أصل. */
   const pt = await mapPoint(v);
   if (seq !== locSeq) return;
-  if (!pt) {
-    state.loc = { blocked: true, reason: 'short' };
+  if (!pt || pt.reason) {
+    /* السبب يُحفظ لا ليُعرض رمزًا بل ليُقال علاجُه: «رابط مكانٍ محفوظ»
+       تُعالَج بوضع دبّوس، و«رابط ناقص» بنسخ العنوان الكامل. */
+    state.loc = { blocked: true, reason: 'link', why: pt?.reason || 'no_coords' };
     locModal('off'); gate();
     return;
   }
@@ -1339,8 +1342,8 @@ function gate() {
   const locBlocked = !!(L && L.blocked);
   if (locBlocked) {
     locField.classList.add('bad'); locErr.classList.add('on');
-    locErr.textContent = L.reason === 'short'
-      ? 'تعذّر قراءة موقع هذا الرابط. افتحيه في الخرائط ثم انسخي الرابط الكامل من شريط العنوان.'
+    locErr.textContent = L.reason === 'link'
+      ? mapPointMessage(L.why)
       : (L.message || 'لا نستقبل حجوزات في هذا الموقع حاليًا.');
   }
   toPayBtn.disabled = !(mapOk && reqOk) || locBlocked || !!L?.pending || state.busy;

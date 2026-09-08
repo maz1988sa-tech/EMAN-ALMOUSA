@@ -38,8 +38,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=46">
-<link rel="stylesheet" href="assets/theme.css?v=46">
+<link rel="stylesheet" href="assets/fonts.css?v=47">
+<link rel="stylesheet" href="assets/theme.css?v=47">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -200,7 +200,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=46"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=47"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -234,7 +234,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=46';
+import { icon, hydrateIcons } from './assets/icons.js?v=47';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -242,9 +242,9 @@ import {
   normalisePhone, statusLabel, STATUS, toast, openSheet, closeSheet, download, toCSV,
   receiptUrl, purgeOrphanReceipts, uuid, isOffline, NET_MSG, backups,
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
-  uploadServiceMedia, removeServiceMedia, mediaUrl,
+  uploadServiceMedia, removeServiceMedia, mediaUrl, mapPointMessage,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=46';
+} from './assets/db.js?v=47';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -1779,7 +1779,7 @@ function renderHoods() {
     try {
       const out = await admin.previewLocation(url, n);
       if (!out.ok) {
-        tryOut.innerHTML = note('تعذّر قراءة موقع هذا الرابط. افتحيه في الخرائط وانسخي الرابط الكامل.');
+        tryOut.innerHTML = note(mapPointMessage(out.reason));
       } else {
         tryOut.innerHTML = tryVerdict(out);
       }
