@@ -42,7 +42,12 @@ if ! git bundle verify "$BUNDLE" >/dev/null 2>&1; then
 fi
 
 BEFORE="$(git rev-parse HEAD)"
-REF="$(git bundle list-heads "$BUNDLE" | awk '{print $2}' | grep -v '^HEAD$' | head -1)"
+# الفرع المقصود بالاسم أوّلًا. `head -1` وحدها كانت تلتقط أوّل ما تصادف
+# مرتّبًا أبجديًّا — فحزمةٌ فيها فرعُ نسخةٍ احتياطية قديم أوقفت الرفع
+# بـ«التاريخان تباعدا»، والحزمة سليمة والفرع الصحيح داخلها.
+REF="$(git bundle list-heads "$BUNDLE" | awk '{print $2}' | grep -Fx "refs/heads/$BRANCH" | head -1)"
+[ -z "$REF" ] && REF="$(git bundle list-heads "$BUNDLE" | awk '{print $2}' \
+                        | grep -v '^HEAD$' | grep -v '^refs/remotes/' | head -1)"
 [ -z "$REF" ] && REF="HEAD"
 
 echo "› سحب الكومت من الحزمة… ($REF)"
