@@ -255,30 +255,32 @@
             });
           }
 
-          /* ــ اشتراطات الأحياء ــــــــــــــــــــــــــــــــــــــــ */
+          /* ــ اشتراطات الأحياء: مجموعات ــــــــــــــــــــــــــــــ */
           if (fn === 'admin_districts') {
             return ok(window.__HOODS || [
-              { id: 1, ar: 'حي الشفا',   lat: 24.57427, lng: 46.71014,
-                reject: false, min_people: 2, fee_amount: 0, message: null, active: true },
-              { id: 2, ar: 'حي عكاظ',    lat: 24.49787, lng: 46.67131,
-                reject: true,  min_people: 0, fee_amount: 0, message: 'لا نستقبل حجوزات هنا.', active: true },
-              { id: 3, ar: 'حي العليا',  lat: 24.68687, lng: 46.68733,
-                reject: null,  min_people: null, fee_amount: null, message: null, active: null },
-              { id: 4, ar: 'حي النخيل',  lat: 24.74000, lng: 46.63000,
-                reject: false, min_people: 0, fee_amount: 150, message: 'رسوم مواصلات.', active: false },
+              { id: 1, ar: 'حي الشفا',  lat: 24.57427, lng: 46.71014, group_id: 'g1' },
+              { id: 2, ar: 'حي عكاظ',   lat: 24.49787, lng: 46.67131, group_id: 'g2' },
+              { id: 3, ar: 'حي العليا', lat: 24.68687, lng: 46.68733, group_id: null },
+              { id: 4, ar: 'حي النخيل', lat: 24.74000, lng: 46.63000, group_id: null },
             ]);
           }
-          if (fn === 'admin_set_district_rule') {
-            (window.__HOODRULE = window.__HOODRULE || []).push(args);
-            return ok((args.p_ids || []).length);
+          if (fn === 'admin_hood_groups') {
+            return ok(window.__HGROUPS || [
+              { id: 'g1', name: 'أطراف الرياض', sort: 0, active: true, reject: false,
+                min_people: 2, fee_amount: 150, message: 'يتطلّب شخصين فأكثر.',
+                districts: [1], prices: [{ service_id: 's2', price: 800 }] },
+              { id: 'g2', name: 'لا نخدم هنا', sort: 1, active: false, reject: true,
+                min_people: 0, fee_amount: 0, message: 'لا نستقبل حجوزات هنا.',
+                districts: [2], prices: [] },
+            ]);
           }
-          if (fn === 'admin_clear_district_rule') {
-            (window.__HOODCLEAR = window.__HOODCLEAR || []).push(args);
-            return ok((args.p_ids || []).length);
+          if (fn === 'admin_save_hood_group') {
+            (window.__HSAVE = window.__HSAVE || []).push(args.p_group);
+            return ok('g-new');
           }
-          if (fn === 'admin_import_districts') {
-            (window.__HOODIMP = window.__HOODIMP || []).push((args.p_rows || []).length);
-            return ok({ imported: (args.p_rows || []).length, districts: 4, rules_kept: 2 });
+          if (fn === 'admin_delete_hood_group') {
+            (window.__HDEL = window.__HDEL || []).push(args.p_id);
+            return ok(null);
           }
           if (fn === 'check_location') {
             (window.__LOCCHK = window.__LOCCHK || []).push(args);

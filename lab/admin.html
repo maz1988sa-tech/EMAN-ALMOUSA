@@ -38,8 +38,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=44">
-<link rel="stylesheet" href="assets/theme.css?v=44">
+<link rel="stylesheet" href="assets/fonts.css?v=45">
+<link rel="stylesheet" href="assets/theme.css?v=45">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -200,7 +200,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=44"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=45"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -234,7 +234,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=44';
+import { icon, hydrateIcons } from './assets/icons.js?v=45';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -244,7 +244,7 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=44';
+} from './assets/db.js?v=45';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -1667,26 +1667,27 @@ function autoLabel(t) {
 }
 
 /* ── اشتراطات الأحياء ────────────────────────────────────────────────
-   تختار صاحبة العمل أحياءً — واحدًا أو عشرين — وتضع عليها شرطًا واحدًا
-   وتحفظه دفعةً واحدة. والحكم في القاعدة: هذه الشاشة تضبط لا تحكم.
+   مجموعاتٌ لا حيًّا حيًّا: تختار صاحبة العمل أحياءً، وتضع عليها حكمًا
+   واحدًا، وتحفظه باسم — ثمّ تصنع مجموعةً أخرى بحكمٍ آخر. أربعة أحكام
+   تجتمع: لا نخدم هنا · لا أقلّ من عددٍ معيّن · رسوم إضافية · تسعيرةُ
+   خدماتٍ مختلفة.
 
-   و«تعطيل» لا «حذف»: رسوم العمارية موسميّة، تُطفأ ثمّ تُشعل والمبلغ
-   والرسالة باقيان كما ضُبطا.                                          */
+   والحدود مزروعة في القاعدة مرّةً واحدة — لا استيراد ولا ملفّ.
 
-let H = { list: [], sel: new Set(), q: '', loaded: false };
+   و«موقوفة» لا «محذوفة»: حكمُ العمارية موسميّ، يُطفأ ويُشعل وما ضُبط
+   فيه باقٍ.                                                          */
 
-const hoodState = (d) => (!d.reject && !d.min_people && !d.fee_amount) ? 'none'
-  : !d.active ? 'off' : d.reject ? 'bad' : 'cond';
-const HOOD_COL = { bad: '#a4402c', cond: '#8a5a18', off: '#b9b2a8', none: '#d6d0c6' };
+let H = { hoods: [], groups: [], loaded: false, q: '', sel: new Set(), edit: null };
 
-function hoodTag(d) {
-  const s = hoodState(d);
-  if (s === 'none') return '';
+const hoodById = (id) => H.hoods.find((d) => d.id === id);
+
+function groupTag(g) {
   const bits = [];
-  if (d.reject) bits.push('مرفوض');
-  if (d.min_people > 1) bits.push(`${d.min_people}+`);
-  if (Number(d.fee_amount) > 0) bits.push(`+${int(d.fee_amount)}`);
-  return bits.join(' · ') + (s === 'off' ? ' (موقوف)' : '');
+  if (g.reject) bits.push('لا نخدم هنا');
+  if (g.min_people > 1) bits.push(`${g.min_people} أشخاص فأكثر`);
+  if (Number(g.fee_amount) > 0) bits.push(`+${int(g.fee_amount)} ر.س`);
+  if ((g.prices || []).length) bits.push(`${int(g.prices.length)} سعر خاص`);
+  return bits.join(' · ') || 'بلا حكم';
 }
 
 function renderHoods() {
@@ -1699,37 +1700,26 @@ function renderHoods() {
         <span class="s">مطفأ = لا يُسأل أحدٌ عن موقعه ولا يتغيّر شيء في صفحة الحجز</span></span>
       <span class="sw"></span></label>
 
-    <div id="h-body"><div class="card"><p class="hint" style="margin:0">جارٍ القراءة…</p></div></div>
+    <div id="h-groups"><div class="card"><p class="hint" style="margin:0">جارٍ القراءة…</p></div></div>
+    <button class="btn btn-ghost mb" id="h-new">${icon('plus', 18)} مجموعة جديدة</button>
 
     <div class="sec-head" style="margin-top:26px"><h2>خارج الأحياء المعروفة</h2><span class="rule"></span></div>
-    <p class="muted mb">الخرج والمزاحمية محافظتان لا حيّان. هذا السطر يحكم كلّ موقعٍ لا يقع
-      في حيٍّ معروف — فلا تحتاجين رسم حدودٍ لكلّ بعيد.</p>
+    <p class="muted mb">الخرج والمزاحمية محافظتان لا حيّان، والدرعية والعمارية بلديّتان مستقلّتان —
+      فليست في قائمة أحياء الرياض. هذا السطر يحكم كلّ موقعٍ خارجها.</p>
     <div class="card mb">
       <label class="toggle"><input type="checkbox" id="o-reject" ${s.outside_reject !== false ? 'checked' : ''}>
-        <span class="grow"><span class="t">لا أستقبل حجوزات خارج الأحياء المعروفة</span>
-          <span class="s">أوقفيها إن كنتِ تخدمين خارج الرياض بشروط</span></span><span class="sw"></span></label>
+        <span class="grow"><span class="t">لا أستقبل حجوزات خارج أحياء الرياض</span></span><span class="sw"></span></label>
       <div class="split mt" id="o-cond" ${s.outside_reject !== false ? 'hidden' : ''}>
         <div class="field" style="margin:0"><label class="label" for="o-min">أقلّ عدد أشخاص</label>
-          <input class="input ltr" id="o-min" type="number" min="0" max="12"
-                 value="${Number(s.outside_min || 0)}"></div>
+          <input class="input ltr" id="o-min" type="number" min="0" max="12" value="${Number(s.outside_min || 0)}"></div>
         <div class="field" style="margin:0"><label class="label" for="o-fee">رسوم إضافية (ر.س)</label>
-          <input class="input ltr" id="o-fee" type="number" min="0" step="50"
-                 value="${Number(s.outside_fee || 0)}"></div>
+          <input class="input ltr" id="o-fee" type="number" min="0" step="50" value="${Number(s.outside_fee || 0)}"></div>
       </div>
       <div class="field mt" style="margin-bottom:0"><label class="label" for="o-msg">ما تقرأه العميلة</label>
         <input class="input" id="o-msg" value="${esc(s.outside_message || '')}"></div>
     </div>
     <div id="h-err"></div>
-    <button class="btn btn-primary mb" id="h-save-out">حفظ حكم الخارج</button>
-
-    <div class="sec-head" style="margin-top:26px"><h2>حدود الأحياء</h2><span class="rule"></span></div>
-    <p class="muted mb">تُرفع مرّةً من ملفّ حدود أحياء الرياض. تحديثُها لاحقًا رفعٌ آخر —
-      والشروط لا تُمسّ لأنّها مرتبطة بالحيّ لا بترتيبه في الملفّ.</p>
-    <div class="btn-row">
-      <button class="btn" id="h-import">${icon('export', 18)} استيراد ملفّ الحدود</button>
-      <input type="file" id="h-file" accept=".js,.json,application/json,text/javascript" hidden>
-    </div>
-    <div id="h-imp" class="mt"></div>`;
+    <button class="btn btn-primary" id="h-save-out">حفظ حكم الخارج</button>`;
   hydrateIcons(view);
 
   document.getElementById('h-on').onchange = async (ev) => {
@@ -1739,7 +1729,6 @@ function renderHoods() {
           toast(on ? 'فُعّل فحص الموقع' : 'أُوقف فحص الموقع', 'ok'); }
     catch (e) { ev.currentTarget.checked = !on; toast(e.message, 'bad'); }
   };
-
   const oRej = document.getElementById('o-reject');
   oRej.onchange = () => document.getElementById('o-cond').hidden = oRej.checked;
   document.getElementById('h-save-out').onclick = async (ev) => {
@@ -1751,218 +1740,193 @@ function renderHoods() {
         outside_fee: Math.max(0, Number(document.getElementById('o-fee').value) || 0),
         outside_message: document.getElementById('o-msg').value.trim() || null,
       };
-      await admin.saveSettings(patch);
-      Object.assign(S.settings, patch);
+      await admin.saveSettings(patch); Object.assign(S.settings, patch);
       toast('حُفظ حكم الخارج', 'ok');
     } catch (e) { document.getElementById('h-err').innerHTML = note(e.message); }
     finally { b.disabled = false; }
   };
-
-  document.getElementById('h-import').onclick = () => document.getElementById('h-file').click();
-  document.getElementById('h-file').onchange = async (ev) => {
-    const f = ev.currentTarget.files?.[0]; if (!f) return;
-    const box = document.getElementById('h-imp');
-    box.innerHTML = '<p class="hint" style="margin:0">جارٍ القراءة…</p>';
-    try {
-      const rows = parseDistricts(await f.text());
-      if (!rows.length) throw new Error('لم أجد حدود أحياء في هذا الملفّ');
-      const r = await admin.importDistricts(rows, (done, all) => {
-        box.innerHTML = `<p class="hint" style="margin:0">جارٍ الرفع… ${int(done)} من ${int(all)}</p>`;
-      });
-      box.innerHTML = `<div class="note ok">${icon('check', 18)}<span>استُوردت ${int(r.imported)} حيًّا —
-        صار عندك ${int(r.districts)}. الشروط السابقة لم تتأثر.</span></div>`;
-      hydrateIcons(box);
-      H.loaded = false; loadHoods();
-    } catch (e) { box.innerHTML = note(e.message || 'تعذّرت القراءة'); }
-    finally { ev.currentTarget.value = ''; }
-  };
+  document.getElementById('h-new').onclick = () => openGroup(null);
 
   loadHoods();
 }
 
-/* الملفّ قد يأتي `window.DISTRICTS = [...]` أو JSON صِرفًا. تُقرأ المصفوفة
-   من أوّل قوسٍ إلى آخره بلا تنفيذِ شيء: ملفٌّ يُنفَّذ ملفٌّ يُوثَق به. */
-function parseDistricts(text) {
-  const t = String(text || '');
-  const a = t.indexOf('['), b = t.lastIndexOf(']');
-  if (a < 0 || b <= a) return [];
-  let rows;
-  try { rows = JSON.parse(t.slice(a, b + 1)); } catch { return []; }
-  if (!Array.isArray(rows)) return [];
-  return rows.filter((r) => r && r.id && r.ar && Array.isArray(r.rings) && Array.isArray(r.c));
+async function loadHoods() {
+  const box = document.getElementById('h-groups'); if (!box) return;
+  if (!H.loaded) {
+    try {
+      const [hoods, groups] = await Promise.all([admin.districts(), admin.hoodGroups()]);
+      H.hoods = hoods; H.groups = groups; H.loaded = true;
+    } catch (e) { box.innerHTML = note(isOffline(e) ? NET_MSG : e.message); return; }
+  }
+  drawGroups();
 }
 
-async function loadHoods() {
-  const box = document.getElementById('h-body'); if (!box) return;
-  if (!H.loaded) {
-    try { H.list = await admin.districts(); H.loaded = true; }
-    catch (e) { box.innerHTML = note(isOffline(e) ? NET_MSG : e.message); return; }
-  }
-  if (!H.list.length) {
-    box.innerHTML = `<div class="card"><p class="hint" style="margin:0">
-      لا حدود بعد. استوردي ملفّ الحدود من الأسفل، ثمّ تظهر الأحياء هنا.</p></div>`;
+function drawGroups() {
+  const box = document.getElementById('h-groups'); if (!box) return;
+  if (!H.groups.length) {
+    box.innerHTML = `<div class="card mb"><p class="hint" style="margin:0">
+      لا مجموعات بعد. اصنعي واحدة: اختاري الأحياء، وضعي حكمها، واحفظيها باسم.
+      ${int(H.hoods.length)} حيًّا جاهزة للاختيار.</p></div>`;
     return;
   }
-  drawHoods();
+  box.innerHTML = `<div class="card mb">${H.groups.map((g) => `
+    <div class="rowline"${g.active ? '' : ' style="opacity:.65"'}>
+      <span class="grow"><span class="t">${esc(g.name)}${g.active ? '' : ' — موقوفة'}</span>
+        <span class="s">${int((g.districts || []).length)} حيًّا · ${esc(groupTag(g))}</span></span>
+      <button class="iconbtn" data-gedit="${g.id}" aria-label="تعديل ${esc(g.name)}" data-icon="edit"></button>
+    </div>`).join('')}</div>`;
+  hydrateIcons(box);
+  box.querySelectorAll('[data-gedit]').forEach((b) =>
+    b.onclick = () => openGroup(H.groups.find((g) => g.id === b.dataset.gedit)));
 }
 
-function drawHoods() {
-  const box = document.getElementById('h-body'); if (!box) return;
-  const ruled = H.list.filter((d) => hoodState(d) !== 'none').length;
-  box.innerHTML = `
-    <div class="card mb" style="padding:0;overflow:hidden">
-      <svg id="h-map" viewBox="0 0 640 520" style="display:block;width:100%;height:auto"
-           role="img" aria-label="خريطة الأحياء — لونُ كلّ حيّ شرطُه"></svg>
-    </div>
-    <div class="chiprow mb" style="font-size:12.5px;color:var(--muted)">
-      <span>${int(H.list.length)} حيًّا · ${int(ruled)} عليه شرط</span>
-    </div>
+/* ورقة المجموعة: الأحياء أوّلًا لأنّها الأكثر عملًا، ثمّ الأحكام. */
+function openGroup(g) {
+  const isNew = !g;
+  H.edit = g ? JSON.parse(JSON.stringify(g)) : {
+    name: '', active: true, reject: false, min_people: 0, fee_amount: 0,
+    message: '', districts: [], prices: [],
+  };
+  H.sel = new Set(H.edit.districts || []);
+  H.q = '';
 
-    <div class="field"><input class="input" id="h-q" placeholder="ابحثي عن حي…"
-        value="${esc(H.q)}"></div>
-    <div class="card mb" id="h-list" style="max-height:230px;overflow:auto;padding:0"></div>
-    <div id="h-picked" class="chiprow mb"></div>
+  showSheet(isNew ? 'مجموعة جديدة' : 'تعديل المجموعة', `
+    <div class="field"><label class="label" for="g-name">اسم المجموعة</label>
+      <input class="input" id="g-name" value="${esc(H.edit.name)}"
+             placeholder="مثال: أطراف الرياض"></div>
 
-    <div class="card mb" id="h-rule">
-      <label class="toggle"><input type="checkbox" id="r-reject">
-        <span class="grow"><span class="t">لا أستقبل حجوزات هنا إطلاقًا</span></span><span class="sw"></span></label>
-      <div class="split mt">
-        <div class="field" style="margin:0"><label class="label" for="r-min">أقلّ عدد أشخاص</label>
-          <input class="input ltr" id="r-min" type="number" min="0" max="12" value="0">
-          <p class="hint">صفر = بلا حدّ</p></div>
-        <div class="field" style="margin:0"><label class="label" for="r-fee">رسوم إضافية (ر.س)</label>
-          <input class="input ltr" id="r-fee" type="number" min="0" step="50" value="0">
+    <p class="label">الأحياء <span class="opt" id="g-count"></span></p>
+    <div class="field" style="margin-bottom:6px">
+      <input class="input" id="g-q" placeholder="ابحثي عن حي…"></div>
+    <div class="card mb" id="g-list" style="max-height:210px;overflow:auto;padding:0"></div>
+    <div class="chiprow mb" id="g-picked"></div>
+
+    <div class="sec-head"><h2>حكم المجموعة</h2><span class="rule"></span></div>
+    <label class="toggle"><input type="checkbox" id="g-reject" ${H.edit.reject ? 'checked' : ''}>
+      <span class="grow"><span class="t">لا نقدّم الخدمة في هذه الأحياء</span>
+        <span class="s">يُرفض الحجز مهما كان العدد أو السعر</span></span><span class="sw"></span></label>
+
+    <div id="g-rest" ${H.edit.reject ? 'hidden' : ''}>
+      <div class="split mb">
+        <div class="field" style="margin:0"><label class="label" for="g-min">أقلّ عدد أشخاص</label>
+          <input class="input ltr" id="g-min" type="number" min="0" max="12"
+                 value="${Number(H.edit.min_people || 0)}">
+          <p class="hint">صفر = أقبل شخصًا واحدًا</p></div>
+        <div class="field" style="margin:0"><label class="label" for="g-fee">رسوم إضافية (ر.س)</label>
+          <input class="input ltr" id="g-fee" type="number" min="0" step="50"
+                 value="${Number(H.edit.fee_amount || 0)}">
           <p class="hint">تُضاف للإجمالي لا للعربون</p></div>
       </div>
-      <div class="field"><label class="label" for="r-msg">ما تقرأه العميلة</label>
-        <input class="input" id="r-msg" placeholder="اتركيه فارغًا لرسالةٍ تلقائية"></div>
-      <label class="toggle"><input type="checkbox" id="r-active" checked>
-        <span class="grow"><span class="t">الشرط مُفعّل</span>
-          <span class="s">أوقفيه في الموسم الهادئ — المبلغ والرسالة يبقيان</span></span>
-        <span class="sw"></span></label>
-      <div class="btn-row mt">
-        <button class="btn btn-primary" id="h-save" disabled>احفظي على المختار</button>
-        <button class="btn btn-danger" id="h-clear" disabled>ارفعي الشرط</button>
-      </div>
-    </div>`;
-  hydrateIcons(box);
-  drawHoodMap();
-  hoodList();
 
-  document.getElementById('h-q').oninput = (e) => { H.q = e.target.value; hoodList(); };
-  document.getElementById('h-save').onclick = saveHoodRule;
-  document.getElementById('h-clear').onclick = clearHoodRule;
+      <p class="label">تسعيرة خاصة لهذه الأحياء <span class="opt">(اختياري)</span></p>
+      <p class="hint" style="margin:0 0 8px">اتركي الخانة فارغة لتبقى الخدمة بسعرها المعتاد.</p>
+      <div class="card mb">${(S.services || []).filter((x) => x.active).map((x) => {
+        const pr = (H.edit.prices || []).find((p) => p.service_id === x.id);
+        return `<div class="rowline">
+          <span class="grow"><span class="t">${esc(x.name)}</span>
+            <span class="s">المعتاد ${money(x.price)} ر.س</span></span>
+          <input class="input ltr" data-gprice="${x.id}" type="number" min="0" step="50"
+                 style="width:96px" placeholder="—" value="${pr ? Number(pr.price) : ''}">
+        </div>`; }).join('') || '<p class="hint" style="margin:0">لا خدمات.</p>'}</div>
+    </div>
+
+    <div class="field"><label class="label" for="g-msg">ما تقرأه العميلة</label>
+      <input class="input" id="g-msg" value="${esc(H.edit.message || '')}"
+             placeholder="اتركيه فارغًا لرسالةٍ تلقائية"></div>
+
+    <label class="toggle mb"><input type="checkbox" id="g-active" ${H.edit.active !== false ? 'checked' : ''}>
+      <span class="grow"><span class="t">المجموعة مُفعّلة</span>
+        <span class="s">أوقفيها في الموسم الهادئ — ما ضبطتِه يبقى</span></span><span class="sw"></span></label>
+
+    <div id="g-err"></div>
+    <div class="btn-row">
+      ${isNew ? '' : '<button class="btn btn-danger" id="g-del">حذف المجموعة</button>'}
+      <button class="btn btn-primary" id="g-save">حفظ</button>
+    </div>`);
+
+  const rej = document.getElementById('g-reject');
+  rej.onchange = () => document.getElementById('g-rest').hidden = rej.checked;
+  document.getElementById('g-q').oninput = (e) => { H.q = e.target.value; groupList(); };
+  groupList();
+
+  document.getElementById('g-save').onclick = saveGroup;
+  const del = document.getElementById('g-del');
+  if (del) del.onclick = async () => {
+    if (!confirm(`حذف مجموعة «${H.edit.name}»؟ الأحياء تعود بلا حكم.`)) return;
+    try { await admin.deleteHoodGroup(H.edit.id); closeSheet(sheet);
+          H.loaded = false; toast('حُذفت المجموعة', 'ok'); loadHoods(); }
+    catch (e) { toast(e.message, 'bad'); }
+  };
 }
 
-function drawHoodMap() {
-  const map = document.getElementById('h-map'); if (!map) return;
-  const NS = 'http://www.w3.org/2000/svg';
-  const mk = (t, a) => { const e = document.createElementNS(NS, t);
-    for (const k in a) e.setAttribute(k, a[k]); return e; };
-  map.textContent = '';
-  const W = 640, Ht = 520, PAD = 22;
-  const lats = H.list.map((d) => Number(d.lat)), lngs = H.list.map((d) => Number(d.lng));
-  const la0 = Math.min(...lats) - .01, la1 = Math.max(...lats) + .01;
-  const ln0 = Math.min(...lngs) - .01, ln1 = Math.max(...lngs) + .01;
-  const COS = Math.cos((la0 + la1) / 2 * Math.PI / 180);
-  const SC = Math.min((W - PAD * 2) / ((ln1 - ln0) * COS), (Ht - PAD * 2) / (la1 - la0));
-  const X = (lng) => PAD + (ln1 - lng) * COS * SC;   // شرقًا = يسارًا في RTL
-  const Y = (lat) => PAD + (la1 - lat) * SC;
+function groupList() {
+  const box = document.getElementById('g-list'); if (!box) return;
+  const q = H.q.trim();
+  const list = (q ? H.hoods.filter((d) => d.ar.includes(q)) : H.hoods).slice(0, 60);
+  box.innerHTML = list.map((d) => {
+    const mine = H.sel.has(d.id);
+    /* حيٌّ في مجموعةٍ أخرى يُقال الآن لا عند الحفظ. */
+    const other = !mine && d.group_id && d.group_id !== H.edit.id;
+    return `<div class="rowline" data-hd="${d.id}"
+        style="cursor:${other ? 'not-allowed' : 'pointer'};${other ? 'opacity:.5' : ''}">
+      <span class="badge" style="width:12px;height:12px;border-radius:50%;
+        background:${mine ? '#8b5a44' : other ? '#c9c3b9' : '#e2ddd4'}"></span>
+      <span class="grow"><span class="t">${esc(d.ar)}</span>
+        ${other ? '<span class="s">في مجموعة أخرى</span>' : ''}</span>
+    </div>`; }).join('') || '<p class="hint" style="padding:12px">لا نتيجة</p>';
+  box.querySelectorAll('[data-hd]').forEach((r) => r.onclick = () => {
+    const id = Number(r.dataset.hd), d = hoodById(id);
+    if (!H.sel.has(id) && d?.group_id && d.group_id !== H.edit.id) {
+      toast('هذا الحي في مجموعة أخرى — أزيليه منها أولًا', 'bad'); return;
+    }
+    H.sel.has(id) ? H.sel.delete(id) : H.sel.add(id);
+    groupList();
+  });
 
-  H.list.forEach((d) => {
-    const on = H.sel.has(d.id), st = hoodState(d);
-    const c = on ? '#8b5a44' : HOOD_COL[st];
-    const dot = mk('circle', { cx: X(Number(d.lng)), cy: Y(Number(d.lat)),
-      r: on ? 7 : st === 'none' ? 3.6 : 5.2, fill: c, style: 'cursor:pointer' });
-    const t = document.createElementNS(NS, 'title');
-    t.textContent = d.ar + (hoodTag(d) ? ' — ' + hoodTag(d) : '');
-    dot.appendChild(t);
-    dot.onclick = () => toggleHood(d.id);
-    map.appendChild(dot);
+  document.getElementById('g-count').textContent = H.sel.size ? `${int(H.sel.size)} مختار` : '';
+  const pick = document.getElementById('g-picked');
+  pick.innerHTML = [...H.sel].map((id) => {
+    const d = hoodById(id); if (!d) return '';
+    return `<span class="chip" data-un="${id}" style="cursor:pointer">${esc(d.ar)} ×</span>`;
+  }).join('');
+  pick.querySelectorAll('[data-un]').forEach((c) => c.onclick = () => {
+    H.sel.delete(Number(c.dataset.un)); groupList();
   });
 }
 
-function hoodList() {
-  const box = document.getElementById('h-list'); if (!box) return;
-  const q = H.q.trim();
-  const list = (q ? H.list.filter((d) => d.ar.includes(q)) : H.list).slice(0, 80);
-  box.innerHTML = list.map((d) => `
-    <div class="rowline" data-hood="${d.id}" style="cursor:pointer">
-      <span class="badge" style="width:12px;height:12px;border-radius:50%;
-        background:${H.sel.has(d.id) ? '#8b5a44' : HOOD_COL[hoodState(d)]}"></span>
-      <span class="grow"><span class="t">${esc(d.ar)}</span></span>
-      <span class="s">${esc(hoodTag(d))}</span>
-    </div>`).join('') || '<p class="hint" style="padding:12px">لا نتيجة</p>';
-  box.querySelectorAll('[data-hood]').forEach((r) =>
-    r.onclick = () => toggleHood(Number(r.dataset.hood)));
+async function saveGroup() {
+  const b = document.getElementById('g-save');
+  const err = document.getElementById('g-err');
+  const name = document.getElementById('g-name').value.trim();
+  if (name.length < 1) { err.innerHTML = note('اكتبي اسمًا للمجموعة.'); return; }
+  if (!H.sel.size) { err.innerHTML = note('اختاري حيًّا واحدًا على الأقل.'); return; }
 
-  const pick = document.getElementById('h-picked');
-  pick.innerHTML = [...H.sel].map((id) => {
-    const d = H.list.find((x) => x.id === id); if (!d) return '';
-    return `<span class="chip" data-un="${id}" style="cursor:pointer">${esc(d.ar)} ×</span>`;
-  }).join('');
-  pick.querySelectorAll('[data-un]').forEach((c) =>
-    c.onclick = () => toggleHood(Number(c.dataset.un)));
-
-  document.getElementById('h-save').disabled = H.sel.size === 0;
-  document.getElementById('h-clear').disabled = H.sel.size === 0
-    || ![...H.sel].some((id) => hoodState(H.list.find((x) => x.id === id) || {}) !== 'none');
-}
-
-function toggleHood(id) {
-  H.sel.has(id) ? H.sel.delete(id) : H.sel.add(id);
-  // شرطُ حيٍّ واحد يُقرأ في الورقة، فتُعدَّل قيمته بدل كتابتها من جديد.
-  if (H.sel.size === 1) {
-    const d = H.list.find((x) => x.id === [...H.sel][0]);
-    if (d) {
-      document.getElementById('r-reject').checked = !!d.reject;
-      document.getElementById('r-min').value = Number(d.min_people || 0);
-      document.getElementById('r-fee').value = Number(d.fee_amount || 0);
-      document.getElementById('r-msg').value = d.message || '';
-      document.getElementById('r-active').checked = d.active !== false;
-    }
-  }
-  hoodList(); drawHoodMap();
-}
-
-async function saveHoodRule() {
-  const rule = {
-    reject: document.getElementById('r-reject').checked,
-    min: Math.max(0, Number(document.getElementById('r-min').value) || 0),
-    fee: Math.max(0, Number(document.getElementById('r-fee').value) || 0),
-    message: document.getElementById('r-msg').value.trim(),
-    active: document.getElementById('r-active').checked,
+  const reject = document.getElementById('g-reject').checked;
+  const prices = [];
+  document.querySelectorAll('[data-gprice]').forEach((i) => {
+    const v = i.value.trim();
+    if (v !== '' && Number(v) >= 0) prices.push({ service_id: i.dataset.gprice, price: Number(v) });
+  });
+  const payload = {
+    ...(H.edit.id ? { id: H.edit.id } : {}),
+    name, active: document.getElementById('g-active').checked,
+    reject,
+    min_people: reject ? 0 : Math.max(0, Number(document.getElementById('g-min').value) || 0),
+    fee_amount: reject ? 0 : Math.max(0, Number(document.getElementById('g-fee').value) || 0),
+    message: document.getElementById('g-msg').value.trim() || null,
+    districts: [...H.sel],
+    prices: reject ? [] : prices,
   };
-  if (!rule.reject && !rule.min && !rule.fee) {
-    toast('اختاري شرطًا واحدًا على الأقل', 'bad'); return;
+  if (!reject && !payload.min_people && !payload.fee_amount && !prices.length) {
+    err.innerHTML = note('اختاري حكمًا واحدًا على الأقل: رفض، أو أقلّ عدد، أو رسوم، أو تسعيرة.');
+    return;
   }
-  const ids = [...H.sel];
-  const b = document.getElementById('h-save'); b.disabled = true;
+  b.disabled = true;
   try {
-    await admin.setDistrictRule(ids, rule);
-    ids.forEach((id) => {
-      const d = H.list.find((x) => x.id === id); if (!d) return;
-      d.reject = rule.reject; d.min_people = rule.min;
-      d.fee_amount = rule.fee; d.message = rule.message || null; d.active = rule.active;
-    });
-    H.sel.clear();
-    toast(`حُفظ الشرط على ${int(ids.length)} حيًّا`, 'ok');
-    drawHoods();
-  } catch (e) { toast(e.message, 'bad'); b.disabled = false; }
-}
-
-async function clearHoodRule() {
-  const ids = [...H.sel];
-  if (!confirm(`رفع الشرط عن ${ids.length} حيًّا؟`)) return;
-  try {
-    await admin.clearDistrictRule(ids);
-    ids.forEach((id) => {
-      const d = H.list.find((x) => x.id === id); if (!d) return;
-      d.reject = null; d.min_people = null; d.fee_amount = null;
-      d.message = null; d.active = null;
-    });
-    H.sel.clear(); toast('رُفع الشرط', 'ok'); drawHoods();
-  } catch (e) { toast(e.message, 'bad'); }
+    await admin.saveHoodGroup(payload);
+    closeSheet(sheet); H.loaded = false;
+    toast('حُفظت المجموعة', 'ok'); loadHoods();
+  } catch (e) { err.innerHTML = note(e.message); b.disabled = false; }
 }
 
 /* ── الزوّار ─────────────────────────────────────────────────────────

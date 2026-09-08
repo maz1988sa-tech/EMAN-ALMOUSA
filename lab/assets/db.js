@@ -764,47 +764,35 @@ export const admin = {
 
   /* ــ اشتراطات الأحياء ــــــــــــــــــــــــــــــــــــــــــــــــــ
 
-     الحدود لا تُكتب في المستودع: تُرفع من اللوحة مرّة. فتحديثُها لاحقًا
-     استيرادٌ آخر لا نشرُ شيفرة، والشروط تبقى لأنّها تُربط بالمعرّف.     */
+     مجموعاتٌ لا حيًّا حيًّا: تختار صاحبة العمل أحياءً وتضع عليها حكمًا
+     واحدًا وتحفظه باسم، ثم تصنع مجموعةً أخرى بحكمٍ آخر. والحدود مزروعة
+     في القاعدة مرّةً واحدة — لا استيراد ولا ملفّ.                     */
 
-  /** كلّ حيّ وشرطُه إن كان. */
+  /** كلّ حيّ ومجموعته إن كان في واحدة. */
   async districts() {
     const { data, error } = await sb.rpc('admin_districts');
     if (error) throw error;
     return data || [];
   },
 
-  /** شرطٌ واحد على عدّة أحياء دفعةً واحدة — وهو ما تفعله صاحبة العمل. */
-  async setDistrictRule(ids, rule) {
-    const { data, error } = await sb.rpc('admin_set_district_rule', {
-      p_ids: ids, p_reject: !!rule.reject, p_min: Number(rule.min) || 0,
-      p_fee: Number(rule.fee) || 0, p_message: rule.message || null,
-      p_active: rule.active !== false,
-    });
+  /** المجموعات بأحيائها وأسعارها. */
+  async hoodGroups() {
+    const { data, error } = await sb.rpc('admin_hood_groups');
     if (error) throw error;
-    return Number(data) || 0;
+    return data || [];
   },
 
-  async clearDistrictRule(ids) {
-    const { data, error } = await sb.rpc('admin_clear_district_rule', { p_ids: ids });
+  /** حفظُ مجموعة — جديدةً أو معدَّلة. القاعدة ترفض حيًّا في مجموعتين
+      وتسمّيه، فالحكمان المتناقضان على موقعٍ واحد لا يُترك بينهما ترجيح. */
+  async saveHoodGroup(group) {
+    const { data, error } = await sb.rpc('admin_save_hood_group', { p_group: group });
     if (error) throw error;
-    return Number(data) || 0;
+    return data;
   },
 
-  /** الاستيراد يُرسَل على دفعات: ملفُّ الحدود كبير، والدفعة الواحدة قد
-      تتجاوز حدَّ الطلب فتسقط كلُّها بلا سببٍ مفهوم. */
-  async importDistricts(rows, onProgress) {
-    const CHUNK = 40;
-    let imported = 0, total = 0;
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      const part = rows.slice(i, i + CHUNK);
-      const { data, error } = await sb.rpc('admin_import_districts', { p_rows: part });
-      if (error) throw error;
-      imported += Number(data?.imported || 0);
-      total = Number(data?.districts || total);
-      if (onProgress) onProgress(Math.min(i + CHUNK, rows.length), rows.length);
-    }
-    return { imported, districts: total };
+  async deleteHoodGroup(id) {
+    const { error } = await sb.rpc('admin_delete_hood_group', { p_id: id });
+    if (error) throw error;
   },
 
   /* ــ الرسائل التلقائية ــــــــــــــــــــــــــــــــــــــــــــــــــ */

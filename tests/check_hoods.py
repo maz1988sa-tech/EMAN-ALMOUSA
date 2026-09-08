@@ -25,6 +25,10 @@ threading.Thread(target=srv.serve_forever, daemon=True).start()
 MOCK = open(os.path.join(ROOT, "dev/mock-supabase.js"), encoding="utf-8").read()
 
 R = []
+def Number_(v):
+    try: return float(v)
+    except Exception: return None
+
 def rec(n, ok, note=""):
     R.append((n, ok)); print(("PASS " if ok else "FAIL ") + n + ((" — " + note) if note else ""))
 
@@ -148,40 +152,50 @@ async def main():
         await pg.evaluate("""()=>{const b=[...document.querySelectorAll('[data-pane]')]
             .find(x=>x.dataset.pane==='hoods'); b && b.click();}""")
         await pg.wait_for_timeout(1200)
-        m = await pg.evaluate("""()=>({dots:document.querySelectorAll('#h-map circle').length,
-            rows:document.querySelectorAll('[data-hood]').length,
+        m = await pg.evaluate("""()=>({
+            groups:document.querySelectorAll('[data-gedit]').length,
+            txt:(document.getElementById('h-groups').innerText||'').trim(),
             hasOn:!!document.getElementById('h-on'),
             hasOut:!!document.getElementById('o-reject'),
-            hasImport:!!document.getElementById('h-import'),
-            saveOff:document.getElementById('h-save').disabled})""")
-        rec("الخريطة تُرسم بكلّ حيّ", m["dots"] == 4, f"نقاط={m['dots']}")
-        rec("والقائمة كذلك", m["rows"] == 4, f"صفوف={m['rows']}")
-        rec("ومفتاح الفحص وحكم الخارج والاستيراد",
-            m["hasOn"] and m["hasOut"] and m["hasImport"])
-        rec("والحفظ مقفل قبل اختيار حيّ", m["saveOff"])
+            hasNew:!!document.getElementById('h-new'),
+            noImport:!document.getElementById('h-import')})""")
+        rec("المجموعتان تظهران", m["groups"] == 2, f"عدد={m['groups']}")
+        rec("وكلٌّ بحكمها ملخّصًا",
+            "أطراف الرياض" in m["txt"] and "2 أشخاص فأكثر" in m["txt"] and "+150" in m["txt"],
+            m["txt"].replace("\n", " | ")[:120])
+        rec("والموقوفة مُعلَّمة", "موقوفة" in m["txt"])
+        rec("ولا وجود لاستيراد ملفّ الحدود", m["noImport"])
+        rec("ومفتاح الفحص وحكم الخارج وزرّ المجموعة الجديدة",
+            m["hasOn"] and m["hasOut"] and m["hasNew"])
 
-        # لون الحيّ يقول شرطه — ولا يُخلط الموقوف بالمُفعّل
-        cols = await pg.evaluate("""()=>[...document.querySelectorAll('#h-map circle')]
-            .map(c=>c.getAttribute('fill'))""")
-        rec("المرفوض والمشروط والموقوف بألوانٍ مختلفة",
-            len(set(cols)) >= 3, str(cols))
+        # ── مجموعة جديدة: اختيار أحياء + حكم + تسعيرة ──────────────────
+        await pg.evaluate("()=>document.getElementById('h-new').click()")
+        await pg.wait_for_timeout(700)
+        blocked = await pg.evaluate("""()=>{
+            const rows=[...document.querySelectorAll('[data-hd]')];
+            const taken=rows.find(r=>r.innerText.includes('في مجموعة أخرى'));
+            return !!taken;}""")
+        rec("حيٌّ في مجموعةٍ أخرى يُعلَّم قبل الاختيار لا بعد الحفظ", blocked)
 
-        # اختيار حيّين وحفظ شرطٍ واحد عليهما
-        await pg.evaluate("""()=>{const r=[...document.querySelectorAll('[data-hood]')];
-            r[0].click(); r[2].click();}""")
-        await pg.wait_for_timeout(400)
         await pg.evaluate("""()=>{
-            document.getElementById('r-fee').value = '200';
-            const c = document.getElementById('r-reject');
-            c.checked = true; c.dispatchEvent(new Event('change', {bubbles:true}));
+            document.getElementById('g-name').value='مجموعة التجربة';
+            const free=[...document.querySelectorAll('[data-hd]')]
+              .filter(r=>!r.innerText.includes('في مجموعة أخرى'));
+            free[0].click(); free[1] && free[1].click();
+            document.getElementById('g-fee').value='200';
+            const p=document.querySelector('[data-gprice]'); if(p) p.value='800';
         }""")
-        await pg.evaluate("()=>document.getElementById('h-save').click()")
+        await pg.wait_for_timeout(300)
+        await pg.evaluate("()=>document.getElementById('g-save').click()")
         await pg.wait_for_timeout(900)
-        call = await pg.evaluate("()=>(window.__HOODRULE||[])[0] || null")
-        rec("شرطٌ واحد يُحفظ على حيّين دفعةً واحدة",
-            call is not None and len(call.get("p_ids") or []) == 2, str(call and call.get("p_ids")))
-        rec("والتفعيل يُرسل مع الشرط لا يُفترض",
-            call is not None and call.get("p_active") is True, str(call and call.get("p_active")))
+        sent = await pg.evaluate("()=>(window.__HSAVE||[])[0] || null")
+        rec("المجموعة تُحفظ بأحيائها وحكمها",
+            sent is not None and len(sent.get("districts") or []) >= 1
+            and Number_(sent.get("fee_amount")) == 200,
+            str(sent and {k: sent.get(k) for k in ("name", "districts", "fee_amount")}))
+        rec("والتسعيرة الخاصة تُرسل مع المجموعة",
+            sent is not None and len(sent.get("prices") or []) == 1,
+            str(sent and sent.get("prices")))
 
         await pg.screenshot(path=f"{_H.SHOTS}/36-hoods.png", full_page=True)
         await ctx.close()
