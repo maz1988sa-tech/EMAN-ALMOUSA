@@ -79,22 +79,31 @@ async def main():
                       fee:(window.__state().loc||{}).fee||0,
                       feeRow:!document.getElementById('rcFeeRow').hidden,
                       total:(document.getElementById('rcDep').textContent||'').trim(),
+                      okLine:!document.getElementById('locOk').hidden,
+                      okTxt:(document.getElementById('locOkTxt').textContent||'').trim(),
                       sent:(window.__LOCCHK||[]).length};}""")
 
             if kind == 'ok':
                 rec("موقعٌ بلا شرط: لا نافذة ولا تنبيه", not st["open"], str(st["open"]))
                 rec("ولا يُقفل الزرّ", not st["blocked"])
                 rec("ولا يظهر سطر رسوم", not st["feeRow"])
+                # الصمتُ عند السليم كان يُقرأ «لم يُفحص» — فسطرٌ يقول إنّه فُحص.
+                rec("لكنّ سطرًا يقول إنّ الموقع فُحص وقُبل",
+                    st["okLine"] and "حي العليا" in st["okTxt"], st["okTxt"][:60])
             elif kind == 'condition':
                 rec("شرطٌ برسوم: تظهر النافذة بنصّها", st["open"] and "مواصلات" in st["note"],
                     st["note"][:60])
                 rec("والرسوم تدخل الإجمالي سطرًا مستقلًّا", st["feeRow"] and st["fee"] == 150,
                     f"سطر={st['feeRow']} رسوم={st['fee']}")
                 rec("ولا يُقفل الزرّ — شرطٌ لا رفض", not st["blocked"])
+                rec("والسطر يبقى بعد النافذة ويذكر الرسوم",
+                    st["okLine"] and "حي المروج" in st["okTxt"] and "150" in st["okTxt"],
+                    st["okTxt"][:70])
             elif kind == 'reject':
                 rec("موقعٌ مرفوض: النافذة تقول السبب",
                     st["open"] and "لا نستقبل" in st["note"], st["note"][:60])
                 rec("والزرّ يُقفل قبل ذكر أيّ مبلغ", st["blocked"])
+                rec("ولا يظهر سطرُ القبول على موقعٍ مرفوض", not st["okLine"])
             else:
                 rec("عددٌ أقلّ من الحدّ: يُمنع ويُقال السبب",
                     st["open"] and st["blocked"] and "شخصين" in st["note"], st["note"][:60])
@@ -113,10 +122,38 @@ async def main():
         await fill_form(pg, SHORT)
         st = await pg.evaluate("""()=>({blocked:document.getElementById('toPay').disabled,
             msg:(document.getElementById('locErr').textContent||'').trim(),
+            asked:(window.__FN||[]).filter(f=>f.name==='resolve-map').length,
             sent:(window.__LOCCHK||[]).length})""")
-        rec("الرابط المختصر يُردّ عند الحقل لا عند الإرسال",
-            st["blocked"] and "مختصر" in st["msg"], st["msg"][:70])
-        rec("ولا يُتعب الخادم بنداءٍ بلا إحداثيات", st["sent"] == 0, f"نداءات={st['sent']}")
+        rec("رابطٌ تعذّر فكُّه: يُردّ عند الحقل بسببٍ مفهوم",
+            st["blocked"] and "تعذّر قراءة موقع" in st["msg"], st["msg"][:70])
+        rec("وقد حاول الخادمُ فكَّه قبل الردّ", st["asked"] == 1, f"محاولات={st['asked']}")
+        rec("ولا يُسأل الحكمُ بلا إحداثيات", st["sent"] == 0, f"نداءات={st['sent']}")
+        await ctx.close()
+
+        # ══ والمختصر إن فُكّ: يُفحص كما لو كان كاملًا ═══════════════════
+        # هذا هو الرابط الذي يُخرجه زرّ المشاركة فعلًا. كان يُردّ دائمًا،
+        # فبقي فحص الأحياء نظريًّا: الشرط مضبوط والرابط الشائع لا يُقرأ.
+        ctx = await b.new_context(viewport={"width": 430, "height": 900},
+                                  has_touch=True, is_mobile=True, device_scale_factor=2)
+        await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
+            r.fulfill(content_type="application/javascript", body=MOCK)))
+        pg = await ctx.new_page()
+        await pg.add_init_script(
+            "window.__RESOLVE__={ok:true,lat:24.7778,lng:46.7959};"
+            "window.__LOC__={state:'reject',checked:true,district:'حي الخليج',"
+            "message:'لا نستقبل حجوزات في هذا الحي.'};")
+        await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
+        await pg.evaluate("()=>{window.__state().settings.loc_check_enabled=true;}")
+        await fill_form(pg, SHORT)
+        st = await pg.evaluate("""()=>({sent:(window.__LOCCHK||[]),
+            open:document.getElementById('locModal').classList.contains('open'),
+            note:(document.getElementById('locModalNote').textContent||'').trim(),
+            blocked:document.getElementById('toPay').disabled})""")
+        rec("المختصرُ المفكوك يصل الحكمَ بإحداثيّاته",
+            len(st["sent"]) == 1 and Number_(st["sent"][0].get("p_lat")) == 24.7778,
+            str(st["sent"][:1])[:80])
+        rec("وحكمُه يُطبَّق كأيّ رابطٍ كامل",
+            st["open"] and st["blocked"] and "لا نستقبل" in st["note"], st["note"][:60])
         await ctx.close()
 
         # ══ الفحص مُطفأ: لا شيء يتغيّر ═════════════════════════════════
@@ -167,6 +204,39 @@ async def main():
         rec("ولا وجود لاستيراد ملفّ الحدود", m["noImport"])
         rec("ومفتاح الفحص وحكم الخارج وزرّ المجموعة الجديدة",
             m["hasOn"] and m["hasOut"] and m["hasNew"])
+
+        # ── التنبيه والمجرِّب: تُجرَّب الشروط بلا إشعال حارسٍ على العميلات ──
+        # وقع مرّةً أنّ الطريق الوحيد لتجربة شرطٍ كان إشعال المفتاح، وهو
+        # مشترك بين المختبر والحيّ — فرُفض كلّ حجزٍ على الصفحة المنشورة.
+        w = await pg.evaluate("""()=>{const n=document.getElementById('h-warn');
+            return {shown:!!n && !n.hidden, txt:(n?n.innerText:'').trim(),
+                    hasTry:!!document.getElementById('h-try-go')};}""")
+        rec("تنبيهٌ يمنع إشعال المفتاح قبل النشر", w["shown"] and "يرفض كلّ حجز" in w["txt"],
+            w["txt"].replace("\n", " ")[:90])
+        rec("ومجرِّبُ الموقع في الشاشة", w["hasTry"])
+
+        await pg.evaluate("""()=>{
+            window.__LOC__={state:'condition',checked:true,district:'حي المروج',
+                            fee:150,message:'رسوم مواصلات لهذا الحي.'};
+            document.getElementById('h-try').value=
+              'https://www.google.com/maps/place/x/@24.5742,46.7101,15z';
+            document.getElementById('h-try-go').click();}""")
+        await pg.wait_for_timeout(900)
+        t = await pg.evaluate("""()=>({out:(document.getElementById('h-try-out').innerText||'').trim(),
+            calls:(window.__LOCCHK||[]).slice(-1)})""")
+        rec("المجرِّب يعرض الحكم كما تراه العميلة",
+            "حي المروج" in t["out"] and "مقبول بشرط" in t["out"] and "150" in t["out"],
+            t["out"].replace("\n", " ")[:100])
+        rec("ويطلب المعاينة صراحةً — لا يمرّ عبر المفتاح",
+            bool(t["calls"]) and t["calls"][0].get("p_preview") is True, str(t["calls"])[:90])
+
+        await pg.evaluate("""()=>{window.__RESOLVE__={ok:false,reason:'no_coords'};
+            document.getElementById('h-try').value='https://maps.app.goo.gl/zzzz1111';
+            document.getElementById('h-try-go').click();}""")
+        await pg.wait_for_timeout(900)
+        t2 = await pg.evaluate("()=>(document.getElementById('h-try-out').innerText||'').trim()")
+        rec("ورابطٌ تعذّر فكُّه يُقال سببه لا يُترك صامتًا",
+            "تعذّر قراءة موقع" in t2, t2.replace("\n", " ")[:80])
 
         # ── مجموعة جديدة: اختيار أحياء + حكم + تسعيرة ──────────────────
         await pg.evaluate("()=>document.getElementById('h-new').click()")

@@ -407,6 +407,13 @@ button{border:0;background:none;cursor:pointer}
 .field.ok{border-color:var(--clay);background:rgba(176,112,92,.07)}
 .err{margin:7px 2px 0;font-size:10.5px;line-height:1.7;color:#a8493f;display:none}
 .err.on{display:block}
+/* الموقع السليم كان يمرّ صامتًا، والصمت يُقرأ «لم يُفحص». فسطرٌ يبقى تحت
+   الحقل بعد أن تُغلق النافذة: اسم الحيّ وحكمُه. */
+.loc-ok{margin:7px 2px 0;padding:8px 10px;border:1px solid rgba(95,115,89,.34);
+  background:rgba(95,115,89,.08);font-size:10.5px;line-height:1.7;color:#4a5b45;
+  display:flex;align-items:center;gap:7px}
+.loc-ok[hidden]{display:none}
+.loc-ok svg{flex:0 0 auto}
 .field input{width:100%;border:0;background:none;outline:none;padding:6px 0 2px;font-size:15px}
 .field input::placeholder{color:rgba(43,28,22,.28)}
 .field.phone{display:grid;grid-template-columns:1fr auto;align-items:end;gap:10px}

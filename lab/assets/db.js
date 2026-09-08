@@ -402,12 +402,52 @@ export async function trackBooked(id) {
   try { await sb.rpc('track_booked', { p_id: id }); } catch { /* لا شيء */ }
 }
 
+/* قراءة الإحداثيّات من رابط الخرائط. موضعُها هنا لا في الصفحة لأنّ
+   اللوحة تحتاجها أيضًا: مجرِّبُ الموقع عند صاحبة العمل يقرأ ما تقرؤه
+   صفحة العميلة حرفًا بحرف — وإلّا اختبرت شيئًا وعاشت العميلة غيره. */
+const SHORT_MAP = /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps)\//i;
+const LATLNG = [
+  /@(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/,
+  /!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/,
+  /[?&](?:q|query|ll|center|daddr|destination)=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/i,
+];
+export function readLatLng(url) {
+  const t = String(url || '');
+  if (SHORT_MAP.test(t)) return null;
+  for (const re of LATLNG) {
+    const m = t.match(re);
+    if (m) {
+      const lat = +m[1], lng = +m[2];
+      if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat, lng };
+    }
+  }
+  return null;
+}
+
+/** نقطةُ الرابط: من نصّه إن حملها، وإلّا فبفكّ تحويلته على الخادم. */
+export async function mapPoint(url) {
+  return readLatLng(url) || await resolveMapLink(url);
+}
+
+/* فكُّ الرابط المختصر. زرّ «مشاركة الموقع» في تطبيق الخرائط يُخرج
+   `maps.app.goo.gl/…` بلا إحداثيّات، والمتصفّح لا يتتبّع تحويلته لأنّها
+   عابرةُ أصل. فتُفكّ على الخادم، حيث تُفحص القائمة البيضاء عند كل قفزة.
+   وتعذّرُ الفكّ لا يُتّهم به أحد: يُردّ null فيقال للعميلة ما تفعل. */
+export async function resolveMapLink(url) {
+  try {
+    const { data, error } = await sb.functions.invoke('resolve-map', { body: { url } });
+    if (error || !data?.ok) return null;
+    const lat = Number(data.lat), lng = Number(data.lng);
+    return (isFinite(lat) && isFinite(lng)) ? { lat, lng } : null;
+  } catch { return null; }
+}
+
 /* فحص الموقع: يقول سببه — بخلاف حارس الإيصال الذي يكتم عمدًا. العميلة
    لا تختار حيَّها فلا شيء يُزوَّر، وكتمانُ السبب يجعلها تظنّ بالمنصّة
    عطبًا. والحكم هنا للعرض وحده: `create_booking` تعيده من الإحداثيّتين. */
-export async function checkLocation(lat, lng, people) {
+export async function checkLocation(lat, lng, people, preview = false) {
   const { data, error } = await sb.rpc('check_location', {
-    p_lat: lat, p_lng: lng, p_people: Number(people) || 1,
+    p_lat: lat, p_lng: lng, p_people: Number(people) || 1, p_preview: !!preview,
   });
   if (error) throw error;
   return data || { state: 'ok', checked: false };
@@ -788,6 +828,16 @@ export const admin = {
     const { data, error } = await sb.rpc('admin_save_hood_group', { p_group: group });
     if (error) throw error;
     return data;
+  },
+
+  /* مجرِّب الموقع. المعاينة تتخطّى المفتاح في القاعدة — وصلاحيةُ المدير
+     تُفحص هناك لا هنا — فتجرّب صاحبة العمل شرطًا بلا إشعال حارسٍ على
+     العميلات. وقع مرّة أنّ التجربة الوحيدة الممكنة كانت إشعالَه. */
+  async previewLocation(url, people = 1) {
+    const pt = await mapPoint(url);
+    if (!pt) return { ok: false, reason: 'no_coords' };
+    const r = await checkLocation(pt.lat, pt.lng, people, true);
+    return { ok: true, ...pt, result: r };
   },
 
   async deleteHoodGroup(id) {

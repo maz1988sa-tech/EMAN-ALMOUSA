@@ -419,6 +419,14 @@
           // تعذّرت القراءة — وهو ما لا يمنع الحجز على القاعدة الحقيقيّة.
           invoke(name, opts) {
             (window.__FN = window.__FN || []).push({ name, opts });
+            /* فكُّ الرابط المختصر: يُملى من الفحص عبر window.__RESOLVE__.
+               ومحاكٍ يكذب يُعطّل التغطية بصمت، فالافتراض هو الفشل — وهو
+               الحال التي كانت تُرى قبل بناء الفاكّ. */
+            if (name === 'resolve-map') {
+              return Promise.resolve({
+                data: window.__RESOLVE__ || { ok: false, reason: 'no_coords' },
+                error: null });
+            }
             const r = window.__ocrReply;
             if (r) return Promise.resolve({ data: r, error: null });
             return Promise.resolve({ data: null, error: { message: 'no function in mock' } });
