@@ -172,6 +172,26 @@ async def main():
             str(st["sent"][:1])[:80])
         rec("ولا يُقفل الزرّ، ويُقال إنّ الموقع فُحص",
             not st["blocked"] and st["okLine"] and "الجبيلة" in st["okTxt"], st["okTxt"][:60])
+
+        # ── مصافحة النسخة: الصفحة تُعرّف نفسها عند الحفظ ─────────────
+        # القاعدة لا تُلزم بالموقع إلّا من قال إنّه يعرفه. بدونها كان
+        # إشعالُ المفتاح للتجربة يردّ كلَّ حجزٍ على الصفحة المنشورة.
+        n = await pg.eval_on_selector_all("#peopleFields input", "e=>e.length")
+        for i in range(n):
+            await pg.eval_on_selector_all(
+                "#peopleFields input",
+                f"(e)=>{{e[{i}].value='ضيفة {i+1}';"
+                f"e[{i}].dispatchEvent(new Event('input',{{bubbles:true}}))}}")
+        await pg.wait_for_timeout(300)
+        await pg.click("#toPay"); await pg.wait_for_timeout(800)
+        await pg.set_input_files("#rcptFile", f"{_H.SAMPLE}"); await pg.wait_for_timeout(900)
+        await pg.click("#sendBooking"); await pg.wait_for_timeout(2000)
+        sent = await pg.evaluate("()=>(window.__BOOKED||[])")
+        rec("حمولةُ الحجز تحمل نسخة الصفحة ولحظةَ الموقع",
+            bool(sent) and sent[-1].get("p_client_v") == 2
+            and Number_(sent[-1].get("p_lat")) == 24.9233771,
+            str({k: v for k, v in (sent[-1] or {}).items()
+                 if k in ("p_client_v", "p_lat", "p_lng")}) if sent else "لا حمولة")
         await ctx.close()
 
         # ══ والمختصر إن فُكّ: يُفحص كما لو كان كاملًا ═══════════════════
@@ -255,8 +275,8 @@ async def main():
         w = await pg.evaluate("""()=>{const n=document.getElementById('h-warn');
             return {shown:!!n && !n.hidden, txt:(n?n.innerText:'').trim(),
                     hasTry:!!document.getElementById('h-try-go')};}""")
-        rec("تنبيهٌ يمنع إشعال المفتاح قبل النشر", w["shown"] and "يرفض كلّ حجز" in w["txt"],
-            w["txt"].replace("\n", " ")[:90])
+        rec("تنبيهٌ يشرح أثر المفتاح قبل النشر",
+            w["shown"] and "لا يمنع أحدًا" in w["txt"], w["txt"].replace("\n", " ")[:90])
         rec("ومجرِّبُ الموقع في الشاشة", w["hasTry"])
 
         await pg.evaluate("""()=>{

@@ -486,6 +486,10 @@ export async function createBooking(payload) {
     // الإحداثيّتان لا الحكم: القاعدة تحسبه بنفسها.
     p_lat:          payload.lat ?? null,
     p_lng:          payload.lng ?? null,
+    /* مصافحةُ النسخة. القاعدة لا تُلزم بالموقع إلّا من قال إنّه يعرفه —
+       فصفحةٌ منشورةٌ قديمة لا تنكسر حين يُشعل المفتاح للتجربة. وقع
+       مرّتين، والثانيةُ ضاع فيها حجزُ عميلة. */
+    p_client_v:     2,
     p_receipt_path: payload.receiptPath || null,
   });
   if (error) throw error;

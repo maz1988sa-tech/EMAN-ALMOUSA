@@ -212,6 +212,7 @@
             return ok(out);
           }
           if (fn === 'create_booking') {
+            (window.__BOOKED = window.__BOOKED || []).push(args);
             return ok([{ ref:'EA-20260805', public_token:'tok-demo', the_date:args.p_date,
                          start_time:args.p_time, price:1500 }]);
           }

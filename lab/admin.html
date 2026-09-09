@@ -38,8 +38,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=48">
-<link rel="stylesheet" href="assets/theme.css?v=48">
+<link rel="stylesheet" href="assets/fonts.css?v=49">
+<link rel="stylesheet" href="assets/theme.css?v=49">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -200,7 +200,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=48"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=49"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -234,7 +234,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=48';
+import { icon, hydrateIcons } from './assets/icons.js?v=49';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -244,7 +244,7 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl, mapPointMessage,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=48';
+} from './assets/db.js?v=49';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -1723,10 +1723,10 @@ function renderHoods() {
       <span class="grow"><span class="t">فحص موقع العميلة</span>
         <span class="s">مطفأ = لا يُسأل أحدٌ عن موقعه ولا يتغيّر شيء في صفحة الحجز</span></span>
       <span class="sw"></span></label>
-    <div class="note warn mb" id="h-warn" hidden>${icon('info', 18)}<span>
-      لا تُشعليه قبل نشر صفحة الحجز الجديدة. المفتاح في القاعدة والقاعدة
-      واحدة، فإشعالُه والصفحةُ المنشورة لا ترسل موقعًا <b>يرفض كلّ حجز</b>.
-      ولتجربة الشروط قبل النشر استعملي المجرِّب أدناه — لا المفتاح.</span></div>
+    <div class="note mb" id="h-warn" hidden>${icon('info', 18)}<span>
+      المفتاح لا يؤثّر إلّا على صفحة حجزٍ تحمل شيفرة الفحص. فإشعالُه قبل
+      النشر <b>لا يمنع أحدًا</b> — تمرّ الحجوزات كما هي. ولمعاينة الأحكام
+      قبل النشر: المجرِّب أدناه.</span></div>
 
     <div class="card mb">
       <div class="field" style="margin:0"><label class="label" for="h-try">جرّبي موقعًا</label>
