@@ -139,6 +139,42 @@ function fromPlusCode(rawQ: string, text: string) {
   return pt(lat, lng);
 }
 
+/* المكان المحفوظ. أكثر ما تشاركه العميلة ليس دبّوسًا بل **مكانًا** من
+   الخرائط، فتنتهي التحويلة إلى `ftid=0x…:0x…` — معرّفُ مكانٍ لا موقع،
+   ولا إحداثيّات في العنوان بحال. وكان يُردّ، فيُطلب منها ما لا تعرفه.
+
+   والموضع يُسأل عنه هنا: نقطةُ الخرائط الداخلية تقبل المعرّف وتردّ
+   منظارَ المكان — ومنه المركز. وهي غيرُ موثّقة، فتُعامَل معاملة ما قد
+   ينقطع: تُجرَّب بعد كلّ الطرق الموثّقة، وسقوطُها يُردّ سببًا مفهومًا
+   لا عطبًا. والبديل الرسميّ (Places API) يحتاج مفتاحًا ومحفظةَ فوترة —
+   وهو الطريق إن انقطعت هذه.
+
+   وكشفُ الفشل بلا حالةٍ خاصّة: يُطلب المنظار عند (0,0)، فمعرّفٌ لا
+   يُعرف يردّ المنظار كما أُرسل — و(0,0) مرفوضة في `pt` أصلًا. */
+const PLACE_EP = 'https://www.google.com/maps/preview/place';
+
+/** معرّف المكان من العنوان: `ftid` صريحًا، أو `cid` عشريًّا يُحوّل. */
+function ftidOf(raw: string) {
+  const m = raw.match(/[?&]ftid=(0x[0-9a-f]+:0x[0-9a-f]+)/i);
+  if (m) return m[1].toLowerCase();
+  const c = raw.match(/[?&]cid=(\d{1,20})(?:&|$)/);
+  if (c) { try { return '0x0:0x' + BigInt(c[1]).toString(16); } catch { return null; } }
+  return null;
+}
+
+async function fromPlaceId(ftid: string) {
+  const pb = `!1m14!1s${ftid}!3m12!1m3!1d10000!2d0!3d0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1`;
+  const url = `${PLACE_EP}?authuser=0&hl=ar&gl=SA&pb=${encodeURIComponent(pb)}`;
+  let res: Response;
+  try { res = await fetch(url, { headers: { 'user-agent': UA, 'accept-language': 'ar-SA,ar;q=0.9' } }); }
+  catch { return null; }
+  if (!res.ok) { await res.body?.cancel(); return null; }
+  const txt = (await res.text()).slice(0, 8192);
+  // الترتيب في الردّ: المدى ثمّ خطُّ الطول ثمّ خطُّ العرض.
+  const m = txt.match(/\[\[[\d.]+,(-?\d{1,3}\.\d{3,}),(-?\d{1,2}\.\d{3,})\]/);
+  return m ? pt(num(m[2]), num(m[1])) : null;
+}
+
 /* ولا يُقرأ جسمُ الصفحة. جُرّب فسقط: خادم الحافة في فرانكفورت، فقوقل
    يخدمه صفحةً ألمانية مركزُها ألمانيا — و«إحداثيّاتٌ وجدناها في الصفحة»
    كانت ستضع العميلة في حيٍّ ليس حيَّها، صامتةً. فلا يُوثق إلّا بما يأتي
@@ -192,11 +228,14 @@ Deno.serve(async (req) => {
     const p = fromUrl(cur);
     if (p) return reply({ ok: true, ...p });
 
-    /* رابطٌ إلى «مكان» محفوظ عند قوقل: ينتهي إلى `ftid` وحده — معرّفُ
-       مكانٍ لا موقع. لا سبيل إلى إحداثيّاته بلا مفتاح Places مدفوع،
-       فيُميَّز السبب ليقال للعميلة ما تفعل بدل «تعذّر» غامضة. */
-    const placeOnly = /[?&]ftid=/.test(cur) && !/[?&]q=/.test(cur);
-    return reply({ ok: false, reason: placeOnly ? 'place_only' : 'no_coords' });
+    // ولم يبقَ في العنوان إحداثيّات: يُسأل عن المكان بمعرّفه.
+    const fid = ftidOf(cur) || ftidOf(raw);
+    if (fid) {
+      const q = await fromPlaceId(fid);
+      if (q) return reply({ ok: true, ...q, via: 'place' });
+      return reply({ ok: false, reason: 'place_only' });
+    }
+    return reply({ ok: false, reason: 'no_coords' });
   } catch (e) {
     console.error('resolve_map_failed', String(e));
     return reply({ ok: false, reason: 'server_error' }, 500);

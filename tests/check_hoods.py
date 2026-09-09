@@ -144,8 +144,34 @@ async def main():
         await fill_form(pg, SHORT)
         st = await pg.evaluate("""()=>({blocked:document.getElementById('toPay').disabled,
             msg:(document.getElementById('locErr').textContent||'').trim()})""")
-        rec("رابط مكانٍ محفوظ: يُقال لها ضعي دبّوسًا لا انسخي الرابط",
-            st["blocked"] and "دبّوس" in st["msg"] and "مطوّلًا" in st["msg"], st["msg"][:80])
+        rec("تعذّرُ سؤال المكان: يُقال لها أعيدي أو ضعي دبّوسًا",
+            st["blocked"] and "أعيدي المحاولة" in st["msg"] and "دبّوس" in st["msg"],
+            st["msg"][:80])
+        await ctx.close()
+
+        # ══ والمكان المحفوظ حين يُعرف موضعه: يُفحص كأيّ نقطة ═══════════
+        # هذا أكثر ما تشاركه العميلة: مكانٌ من الخرائط لا دبّوس. وكان
+        # يُردّ، فيُطلب منها ما لا تعرفه.
+        ctx = await b.new_context(viewport={"width": 430, "height": 900},
+                                  has_touch=True, is_mobile=True, device_scale_factor=2)
+        await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
+            r.fulfill(content_type="application/javascript", body=MOCK)))
+        pg = await ctx.new_page()
+        await pg.add_init_script(
+            "window.__RESOLVE__={ok:true,lat:24.9233771,lng:46.4367397,via:'place'};"
+            "window.__LOC__={state:'ok',checked:true,district:'حي الجبيلة'};")
+        await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
+        await pg.evaluate("()=>{window.__state().settings.loc_check_enabled=true;}")
+        await fill_form(pg, SHORT)
+        st = await pg.evaluate("""()=>({sent:(window.__LOCCHK||[]),
+            blocked:document.getElementById('toPay').disabled,
+            okLine:!document.getElementById('locOk').hidden,
+            okTxt:(document.getElementById('locOkTxt').textContent||'').trim()})""")
+        rec("موضعُ المكان المحفوظ يصل الحكمَ",
+            len(st["sent"]) == 1 and Number_(st["sent"][0].get("p_lat")) == 24.9233771,
+            str(st["sent"][:1])[:80])
+        rec("ولا يُقفل الزرّ، ويُقال إنّ الموقع فُحص",
+            not st["blocked"] and st["okLine"] and "الجبيلة" in st["okTxt"], st["okTxt"][:60])
         await ctx.close()
 
         # ══ والمختصر إن فُكّ: يُفحص كما لو كان كاملًا ═══════════════════
