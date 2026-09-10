@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=51">
+<link rel="stylesheet" href="assets/fonts.css?v=52">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=51">
+<link rel="stylesheet" href="assets/client-theme.css?v=52">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -484,7 +484,7 @@ import {
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=51';
+} from './assets/db.js?v=52';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -801,6 +801,11 @@ function bump(id, d) {
 /* تغيير السلة يُبطل الموعد المختار: المدة تغيّرت فتغيّرت الأوقات المتاحة،
    فيُعاد فتح التقويم ويُمسح كل ما بُني على المدة القديمة. */
 function onCartChange() {
+  /* وحكمُ الموقع يسقط كما يسقط التاريخ، وللسبب نفسه: كلاهما محسوبٌ على
+     اختيارٍ تغيّر. فحصٌ بشخصين يفتح الزرّ، ثمّ ترجع فتجعلها خدمةً واحدة،
+     فتمضي على حكمٍ لم يعد يخصّها — حتى تُرفض عند الإرسال وقد حوّلت
+     العربون. واسمها وجوّالها وحيُّها تبقى؛ الرابط وحده يُعاد. */
+  clearLocCheck();
   const had = state.date;
   state.date = null; state.time = null; state.slots = [];
   if (had) {
@@ -1250,6 +1255,23 @@ function locModal(kind, opts = {}) {
   box.setAttribute('aria-hidden', on ? 'false' : 'true');
 }
 
+/** يُبطل حكم الموقع ويُفرغ الرابط. تُنادى حين تتغيّر الخدمات. */
+function clearLocCheck() {
+  // بلا فحصٍ لا حكمَ يبطل، فلا يُفرَّغ حقلٌ بلا سبب.
+  if (!state.settings?.loc_check_enabled) return;
+  if (!state.loc && !loc.value) return;
+  clearTimeout(locTimer);
+  locSeq++;                       // يُلغي فحصًا لم يعد جوابه يعني شيئًا
+  state.loc = null;
+  state.locStale = true;          // لتُقال لها لماذا فرغ الحقل
+  loc.value = '';
+  loc.dataset.touched = '';
+  locField.classList.remove('ok', 'bad');
+  locErr.classList.remove('on');
+  locOk.hidden = true;
+  locModal('off');
+}
+
 let locSeq = 0;
 async function runLocCheck() {
   if (!state.settings?.loc_check_enabled) { state.loc = null; gate(); return; }
@@ -1338,13 +1360,17 @@ function gate() {
   const needMap = !!state.settings?.require_loc_map;
   const shapeOk = !v || MAPS_RE.test(v);
   const mapOk = shapeOk && (!needMap || !!v);
-  const showBad = (!!v && !shapeOk) || (needMap && !v && loc.dataset.touched === '1');
+  const stale = !!state.settings?.loc_check_enabled && !!state.locStale && !v;
+  const showBad = (!!v && !shapeOk) || stale
+                  || (needMap && !v && loc.dataset.touched === '1');
   locField.classList.toggle('bad', showBad);
   locField.classList.toggle('ok', !!v && shapeOk);
   locErr.classList.toggle('on', showBad);
-  locErr.textContent = (needMap && !v)
-    ? 'رابط الموقع مطلوب — افتحي خرائط قوقل، شاركي الموقع، والصقي الرابط هنا.'
-    : 'يُقبل رابط خرائط قوقل فقط — مثل maps.app.goo.gl/… أو google.com/maps/…';
+  locErr.textContent = stale
+    ? 'غيّرتِ الخدمات، فنحتاج رابط الموقع من جديد ليُعاد الفحص.'
+    : (needMap && !v)
+      ? 'رابط الموقع مطلوب — افتحي خرائط قوقل، شاركي الموقع، والصقي الرابط هنا.'
+      : 'يُقبل رابط خرائط قوقل فقط — مثل maps.app.goo.gl/… أو google.com/maps/…';
   let reqOk = true;
   REQUIRED.forEach((r) => {
     const good = r.ok(r.in.value);
@@ -1361,7 +1387,9 @@ function gate() {
       ? mapPointMessage(L.why)
       : (L.message || 'لا نستقبل حجوزات في هذا الموقع حاليًا.');
   }
-  toPayBtn.disabled = !(mapOk && reqOk) || locBlocked || !!L?.pending || state.busy;
+  /* والقفل عند السقوط لا يتّكل على «رابط الموقع إلزاميّ»: الحكم بطل
+     بتغيُّر الخدمات، فلا تمضي عليه ولو كان الرابط اختياريًّا. */
+  toPayBtn.disabled = !(mapOk && reqOk) || locBlocked || !!L?.pending || stale || state.busy;
   // الحجز مرفوض من الخادم بلا إيصال، فلا معنى لزرّ إرسال قبل اختيار ملف.
   // والصورة التي رفضها الفحص تُزال ساعتَها، فيكفي غيابُ المسار للمنع —
   // والشرط على الحكم باقٍ احتياطًا. ولا يُقرَّر هنا شيء: الحكم من القاعدة.
@@ -1376,7 +1404,7 @@ function gate() {
 /* لا يُفحص مع كل حرف: يُنتظر توقّفُها عن اللصق. */
 let locTimer = null;
 loc.addEventListener('input', () => {
-  clearTimeout(locTimer); state.loc = null;
+  clearTimeout(locTimer); state.loc = null; state.locStale = false;
   locTimer = setTimeout(runLocCheck, 400);
 });
 phone.addEventListener('input', unifyPhone);

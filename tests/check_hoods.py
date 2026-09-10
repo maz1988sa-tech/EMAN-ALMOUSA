@@ -164,6 +164,56 @@ async def main():
             f"base={base} · " + (m["cart"] + " ⟨" + m["total"] + "⟩").replace("\n", " | ")[:100])
         await ctx.close()
 
+        # ══ الثغرة: فحصٌ بشخصين ثمّ يُنقَص العدد ═══════════════════════
+        # تفحص بخدمتين فيُفتح الزرّ، ثمّ ترجع فتجعلها واحدة، فتمضي على
+        # حكمٍ لم يعد يخصّها — حتى تُرفض عند الإرسال وقد حوّلت العربون.
+        ctx = await b.new_context(viewport={"width": 430, "height": 900},
+                                  has_touch=True, is_mobile=True, device_scale_factor=2)
+        await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
+            r.fulfill(content_type="application/javascript", body=MOCK)))
+        pg = await ctx.new_page()
+        await pg.add_init_script(
+            "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
+            "window.__LOC__={state:'ok',checked:true,district:'حي الشفا',min_people:2};")
+        await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
+        await pg.evaluate("()=>window.__pick(0,2)"); await pg.wait_for_timeout(400)
+        await pg.evaluate("()=>window.__sheet()"); await pg.wait_for_timeout(600)
+        await pg.fill("#nm", "نورة التجربة")
+        await pg.fill("#ph", "0501234567")
+        await pg.fill("#locTxt", "حي الشفا، الرياض")
+        await pg.fill("#loc", LONG)
+        await pg.wait_for_timeout(1500)
+        a = await pg.evaluate("""()=>({open:!document.getElementById('toPay').disabled,
+            loc:!!window.__state().loc})""")
+        rec("بخدمتين: الفحص يمرّ ويُفتح الزرّ", a["open"] and a["loc"], str(a))
+
+        # ترجع وتُنقص العدد — كما وصف صاحب المشروع
+        await pg.evaluate("()=>window.__pick(0,1)"); await pg.wait_for_timeout(600)
+        await pg.evaluate("()=>window.__sheet()"); await pg.wait_for_timeout(700)
+        z = await pg.evaluate("""()=>({open:!document.getElementById('toPay').disabled,
+            loc:!!window.__state().loc,
+            link:(document.getElementById('loc').value||''),
+            nm:(document.getElementById('nm').value||''),
+            ph:(document.getElementById('ph').value||''),
+            txt:(document.getElementById('locTxt').value||''),
+            msg:(document.getElementById('locErr').textContent||'').trim(),
+            errOn:document.getElementById('locErr').classList.contains('on')})""")
+        rec("بعد التعديل: الحكم يسقط والرابط يُمسح",
+            not z["loc"] and z["link"] == "", str({k: z[k] for k in ("loc", "link")}))
+        rec("والزرّ يُقفل فلا تمضي على فحصٍ قديم", not z["open"], str(z["open"]))
+        rec("واسمها وجوّالها وحيُّها تبقى",
+            z["nm"] == "نورة التجربة" and z["ph"] and "الشفا" in z["txt"],
+            f'{z["nm"]} · {z["ph"]} · {z["txt"]}')
+        rec("ويُقال لها لماذا فرغ الحقل",
+            z["errOn"] and "غيّرتِ الخدمات" in z["msg"], z["msg"][:60])
+
+        # ولصقُ رابطٍ جديد يُعيد الفحص ويرفع الوسم
+        await pg.fill("#loc", LONG); await pg.wait_for_timeout(1500)
+        y = await pg.evaluate("""()=>({open:!document.getElementById('toPay').disabled,
+            stale:!!window.__state().locStale, loc:!!window.__state().loc})""")
+        rec("ورابطٌ جديد يُعيد الفحص", y["open"] and y["loc"] and not y["stale"], str(y))
+        await ctx.close()
+
         # ══ الرابط المختصر يُردّ مبكّرًا ═══════════════════════════════
         ctx = await b.new_context(viewport={"width": 430, "height": 900},
                                   has_touch=True, is_mobile=True, device_scale_factor=2)
