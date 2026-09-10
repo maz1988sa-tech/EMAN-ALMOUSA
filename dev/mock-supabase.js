@@ -105,6 +105,26 @@
     wa_test_phone:null, receipt_iban_digits:6,
   };
 
+  /* ما تُرجعه `get_public_settings` فعلًا — لا كلَّ عمودٍ في الجدول.
+     الدالّة تُعدِّد أعمدتها بالاسم، فعمودٌ يُضاف إلى الإعدادات ولا يُضاف
+     إليها لا يصل الصفحة. وكان المحاكي يردّ الجدول كلَّه فيُخفي هذا:
+     عاش فحص الموقع في الطُّقُم ولم يعمل عند عميلةٍ قطّ. */
+  const PUBLIC_SETTING_KEYS = [
+    'business_name', 'tagline', 'timezone', 'slot_step_min', 'min_lead_hours',
+    'max_advance_days', 'whatsapp_phone', 'accepting_bookings', 'closed_message',
+    'deposit_rate', 'bank_name', 'iban', 'beneficiary_name', 'instagram_url',
+    'tiktok_url', 'group_discount_amount', 'receipt_ocr_required', 'require_loc_map',
+    'show_closed_months', 'closed_month_word', 'loc_check_enabled',
+  ];
+  window.__PUBLIC_SETTING_KEYS = PUBLIC_SETTING_KEYS;
+  /* والفحص يبدّل إعدادًا بـ`__SETTINGS_PATCH__`، فيمرّ بالإسقاط نفسه —
+     لا يُحقن في `state` بعد التحميل. وإلّا اختُبرت الصفحةُ في عالمٍ
+     تصلها فيه إعداداتٌ لا تصلها في الواقع. */
+  const publicSettings = () => {
+    const src = Object.assign({}, SETTINGS, window.__SETTINGS_PATCH__ || {});
+    return Object.fromEntries(PUBLIC_SETTING_KEYS.map((k) => [k, src[k]]));
+  };
+
   const ok = (data) => Promise.resolve({ data, error: null });
 
   function table(name) {
@@ -220,7 +240,7 @@
             const b = BOOKINGS.find(x => x.public_token === args.p_token) || BOOKINGS[2];
             return ok([{ ...b, items: b.booking_items }]);
           }
-          if (fn === 'get_public_settings') return ok([SETTINGS]);
+          if (fn === 'get_public_settings') return ok([publicSettings()]);
 
           /* ــ عدّ الزوّار ــــــــــــــــــــــــــــــــــــــــــــــــ */
           if (fn === 'track_visit') {

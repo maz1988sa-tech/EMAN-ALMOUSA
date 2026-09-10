@@ -67,7 +67,6 @@ async def main():
                 "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
                 "window.__LOC__=" + str(loc).replace("'", '"').replace("True", "true") + ";")
             await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
-            await pg.evaluate("()=>{window.__state().settings.loc_check_enabled=true;}")
             await fill_form(pg)
 
             st = await pg.evaluate("""()=>{
@@ -123,7 +122,6 @@ async def main():
             "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
             "window.__LOC__={state:'ok',checked:true,district:'حي الشفا',min_people:2};")
         await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
-        await pg.evaluate("()=>{window.__state().settings.loc_check_enabled=true;}")
         await fill_form(pg)
         st = await pg.evaluate("""()=>({
             open:document.getElementById('locModal').classList.contains('open'),
@@ -145,6 +143,7 @@ async def main():
         await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
             r.fulfill(content_type="application/javascript", body=MOCK)))
         pg = await ctx.new_page()
+        await pg.add_init_script("window.__SETTINGS_PATCH__={loc_check_enabled:true};")
         await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
         sid = await pg.evaluate("()=>((window.__state().services||[])[0]||{}).id")
         base = await pg.evaluate("()=>Number(((window.__state().services||[])[0]||{}).price)")
@@ -152,7 +151,7 @@ async def main():
                           "district:'العمارية',fee:0,no_group_discount:true,"
                           "prices:[{service_id:id,price:2300}],"
                           "message:'تسعيرةٌ خاصّة.'};"
-                          "window.__state().settings.loc_check_enabled=true;}", sid)
+                          "}", sid)
         await pg.evaluate("()=>window.__pick(0,1)"); await pg.wait_for_timeout(400)
         await pg.evaluate("()=>window.__sheet()"); await pg.wait_for_timeout(600)
         await pg.fill("#nm", "نورة"); await pg.fill("#ph", "0501234567")
@@ -171,8 +170,8 @@ async def main():
         await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
             r.fulfill(content_type="application/javascript", body=MOCK)))
         pg = await ctx.new_page()
+        await pg.add_init_script("window.__SETTINGS_PATCH__={loc_check_enabled:true};")
         await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
-        await pg.evaluate("()=>{window.__state().settings.loc_check_enabled=true;}")
         await fill_form(pg, SHORT)
         st = await pg.evaluate("""()=>({blocked:document.getElementById('toPay').disabled,
             msg:(document.getElementById('locErr').textContent||'').trim(),
@@ -192,9 +191,10 @@ async def main():
         await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
             r.fulfill(content_type="application/javascript", body=MOCK)))
         pg = await ctx.new_page()
-        await pg.add_init_script("window.__RESOLVE__={ok:false,reason:'place_only'};")
+        await pg.add_init_script(
+            "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
+            "window.__RESOLVE__={ok:false,reason:'place_only'};")
         await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
-        await pg.evaluate("()=>{window.__state().settings.loc_check_enabled=true;}")
         await fill_form(pg, SHORT)
         st = await pg.evaluate("""()=>({blocked:document.getElementById('toPay').disabled,
             msg:(document.getElementById('locErr').textContent||'').trim()})""")
@@ -212,10 +212,10 @@ async def main():
             r.fulfill(content_type="application/javascript", body=MOCK)))
         pg = await ctx.new_page()
         await pg.add_init_script(
+            "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
             "window.__RESOLVE__={ok:true,lat:24.9233771,lng:46.4367397,via:'place'};"
             "window.__LOC__={state:'ok',checked:true,district:'حي الجبيلة'};")
         await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
-        await pg.evaluate("()=>{window.__state().settings.loc_check_enabled=true;}")
         await fill_form(pg, SHORT)
         st = await pg.evaluate("""()=>({sent:(window.__LOCCHK||[]),
             blocked:document.getElementById('toPay').disabled,
@@ -257,11 +257,11 @@ async def main():
             r.fulfill(content_type="application/javascript", body=MOCK)))
         pg = await ctx.new_page()
         await pg.add_init_script(
+            "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
             "window.__RESOLVE__={ok:true,lat:24.7778,lng:46.7959};"
             "window.__LOC__={state:'reject',checked:true,district:'حي الخليج',"
             "message:'لا نستقبل حجوزات في هذا الحي.'};")
         await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
-        await pg.evaluate("()=>{window.__state().settings.loc_check_enabled=true;}")
         await fill_form(pg, SHORT)
         st = await pg.evaluate("""()=>({sent:(window.__LOCCHK||[]),
             open:document.getElementById('locModal').classList.contains('open'),
@@ -289,7 +289,6 @@ async def main():
                 "fee:0,no_group_discount:" + ("true" if nodisc else "false") + ","
                 "message:'سعرٌ صافٍ في هذا الموقع.'};")
             await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
-            await pg.evaluate("()=>{window.__state().settings.loc_check_enabled=true;}")
             await pg.evaluate("()=>window.__pick(0,3)"); await pg.wait_for_timeout(400)
             await pg.evaluate("()=>window.__sheet()"); await pg.wait_for_timeout(600)
             await pg.fill("#nm", "نورة"); await pg.fill("#ph", "0501234567")
