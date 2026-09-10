@@ -220,6 +220,37 @@ async def main():
             st["open"] and st["blocked"] and "لا نستقبل" in st["note"], st["note"][:60])
         await ctx.close()
 
+        # ══ سعرٌ صافٍ: الخصم يسقط في الإجمالي المعروض ══════════════════
+        # الحكم الرابع وحده كان يعطي ٦٠٠ للفرد بدل ٨٠٠، لأنّ الخصم كان
+        # قرارَ خدمةٍ لا قرارَ موقع.
+        for nodisc, want in ((False, True), (True, False)):
+            ctx = await b.new_context(viewport={"width": 430, "height": 900},
+                                      has_touch=True, is_mobile=True, device_scale_factor=2)
+            await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
+                r.fulfill(content_type="application/javascript", body=MOCK)))
+            pg = await ctx.new_page()
+            await pg.add_init_script(
+                "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
+                "window.__LOC__={state:'condition',checked:true,district:'العمارية',"
+                "fee:0,no_group_discount:" + ("true" if nodisc else "false") + ","
+                "message:'سعرٌ صافٍ في هذا الموقع.'};")
+            await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
+            await pg.evaluate("()=>{window.__state().settings.loc_check_enabled=true;}")
+            await pg.evaluate("()=>window.__pick(0,3)"); await pg.wait_for_timeout(400)
+            await pg.evaluate("()=>window.__sheet()"); await pg.wait_for_timeout(600)
+            await pg.fill("#nm", "نورة"); await pg.fill("#ph", "0501234567")
+            await pg.fill("#locTxt", "العمارية"); await pg.fill("#loc", LONG)
+            await pg.wait_for_timeout(1500)
+            d = await pg.evaluate("()=>({disc:window.__disc?window.__disc():null,"
+                                  "row:!document.getElementById('rcDiscRow')?.hidden})"
+                                  if False else
+                                  "()=>({loc:window.__state().loc})")
+            got = await pg.evaluate("""()=>{const s=window.__state();
+                return {nd:!!(s.loc||{}).noGroupDiscount};}""")
+            rec(f"[صافٍ={nodisc}] الصفحة تقرأ حكم الخصم من الموقع",
+                got["nd"] == nodisc, str(got))
+            await ctx.close()
+
         # ══ الفحص مُطفأ: لا شيء يتغيّر ═════════════════════════════════
         ctx = await b.new_context(viewport={"width": 430, "height": 900},
                                   has_touch=True, is_mobile=True, device_scale_factor=2)
@@ -330,6 +361,28 @@ async def main():
         rec("والتسعيرة الخاصة تُرسل مع المجموعة",
             sent is not None and len(sent.get("prices") or []) == 1,
             str(sent and sent.get("prices")))
+
+        # ── الحكم الخامس: سعرٌ صافٍ بلا خصم مجموعات ───────────────────
+        # العمارية ٨٠٠ للفرد لا ٦٠٠: الخصم قرارُ موقعٍ أيضًا، لا قرارُ
+        # خدمةٍ وحدها. وبدونه كان الحكم الرابع يعطي ٦٠٠ صامتًا.
+        await pg.evaluate("()=>document.getElementById('h-new').click()")
+        await pg.wait_for_timeout(700)
+        nod = await pg.evaluate("()=>!!document.getElementById('g-nodisc')")
+        rec("مفتاح «سعر صافٍ» في ورقة المجموعة", nod)
+        await pg.evaluate("""()=>{
+            document.getElementById('g-name').value='العمارية';
+            const free=[...document.querySelectorAll('[data-hd]')]
+              .filter(r=>!r.innerText.includes('في مجموعة أخرى'));
+            free[0] && free[0].click();
+            document.getElementById('g-nodisc').checked=true;}""")
+        await pg.wait_for_timeout(200)
+        await pg.evaluate("()=>document.getElementById('g-save').click()")
+        await pg.wait_for_timeout(900)
+        saved = await pg.evaluate("()=>(window.__HSAVE||[]).slice(-1)")
+        rec("ويُحفظ مع المجموعة",
+            bool(saved) and saved[0].get("no_group_discount") is True,
+            str(saved[:1])[:110])
+
 
         await pg.screenshot(path=f"{_H.SHOTS}/36-hoods.png", full_page=True)
         await ctx.close()

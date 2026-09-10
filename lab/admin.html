@@ -38,8 +38,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=49">
-<link rel="stylesheet" href="assets/theme.css?v=49">
+<link rel="stylesheet" href="assets/fonts.css?v=50">
+<link rel="stylesheet" href="assets/theme.css?v=50">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -200,7 +200,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=49"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=50"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -234,7 +234,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=49';
+import { icon, hydrateIcons } from './assets/icons.js?v=50';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -244,7 +244,7 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl, mapPointMessage,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=49';
+} from './assets/db.js?v=50';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -1711,6 +1711,7 @@ function groupTag(g) {
   if (g.min_people > 1) bits.push(`${g.min_people} أشخاص فأكثر`);
   if (Number(g.fee_amount) > 0) bits.push(`+${int(g.fee_amount)} ر.س`);
   if ((g.prices || []).length) bits.push(`${int(g.prices.length)} سعر خاص`);
+  if (g.no_group_discount) bits.push('بلا خصم مجموعات');
   return bits.join(' · ') || 'بلا حكم';
 }
 
@@ -1850,7 +1851,7 @@ function openGroup(g) {
   const isNew = !g;
   H.edit = g ? JSON.parse(JSON.stringify(g)) : {
     name: '', active: true, reject: false, min_people: 0, fee_amount: 0,
-    message: '', districts: [], prices: [],
+    message: '', districts: [], prices: [], no_group_discount: false,
   };
   H.sel = new Set(H.edit.districts || []);
   H.q = '';
@@ -1882,6 +1883,12 @@ function openGroup(g) {
                  value="${Number(H.edit.fee_amount || 0)}">
           <p class="hint">تُضاف للإجمالي لا للعربون</p></div>
       </div>
+
+      <label class="toggle mb"><input type="checkbox" id="g-nodisc"
+             ${H.edit.no_group_discount ? 'checked' : ''}>
+        <span class="grow"><span class="t">سعرٌ صافٍ — بلا خصم مجموعات</span>
+          <span class="s">كلُّ عميلة تدفع سعر الخدمة كاملًا ولو كنّ مجموعة</span></span>
+        <span class="sw"></span></label>
 
       <p class="label">تسعيرة خاصة لهذه الأحياء <span class="opt">(اختياري)</span></p>
       <p class="hint" style="margin:0 0 8px">اتركي الخانة فارغة لتبقى الخدمة بسعرها المعتاد.</p>
@@ -1979,11 +1986,13 @@ async function saveGroup() {
     min_people: reject ? 0 : Math.max(0, Number(document.getElementById('g-min').value) || 0),
     fee_amount: reject ? 0 : Math.max(0, Number(document.getElementById('g-fee').value) || 0),
     message: document.getElementById('g-msg').value.trim() || null,
+    no_group_discount: reject ? false : document.getElementById('g-nodisc').checked,
     districts: [...H.sel],
     prices: reject ? [] : prices,
   };
-  if (!reject && !payload.min_people && !payload.fee_amount && !prices.length) {
-    err.innerHTML = note('اختاري حكمًا واحدًا على الأقل: رفض، أو أقلّ عدد، أو رسوم، أو تسعيرة.');
+  if (!reject && !payload.min_people && !payload.fee_amount
+      && !prices.length && !payload.no_group_discount) {
+    err.innerHTML = note('اختاري حكمًا واحدًا على الأقل: رفض، أو أقلّ عدد، أو رسوم، أو تسعيرة، أو سعرًا صافيًا.');
     return;
   }
   b.disabled = true;
