@@ -63,11 +63,21 @@ async def main():
             data = json.loads(blob) if blob else {}
         except Exception:
             data = {}
+        # الأحياء ومجموعاتها منها: سقطت `admin_snapshot` بعد ٠٠٢٦ لأنّها
+        # بقيت تقرأ `district_rules` المحذوف، فلم تُؤخذ نسخةٌ منذ ذلك اليوم
+        # — والقائمة هنا كانت أفقرَ من المخطّط فلم تقس النقص.
         WANT = ["settings", "services", "availability_rules", "date_overrides",
                 "bookings", "booking_items", "message_templates", "message_outbox",
-                "ref_counters", "visits", "activity_log", "receipt_scans"]
+                "ref_counters", "visits", "activity_log", "receipt_scans",
+                "districts", "hood_groups", "hood_group_districts", "hood_group_prices"]
         miss = [k for k in WANT if k not in data]
         rec("الملفّ المنزَّل يحمل كلَّ جدول", not miss, "ناقص: " + (", ".join(miss) or "لا شيء"))
+        cnt = (data.get("counts") or {})
+        nocount = [k for k in WANT if k not in ("settings", "availability_rules",
+                   "date_overrides") and k not in cnt]
+        rec("ولكلّ جدولٍ عدّادٌ يُعرَض — فما حُفظ ولم يُذكر لا يُفتقد",
+            not nocount, "بلا عدّاد: " + (", ".join(nocount) or "لا شيء"))
+        rec("ولا أثرَ لجدولٍ محذوف", "district_rules" not in (blob or ""))
         rec("ولا يحمل حسابات الدخول ولا نصّ الإيصال",
             "admins" not in data and "raw_text" not in (blob or ""),
             "admins" if "admins" in data else "raw_text" if "raw_text" in (blob or "") else "نظيف")

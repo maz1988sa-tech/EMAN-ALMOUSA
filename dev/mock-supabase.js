@@ -198,6 +198,15 @@
                             { id: 'v2', vid: 'efgh5678', max_step: 0, booked: true }];
             const LOG    = [{ id: 'l1', booking_id: 'b1', actor: 'admin', action: 'confirm' }];
             const SCANS  = [{ path: 'pending/r1.jpg', iban_hit: true, numbers: [500], engine: 'ocrspace' }];
+            /* الأحياء ومجموعاتها في اللقطة أيضًا: سقطت من القاعدة مرّةً
+               لأنّ المحاكي كان أفقرَ منها فلم يُقَس النقص. */
+            const DISTS  = [{ id: 1, ar: 'حي الشفا', lat: 24.57, lng: 46.71, rings: [] }];
+            const HG     = [{ id: 'g1', name: 'أطراف الرياض', sort: 0, active: true,
+                              reject: false, min_people: 2, fee_amount: 150,
+                              message: 'يتطلّب شخصين فأكثر.', no_group_discount: false }];
+            const HGD    = [{ district_id: 1, group_id: 'g1' }];
+            const HGP    = [{ group_id: 'g1', service_id: 's2', price: 800,
+                              solo_ok: false, solo_fee: 0 }];
             const snap = {
               version: 2, taken_at: new Date().toISOString(),
               settings: SETTINGS,
@@ -207,6 +216,8 @@
               services: SERVICES, availability_rules: RULES, date_overrides: OVERRIDES,
               message_templates: TEMPLATES, message_outbox: OUTBOX,
               ref_counters: REFC, visits: VISITS, activity_log: LOG, receipt_scans: SCANS,
+              districts: DISTS, hood_groups: HG,
+              hood_group_districts: HGD, hood_group_prices: HGP,
             };
             snap.counts = {
               bookings: snap.bookings.length, booking_items: snap.booking_items.length,
@@ -214,6 +225,8 @@
               message_templates: TEMPLATES.length, message_outbox: OUTBOX.length,
               ref_counters: REFC.length, visits: VISITS.length,
               activity_log: LOG.length, receipt_scans: SCANS.length,
+              districts: DISTS.length, hood_groups: HG.length,
+              hood_group_districts: HGD.length, hood_group_prices: HGP.length,
               receipts: 2,
             };
             return ok(snap);
