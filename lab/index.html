@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=50">
+<link rel="stylesheet" href="assets/fonts.css?v=51">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=50">
+<link rel="stylesheet" href="assets/client-theme.css?v=51">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -484,7 +484,7 @@ import {
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=50';
+} from './assets/db.js?v=51';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -517,7 +517,14 @@ const state = {
 
 const picked    = () => state.services.filter((s) => state.counts[s.id] > 0);
 const flatPicked= () => state.services.flatMap((s) => Array.from({ length: state.counts[s.id] || 0 }, () => s));
-const subtotal  = () => flatPicked().reduce((n, s) => n + Number(s.price), 0);
+/* سعرُ الخدمة في هذا الموقع. بعض الأحياء تسعيرتُها مختلفة — العروس في
+   العمارية ٢٣٠٠ لا ٢٠٠٠ — و`create_booking` تحسبها من المجموعة. فلو
+   عرضت الصفحةُ السعر المعتاد رأت العميلة رقمًا وحُوسبت بغيره. */
+function priceOf(s) {
+  const over = (state.loc?.prices || []).find((p) => p.service_id === s.id);
+  return Number(over ? over.price : s.price) || 0;
+}
+const subtotal  = () => flatPicked().reduce((n, s) => n + priceOf(s), 0);
 
 /* خصم المجموعة: مبلغ ثابت عن كل شخص في الخدمات المؤهَّلة، ولا يبدأ إلا
    من شخصين. العتبة نفسها مكتوبة في group_discount_for بقاعدة البيانات،
@@ -1140,7 +1147,7 @@ function sync() {
 
   const disc = groupDiscount();
   el('sumLines').innerHTML = (c.length
-    ? c.map((s) => `<div class="ln"><span>${esc(s.name)}${state.counts[s.id] > 1 ? ` <em dir="ltr">×${state.counts[s.id]}</em>` : ''}</span><b>${money(Number(s.price) * state.counts[s.id])}<i class="rs"></i></b></div>`).join('')
+    ? c.map((s) => `<div class="ln"><span>${esc(s.name)}${state.counts[s.id] > 1 ? ` <em dir="ltr">×${state.counts[s.id]}</em>` : ''}</span><b>${money(priceOf(s) * state.counts[s.id])}<i class="rs"></i></b></div>`).join('')
     : '<div class="ln"><span>لم تختاري خدمة بعد</span></div>')
     + (disc ? `<div class="ln off"><span>خصم المجموعة <em dir="ltr">×${discountPeople()}</em></span><b>−${money(disc)}<i class="rs"></i></b></div>` : '');
 
@@ -1288,7 +1295,7 @@ async function runLocCheck() {
   } else if (r.state === 'condition') {
     state.loc = { lat: pt.lat, lng: pt.lng, checked: r.checked !== false,
                   fee: Number(r.fee) || 0, district: r.district, message: r.message,
-                  noGroupDiscount: !!r.no_group_discount };
+                  noGroupDiscount: !!r.no_group_discount, prices: r.prices || [] };
     locModal('bad', {
       title: r.district || 'شرطٌ على الموقع',
       note: (r.message || '') + (Number(r.fee) > 0
@@ -1297,10 +1304,14 @@ async function runLocCheck() {
   } else {
     // بلا شرط: لا نافذة ولا تنبيه. تكمل كما لو لم يكن هناك فحص.
     state.loc = { lat: pt.lat, lng: pt.lng, checked: r.checked !== false, fee: 0,
-                  district: r.district, noGroupDiscount: !!r.no_group_discount };
+                  district: r.district, noGroupDiscount: !!r.no_group_discount,
+                  prices: r.prices || [] };
     locModal('off');
   }
-  renderCart(); paintRecap(); paintPay(); gate();
+  /* `sync` هي التي ترسم لوحة الملخّص — السطور والإجمالي والخصم. وكان
+     الفحص ينادي `renderCart` وحدها، فيتغيّر الشريط ويبقى الملخّص على
+     السعر المعتاد: العميلة ترى ٢٠٠٠ وتُحاسَب ٢٣٠٠. */
+  renderCart(); sync(); paintRecap(); paintPay(); gate();
 }
 
 el('locModalOk').addEventListener('click', () => locModal('off'));

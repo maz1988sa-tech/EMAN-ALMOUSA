@@ -136,6 +136,35 @@ async def main():
             st["okLine"] and "الشفا" in st["okTxt"], st["okTxt"][:50])
         await ctx.close()
 
+        # ══ تسعيرةٌ خاصّة: تُعرض كما ستُحسب ══════════════════════════
+        # `create_booking` تحسب من سعر المجموعة. فلو عرضت الصفحةُ السعر
+        # المعتاد رأت العميلة رقمًا وحُوسبت بغيره — والعروس في العمارية
+        # ٢٣٠٠ لا ٢٠٠٠.
+        ctx = await b.new_context(viewport={"width": 430, "height": 900},
+                                  has_touch=True, is_mobile=True, device_scale_factor=2)
+        await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
+            r.fulfill(content_type="application/javascript", body=MOCK)))
+        pg = await ctx.new_page()
+        await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
+        sid = await pg.evaluate("()=>((window.__state().services||[])[0]||{}).id")
+        base = await pg.evaluate("()=>Number(((window.__state().services||[])[0]||{}).price)")
+        await pg.evaluate("(id)=>{window.__LOC__={state:'condition',checked:true,"
+                          "district:'العمارية',fee:0,no_group_discount:true,"
+                          "prices:[{service_id:id,price:2300}],"
+                          "message:'تسعيرةٌ خاصّة.'};"
+                          "window.__state().settings.loc_check_enabled=true;}", sid)
+        await pg.evaluate("()=>window.__pick(0,1)"); await pg.wait_for_timeout(400)
+        await pg.evaluate("()=>window.__sheet()"); await pg.wait_for_timeout(600)
+        await pg.fill("#nm", "نورة"); await pg.fill("#ph", "0501234567")
+        await pg.fill("#locTxt", "العمارية"); await pg.fill("#loc", LONG)
+        await pg.wait_for_timeout(1500)
+        m = await pg.evaluate("""()=>({cart:(document.getElementById('sumLines')||{}).innerText||'',
+            total:(document.getElementById('total1')||{}).innerText||''})""")
+        rec("التسعيرة الخاصّة تُعرض في السلّة لا السعر المعتاد",
+            "2,300" in m["cart"] or "2300" in m["cart"].replace(",", ""),
+            f"base={base} · " + (m["cart"] + " ⟨" + m["total"] + "⟩").replace("\n", " | ")[:100])
+        await ctx.close()
+
         # ══ الرابط المختصر يُردّ مبكّرًا ═══════════════════════════════
         ctx = await b.new_context(viewport={"width": 430, "height": 900},
                                   has_touch=True, is_mobile=True, device_scale_factor=2)
