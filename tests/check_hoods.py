@@ -111,6 +111,31 @@ async def main():
             rec(f"[{kind}] الإحداثيّتان أُرسلتا للقاعدة", st["sent"] >= 1, f"نداءات={st['sent']}")
             await ctx.close()
 
+        # ══ حدٌّ مستوفًى: لا نافذة ولا إزعاج ═══════════════════════════
+        # ثلاثةٌ وعشرون حيًّا حكمُها «شخصان فأكثر»، فكانت كلُّ عميلةٍ
+        # فيها ترى نافذةَ شرطٍ وقد استوفته. والمنع قائمٌ قبله.
+        ctx = await b.new_context(viewport={"width": 430, "height": 900},
+                                  has_touch=True, is_mobile=True, device_scale_factor=2)
+        await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
+            r.fulfill(content_type="application/javascript", body=MOCK)))
+        pg = await ctx.new_page()
+        await pg.add_init_script(
+            "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
+            "window.__LOC__={state:'ok',checked:true,district:'حي الشفا',min_people:2};")
+        await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
+        await pg.evaluate("()=>{window.__state().settings.loc_check_enabled=true;}")
+        await fill_form(pg)
+        st = await pg.evaluate("""()=>({
+            open:document.getElementById('locModal').classList.contains('open'),
+            blocked:document.getElementById('toPay').disabled,
+            okLine:!document.getElementById('locOk').hidden,
+            okTxt:(document.getElementById('locOkTxt').textContent||'').trim()})""")
+        rec("حدٌّ مستوفًى: لا نافذة ولا قفل",
+            not st["open"] and not st["blocked"], str(st))
+        rec("ويبقى السطر الأخضر باسم الحيّ",
+            st["okLine"] and "الشفا" in st["okTxt"], st["okTxt"][:50])
+        await ctx.close()
+
         # ══ الرابط المختصر يُردّ مبكّرًا ═══════════════════════════════
         ctx = await b.new_context(viewport={"width": 430, "height": 900},
                                   has_touch=True, is_mobile=True, device_scale_factor=2)
