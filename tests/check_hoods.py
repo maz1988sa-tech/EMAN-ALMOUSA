@@ -164,6 +164,51 @@ async def main():
             f"base={base} · " + (m["cart"] + " ⟨" + m["total"] + "⟩").replace("\n", " | ")[:100])
         await ctx.close()
 
+        # ══ الحكم السادس: تُقبل وحدها، والرسوم بندٌ باسم الحيّ ═════════
+        # عروسٌ واحدة في العمارية: الحدُّ شخصان، والاستثناء يمرّرها ومعه
+        # ٣٠٠. والمبلغ يُعرض سطرًا باسمه لا يُضاف صامتًا إلى الإجمالي —
+        # وإلّا قفز الرقم فلا تعرف العميلة من أين جاء الفرق.
+        ctx = await b.new_context(viewport={"width": 430, "height": 900},
+                                  has_touch=True, is_mobile=True, device_scale_factor=2)
+        await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
+            r.fulfill(content_type="application/javascript", body=MOCK)))
+        pg = await ctx.new_page()
+        await pg.add_init_script(
+            "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
+            "window.__LOC__={state:'condition',checked:true,district:'العمارية',"
+            "fee:300,solo:true,min_people:2,no_group_discount:true,prices:[],"
+            "message:'يُطبَّق مبلغ 300 ر.س رسوم الخدمة في العمارية.'};")
+        await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
+        base = await pg.evaluate("()=>Number(((window.__state().services||[])[0]||{}).price)")
+        await fill_form(pg)
+        m = await pg.evaluate("""()=>({
+            modal:(document.getElementById('locModal')||{}).innerText||'',
+            open:(document.getElementById('locModal')||{classList:{contains:()=>false}})
+                   .classList.contains('open'),
+            cart:(document.getElementById('sumLines')||{}).innerText||'',
+            total:(document.getElementById('total1')||{}).innerText||'',
+            feeRow:!document.getElementById('rcFeeRow').hidden,
+            feeLbl:(document.getElementById('rcFeeLbl')||{}).innerText||'',
+            btn:!!document.getElementById('toPay') && document.getElementById('toPay').disabled,
+            sent:(window.__LOCCHK||[]).slice(-1)})""")
+        rec("العروس الواحدة: النافذة تقول المبلغ",
+            m["open"] and "300" in m["modal"] and "العمارية" in m["modal"],
+            m["modal"].replace("\n", " ")[:110])
+        rec("ولا تُقفل الزرّ — الاستثناء قبولٌ لا منع", not m["btn"])
+        cart = m["cart"].replace(",", "")
+        rec("والرسوم بندٌ مستقلٌّ باسم الحيّ في الملخّص",
+            "رسوم العمارية" in m["cart"] and "300" in cart,
+            m["cart"].replace("\n", " | ")[:110])
+        rec("والإجمالي سعرُ الخدمة زائدَ الرسوم",
+            str(int(base + 300)) in m["total"].replace(",", ""),
+            f"base={base} · {m['total']}")
+        rec("ولوحة المراجعة تسمّيه كذلك",
+            m["feeRow"] and m["feeLbl"].strip() == "رسوم العمارية", m["feeLbl"])
+        rec("والفحص يرسل الخدمات — الاستثناء حكمُ خدمةٍ لا حكمُ عدد",
+            bool(m["sent"]) and len(m["sent"][0].get("p_service_ids") or []) == 1,
+            str(m["sent"])[:110])
+        await ctx.close()
+
         # ══ الثغرة: فحصٌ بشخصين ثمّ يُنقَص العدد ═══════════════════════
         # تفحص بخدمتين فيُفتح الزرّ، ثمّ ترجع فتجعلها واحدة، فتمضي على
         # حكمٍ لم يعد يخصّها — حتى تُرفض عند الإرسال وقد حوّلت العربون.
@@ -486,6 +531,68 @@ async def main():
             bool(saved) and saved[0].get("no_group_discount") is True,
             str(saved[:1])[:110])
 
+
+        # ── الحكم السادس في اللوحة: صحُّ «تُقبل وحدها» وخانة الرسوم ────
+        await pg.evaluate("()=>document.getElementById('h-new').click()")
+        await pg.wait_for_timeout(700)
+        has = await pg.evaluate("""()=>({s:!!document.querySelector('[data-gsolo]'),
+            f:!!document.querySelector('[data-gsolofee]'),
+            u:!!document.querySelector('[data-gsum]')})""")
+        rec("صحُّ «تُقبل وحدها» وخانةُ رسومه في ورقة المجموعة",
+            has["s"] and has["f"] and has["u"], str(has))
+
+        # الحارس: استثناءٌ بلا حدٍّ أكبرَ من واحد لا يستثني شيئًا، ورسومُه
+        # لن تُحصَّل أبدًا — فيُردّ عند الضبط لا يُكتشف عند أوّل عميلة.
+        n0 = await pg.evaluate("()=>(window.__HSAVE||[]).length")
+        await pg.evaluate("""()=>{
+            document.getElementById('g-name').value='بلا حدّ';
+            const free=[...document.querySelectorAll('[data-hd]')]
+              .filter(r=>!r.innerText.includes('في مجموعة أخرى'));
+            free[0] && free[0].click();
+            document.getElementById('g-min').value='0';
+            const c=document.querySelector('[data-gsolo]'); c.checked=true;
+            c.dispatchEvent(new Event('change',{bubbles:true}));
+            document.querySelector('[data-gsolofee]').value='300';}""")
+        await pg.wait_for_timeout(250)
+        await pg.evaluate("()=>document.getElementById('g-save').click()")
+        await pg.wait_for_timeout(700)
+        g = await pg.evaluate("""()=>({n:(window.__HSAVE||[]).length,
+            err:(document.getElementById('g-err').innerText||'').trim()})""")
+        rec("و«تُقبل وحدها» بلا أقلّ عددٍ ٢ تُردّ ولا تُحفظ",
+            g["n"] == n0 and "أقلّ عدد" in g["err"], f"{g['n']}=={n0} · " + g["err"][:80])
+
+        # والمجموعُ يُرى لحظةَ الضبط: التعديل والرسوم يتراكمان.
+        await pg.evaluate("""()=>{document.getElementById('g-min').value='2';
+            const p=document.querySelector('[data-gprice]'); p.value='2300';
+            p.dispatchEvent(new Event('input',{bubbles:true}));}""")
+        await pg.wait_for_timeout(250)
+        sm = await pg.evaluate("()=>(document.querySelector('[data-gsum]').innerText||'').trim()")
+        rec("والمجموع يُقال قبل أن يُحصَّل: تعديلُ السعر والرسوم يتراكمان",
+            "2,600" in sm or "2600" in sm.replace(",", ""), sm[:80])
+
+        await pg.evaluate("()=>document.getElementById('g-save').click()")
+        await pg.wait_for_timeout(900)
+        sv = await pg.evaluate("()=>((window.__HSAVE||[]).slice(-1)[0]||{}).prices||[]")
+        solo = [x for x in sv if x.get("solo_ok")]
+        rec("ويُحفظ الصحُّ ومبلغُه مع المجموعة",
+            bool(solo) and Number_(solo[0].get("solo_fee")) == 300,
+            str(sv)[:110])
+
+        # والمجرِّب يرسل الخدمة: بلا معرّفها يُردّ الاستثناء ويُقال «موقوف».
+        await pg.evaluate("()=>document.getElementById('sheetClose').click()")
+        await pg.wait_for_timeout(400)
+        await pg.evaluate("""()=>{window.__RESOLVE__=null;
+            window.__LOC__={state:'condition',checked:true,district:'العمارية',
+                            fee:300,solo:true,message:'يُطبَّق مبلغ 300 ر.س.'};
+            document.getElementById('h-try').value=
+              'https://www.google.com/maps/place/x/@24.7941,46.4233,15z';
+            document.getElementById('h-try-go').click();}""")
+        await pg.wait_for_timeout(900)
+        tv = await pg.evaluate("""()=>({out:(document.getElementById('h-try-out').innerText||'').trim(),
+            call:(window.__LOCCHK||[]).slice(-1)[0]||{}})""")
+        rec("والمجرِّب يرسل الخدمة مع العدد",
+            bool(tv["call"].get("p_service_ids")), str(tv["call"])[:110])
+        rec("ويقول إنّها مرّت وحدها", "مرّت وحدها" in tv["out"], tv["out"].replace("\n", " ")[:90])
 
         await pg.screenshot(path=f"{_H.SHOTS}/36-hoods.png", full_page=True)
         await ctx.close()

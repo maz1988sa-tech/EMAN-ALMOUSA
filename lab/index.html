@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=52">
+<link rel="stylesheet" href="assets/fonts.css?v=53">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=52">
+<link rel="stylesheet" href="assets/client-theme.css?v=53">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -484,7 +484,7 @@ import {
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=52';
+} from './assets/db.js?v=53';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -1150,11 +1150,14 @@ function sync() {
   arts.innerHTML = c.map((s) => `<figure class="art" style="background-image:url('${mediaFor(s).thumb}')">${
     state.counts[s.id] > 1 ? `<b dir="ltr">×${state.counts[s.id]}</b>` : ''}</figure>`).join('');
 
-  const disc = groupDiscount();
+  const disc = groupDiscount(), fee = locFee();
   el('sumLines').innerHTML = (c.length
     ? c.map((s) => `<div class="ln"><span>${esc(s.name)}${state.counts[s.id] > 1 ? ` <em dir="ltr">×${state.counts[s.id]}</em>` : ''}</span><b>${money(priceOf(s) * state.counts[s.id])}<i class="rs"></i></b></div>`).join('')
     : '<div class="ln"><span>لم تختاري خدمة بعد</span></div>')
-    + (disc ? `<div class="ln off"><span>خصم المجموعة <em dir="ltr">×${discountPeople()}</em></span><b>−${money(disc)}<i class="rs"></i></b></div>` : '');
+    + (disc ? `<div class="ln off"><span>خصم المجموعة <em dir="ltr">×${discountPeople()}</em></span><b>−${money(disc)}<i class="rs"></i></b></div>` : '')
+    /* الرسوم بندٌ باسمها لا رقمٌ يُضاف صامتًا إلى الإجمالي: كان الملخّص
+       يقفز فلا تعرف العميلة من أين جاء الفرق. */
+    + (fee ? `<div class="ln"><span>رسوم ${esc(state.loc?.district || 'الموقع')}</span><b>${money(fee)}<i class="rs"></i></b></div>` : '');
 
   el('total1').innerHTML = `${money(totalPrice())}<i class="rs"></i>`;
   el('sumDate').textContent = state.date ? fmtDate(state.date, { short: true }) : '—';
@@ -1180,7 +1183,7 @@ function paintRecap() {
   const fee = locFee();
   el('rcFeeRow').hidden = !(fee > 0);
   if (fee > 0) {
-    el('rcFeeLbl').textContent = state.loc?.district ? `رسوم موقع — ${state.loc.district}` : 'رسوم موقع';
+    el('rcFeeLbl').textContent = `رسوم ${state.loc?.district || 'الموقع'}`;
     el('rcFee').innerHTML = `${money(fee)}<i class="rs"></i>`;
   }
   el('rcDep').innerHTML = `${money(totalPrice())}<i class="rs"></i>`;
@@ -1298,7 +1301,8 @@ async function runLocCheck() {
   state.loc = { lat: pt.lat, lng: pt.lng, pending: true };
 
   let r;
-  try { r = await checkLocation(pt.lat, pt.lng, Math.max(1, people())); }
+  try { r = await checkLocation(pt.lat, pt.lng, Math.max(1, people()), false,
+                                flatPicked().map((x) => x.id)); }
   catch { r = null; }
   if (seq !== locSeq) return;                 // لصقت رابطًا آخر أثناء الفحص
 
@@ -1321,7 +1325,8 @@ async function runLocCheck() {
     locModal('bad', {
       title: r.district || 'شرطٌ على الموقع',
       note: (r.message || '') + (Number(r.fee) > 0
-        ? ` — تُضاف ${money(Number(r.fee))} ر.س إلى الإجمالي.` : ''),
+        ? ` تُضاف بندًا مستقلًّا باسم «رسوم ${r.district || 'الموقع'}»، وتُدفع يوم الموعد.`
+        : ''),
     });
   } else {
     // بلا شرط: لا نافذة ولا تنبيه. تكمل كما لو لم يكن هناك فحص.

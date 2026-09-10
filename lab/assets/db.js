@@ -464,9 +464,12 @@ export async function resolveMapLink(url) {
 /* فحص الموقع: يقول سببه — بخلاف حارس الإيصال الذي يكتم عمدًا. العميلة
    لا تختار حيَّها فلا شيء يُزوَّر، وكتمانُ السبب يجعلها تظنّ بالمنصّة
    عطبًا. والحكم هنا للعرض وحده: `create_booking` تعيده من الإحداثيّتين. */
-export async function checkLocation(lat, lng, people, preview = false) {
+/* الخدماتُ جزءٌ من الحكم لا زينة: مجموعةٌ تشترط شخصين قد تستثني خدمةً
+   بعينها («تُقبل وحدها») برسومٍ تُضاف. فبلا معرّفاتها يُردّ الاستثناء. */
+export async function checkLocation(lat, lng, people, preview = false, serviceIds = null) {
   const { data, error } = await sb.rpc('check_location', {
     p_lat: lat, p_lng: lng, p_people: Number(people) || 1, p_preview: !!preview,
+    p_service_ids: serviceIds && serviceIds.length ? serviceIds : null,
   });
   if (error) throw error;
   return data || { state: 'ok', checked: false };
@@ -856,10 +859,10 @@ export const admin = {
   /* مجرِّب الموقع. المعاينة تتخطّى المفتاح في القاعدة — وصلاحيةُ المدير
      تُفحص هناك لا هنا — فتجرّب صاحبة العمل شرطًا بلا إشعال حارسٍ على
      العميلات. وقع مرّة أنّ التجربة الوحيدة الممكنة كانت إشعالَه. */
-  async previewLocation(url, people = 1) {
+  async previewLocation(url, people = 1, serviceIds = null) {
     const pt = await mapPoint(url);
     if (!pt || pt.reason) return { ok: false, reason: pt?.reason || 'no_coords' };
-    const r = await checkLocation(pt.lat, pt.lng, people, true);
+    const r = await checkLocation(pt.lat, pt.lng, people, true, serviceIds);
     return { ok: true, ...pt, result: r };
   },
 
