@@ -206,7 +206,7 @@
                               message: 'يتطلّب شخصين فأكثر.', no_group_discount: false }];
             const HGD    = [{ district_id: 1, group_id: 'g1' }];
             const HGP    = [{ group_id: 'g1', service_id: 's2', price: 800,
-                              solo_ok: false, solo_fee: 0 }];
+                              solo_ok: false, svc_fee: 0 }];
             const snap = {
               version: 2, taken_at: new Date().toISOString(),
               settings: SETTINGS,
@@ -302,7 +302,7 @@
             return ok(window.__HGROUPS || [
               { id: 'g1', name: 'أطراف الرياض', sort: 0, active: true, reject: false,
                 min_people: 2, fee_amount: 150, message: 'يتطلّب شخصين فأكثر.',
-                districts: [1], prices: [{ service_id: 's2', price: 800, solo_ok: false, solo_fee: 0 }] },
+                districts: [1], prices: [{ service_id: 's2', price: 800, solo_ok: false, svc_fee: 0 }] },
               { id: 'g2', name: 'لا نخدم هنا', sort: 1, active: false, reject: true,
                 min_people: 0, fee_amount: 0, message: 'لا نستقبل حجوزات هنا.',
                 districts: [2], prices: [] },

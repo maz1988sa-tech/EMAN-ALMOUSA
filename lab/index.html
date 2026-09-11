@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=53">
+<link rel="stylesheet" href="assets/fonts.css?v=54">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=53">
+<link rel="stylesheet" href="assets/client-theme.css?v=54">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -484,7 +484,7 @@ import {
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=53';
+} from './assets/db.js?v=54';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -1177,9 +1177,13 @@ const sheet = el('sheet');
    تُحسب بعد الفتح ولا يُعاد رسمه — فيظهر إجماليٌّ لا يفسّره سطر. */
 function paintRecap() {
   const c = picked();
-  el('rcSvc').innerHTML = c.length ? c.map((s) => esc(s.name) + (state.counts[s.id] > 1 ? ` ⁦×${state.counts[s.id]}⁩` : '')).join(' + ') : '—';
+  const svcNames = c.length ? c.map((s) => esc(s.name) + (state.counts[s.id] > 1 ? ` ⁦×${state.counts[s.id]}⁩` : '')).join(' + ') : '—';
+  const svcSum = Math.max(subtotal() - groupDiscount(), 0);
+  el('rcSvc').innerHTML = c.length && locFee() > 0
+    ? `${svcNames} — ${money(svcSum)}<i class="rs"></i>` : svcNames;
   el('rcWhen').textContent = `${state.date ? fmtDate(state.date, { short: true }) : '—'} · ${time12(state.time)}`;
-  /* الرسوم سطرٌ باسم الحيّ لا رقمٌ يظهر في الإجمالي بلا تفسير. */
+  /* الرسوم سطرٌ باسم الحيّ لا رقمٌ يظهر في الإجمالي بلا تفسير — ومعه
+     قيمةُ الخدمات، وإلّا بقي الإجمالي رقمًا واحدًا لا يُعرف شطراه. */
   const fee = locFee();
   el('rcFeeRow').hidden = !(fee > 0);
   if (fee > 0) {
@@ -1320,11 +1324,14 @@ async function runLocCheck() {
     locModal('bad', { title: r.district || 'هذا الموقع', note: r.message || '', wa });
   } else if (r.state === 'condition') {
     state.loc = { lat: pt.lat, lng: pt.lng, checked: r.checked !== false,
-                  fee: Number(r.fee) || 0, district: r.district, message: r.message,
+                  fee: Number(r.fee) || 0, svcFee: Number(r.svc_fee) || 0,
+                  district: r.district, message: r.message,
                   noGroupDiscount: !!r.no_group_discount, prices: r.prices || [] };
     locModal('bad', {
       title: r.district || 'شرطٌ على الموقع',
-      note: (r.message || '') + (Number(r.fee) > 0
+      /* رسالةُ رسمِ الخدمة تحمل الخدمة والمبلغ وموعد الدفع، فلا تُذيَّل
+         بجملةٍ تكرّرها. وما عداها يبقى كما كان. */
+      note: (r.message || '') + (Number(r.fee) > 0 && !Number(r.svc_fee)
         ? ` تُضاف بندًا مستقلًّا باسم «رسوم ${r.district || 'الموقع'}»، وتُدفع يوم الموعد.`
         : ''),
     });

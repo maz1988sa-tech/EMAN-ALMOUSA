@@ -38,8 +38,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=53">
-<link rel="stylesheet" href="assets/theme.css?v=53">
+<link rel="stylesheet" href="assets/fonts.css?v=54">
+<link rel="stylesheet" href="assets/theme.css?v=54">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -200,7 +200,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=53"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=54"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -234,7 +234,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=53';
+import { icon, hydrateIcons } from './assets/icons.js?v=54';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -244,7 +244,7 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl, mapPointMessage,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=53';
+} from './assets/db.js?v=54';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -1713,6 +1713,8 @@ function groupTag(g) {
   if (Number(g.fee_amount) > 0) bits.push(`+${int(g.fee_amount)} ر.س`);
   if ((g.prices || []).length) bits.push(`${int(g.prices.length)} سعر خاص`);
   if (g.no_group_discount) bits.push('بلا خصم مجموعات');
+  const sf = (g.prices || []).reduce((n, p) => Math.max(n, Number(p.svc_fee) || 0), 0);
+  if (sf > 0) bits.push(`+${int(sf)} ر.س على الخدمة`);
   if ((g.prices || []).some((p) => p.solo_ok)) bits.push('تُقبل وحدها');
   return bits.join(' · ') || 'بلا حكم';
 }
@@ -1898,9 +1900,13 @@ function openGroup(g) {
         <span class="sw"></span></label>
 
       <p class="label">الخدمات في هذه الأحياء <span class="opt">(اختياري)</span></p>
-      <p class="hint" style="margin:0 0 8px">السعر: اتركيه فارغًا لتبقى الخدمة بسعرها
-        المعتاد. و«تُقبل وحدها»: تمرّ هذه الخدمة ولو جاءت عميلةٌ واحدة رغم أقلّ العدد،
-        ويُضاف المبلغ بندًا مستقلًّا باسم الحيّ.</p>
+      <p class="hint" style="margin:0 0 8px">ثلاثة حقول لكلّ خدمة، وكلٌّ مستقلّ:
+        <b>السعر</b> يُبدّل سعر الخدمة هنا (اتركيه فارغًا ليبقى المعتاد) ·
+        <b>رسوم إضافية</b> مبلغٌ يُضاف بندًا مستقلًّا باسم الحيّ كلّما اختيرت هذه
+        الخدمة ·<b>تُقبل وحدها</b> تمرّ الخدمة ولو جاءت عميلةٌ واحدة رغم أقلّ العدد.</p>
+      <p class="hint" style="margin:0 0 8px">ولجعل العروس ٢٣٠٠ هنا: اتركي السعر
+        فارغًا واكتبي ٣٠٠ في الرسوم — فترى العميلة ٢٠٠٠ ثمّ ٣٠٠ في بندٍ باسمه.
+        ولو كتبتِ ٢٣٠٠ في السعر رأت رقمًا واحدًا لا يفسّره شيء.</p>
       <div class="card mb">${(S.services || []).filter((x) => x.active).map((x) => {
         const pr = (H.edit.prices || []).find((p) => p.service_id === x.id);
         return `<div class="rowline" style="display:block">
@@ -1912,15 +1918,16 @@ function openGroup(g) {
                    value="${pr && pr.price != null ? Number(pr.price) : ''}">
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:9px;flex-wrap:wrap">
+            <span class="s">رسوم إضافية</span>
+            <input class="input ltr" data-gsvcfee="${x.id}" type="number" min="0" step="50"
+                   style="width:92px" placeholder="—"
+                   value="${pr && Number(pr.svc_fee) ? Number(pr.svc_fee) : ''}">
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13.5px">
               <input type="checkbox" data-gsolo="${x.id}" ${pr && pr.solo_ok ? 'checked' : ''}>
               تُقبل وحدها</label>
-            <input class="input ltr" data-gsolofee="${x.id}" type="number" min="0" step="50"
-                   style="width:92px" placeholder="رسوم"
-                   value="${pr && Number(pr.solo_fee) ? Number(pr.solo_fee) : ''}">
-            <span class="hint" data-gsum="${x.id}" data-base="${Number(x.price) || 0}"
-                  style="margin:0"></span>
           </div>
+          <p class="hint" data-gsum="${x.id}" data-base="${Number(x.price) || 0}"
+             style="margin:6px 0 0"></p>
         </div>`; }).join('') || '<p class="hint" style="margin:0">لا خدمات.</p>'}</div>
     </div>
 
@@ -1946,7 +1953,7 @@ function openGroup(g) {
   /* الرقم يُرى قبل أن يُحصَّل: تعديلُ السعر ورسومُ «وحدها» يتراكمان،
      فيُعرض ناتجُهما تحت الصفّ لحظةَ الضبط لا يوم الحجز. */
   paintSoloSums();
-  document.querySelectorAll('[data-gsolo],[data-gsolofee],[data-gprice]').forEach((i) => {
+  document.querySelectorAll('[data-gsolo],[data-gsvcfee],[data-gprice]').forEach((i) => {
     i.addEventListener('input', paintSoloSums);
     i.addEventListener('change', paintSoloSums);
   });
@@ -1961,17 +1968,17 @@ function openGroup(g) {
   };
 }
 
-/* «وحدها» رسمٌ فوق السعر لا بديلٌ عنه، فيُقال المجموع صريحًا. */
+/* الرسم يُضاف فوق السعر لا يحلّ محلّه، فيُقال المجموع صريحًا — وإلّا
+   ضُبط الحقلان معًا ولم يُرَ ناتجُهما إلّا عند أوّل عميلة. */
 function paintSoloSums() {
   document.querySelectorAll('[data-gsum]').forEach((out) => {
     const id   = out.dataset.gsum;
-    const on   = document.querySelector(`[data-gsolo="${id}"]`)?.checked;
-    const fee  = Math.max(0, Number(document.querySelector(`[data-gsolofee="${id}"]`)?.value) || 0);
+    const fee  = Math.max(0, Number(document.querySelector(`[data-gsvcfee="${id}"]`)?.value) || 0);
     const ov   = (document.querySelector(`[data-gprice="${id}"]`)?.value || '').trim();
     const base = ov !== '' && Number(ov) >= 0 ? Number(ov) : Number(out.dataset.base) || 0;
-    out.textContent = !on ? ''
-      : fee > 0 ? `وحدها: ${money(base)} + ${money(fee)} = ${money(base + fee)} ر.س`
-                : `وحدها: ${money(base)} ر.س بلا رسوم`;
+    out.textContent = fee > 0
+      ? `تدفع العميلة هنا: ${money(base)} + ${money(fee)} = ${money(base + fee)} ر.س`
+      : '';
   });
 }
 
@@ -2022,12 +2029,13 @@ async function saveGroup() {
   document.querySelectorAll('[data-gprice]').forEach((i) => {
     const id = i.dataset.gprice, v = i.value.trim();
     const solo = !!document.querySelector(`[data-gsolo="${id}"]`)?.checked;
-    const fee  = Math.max(0, Number(document.querySelector(`[data-gsolofee="${id}"]`)?.value) || 0);
+    const fee  = Math.max(0, Number(document.querySelector(`[data-gsvcfee="${id}"]`)?.value) || 0);
     const priced = v !== '' && Number(v) >= 0;
-    /* صفٌّ بلا سعرٍ ولا استثناء لا يُحفظ — وصفٌّ باستثناءٍ بلا سعر يُحفظ. */
-    if (!priced && !solo) return;
+    /* الحقول الثلاثة مستقلّة: صفٌّ يحمل واحدًا منها يُحفظ. وكان الرسم
+       معلَّقًا بالصحّ فلم يُحصَّل ممّن جاءت مع غيرها — وهي الحال الأشيع. */
+    if (!priced && !solo && !fee) return;
     prices.push({ service_id: id, price: priced ? Number(v) : null,
-                  solo_ok: solo, solo_fee: solo ? fee : 0 });
+                  solo_ok: solo, svc_fee: fee });
   });
   const payload = {
     ...(H.edit.id ? { id: H.edit.id } : {}),

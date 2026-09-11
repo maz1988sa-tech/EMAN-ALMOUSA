@@ -176,8 +176,8 @@ async def main():
         await pg.add_init_script(
             "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
             "window.__LOC__={state:'condition',checked:true,district:'العمارية',"
-            "fee:300,solo:true,min_people:2,no_group_discount:true,prices:[],"
-            "message:'يُطبَّق مبلغ 300 ر.س رسوم الخدمة في العمارية.'};")
+            "fee:300,svc_fee:300,solo:true,min_people:2,prices:[],"
+            "message:'ميك اب عروس: رسوم إضافية 300 ر.س في هذا الموقع — بندٌ مستقلّ يُدفع يوم الموعد ولا يدخل العربون.'};")
         await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
         base = await pg.evaluate("()=>Number(((window.__state().services||[])[0]||{}).price)")
         await fill_form(pg)
@@ -191,8 +191,13 @@ async def main():
             feeLbl:(document.getElementById('rcFeeLbl')||{}).innerText||'',
             btn:!!document.getElementById('toPay') && document.getElementById('toPay').disabled,
             sent:(window.__LOCCHK||[]).slice(-1)})""")
-        rec("العروس الواحدة: النافذة تقول المبلغ",
-            m["open"] and "300" in m["modal"] and "العمارية" in m["modal"],
+        # الرسالة تُسمّي الخدمة والمبلغ. «أسعار الخدمات في هذا الموقع
+        # تختلف» جملةٌ صحيحة لا تقول شيئًا — وهي ما رآه صاحب المشروع.
+        rec("العروس الواحدة: النافذة تسمّي الخدمة والمبلغ",
+            m["open"] and "300" in m["modal"] and "ميك اب عروس" in m["modal"],
+            m["modal"].replace("\n", " ")[:110])
+        rec("ولا تُذيَّل بجملةٍ تكرّر ما قالته",
+            m["modal"].count("بندٌ مستقلّ") <= 1,
             m["modal"].replace("\n", " ")[:110])
         rec("ولا تُقفل الزرّ — الاستثناء قبولٌ لا منع", not m["btn"])
         cart = m["cart"].replace(",", "")
@@ -204,7 +209,15 @@ async def main():
             f"base={base} · {m['total']}")
         rec("ولوحة المراجعة تسمّيه كذلك",
             m["feeRow"] and m["feeLbl"].strip() == "رسوم العمارية", m["feeLbl"])
-        rec("والفحص يرسل الخدمات — الاستثناء حكمُ خدمةٍ لا حكمُ عدد",
+        # الإجمالي وحده كان يقول ٢٣٠٠ ولا يقول من أين — فصار سطرُ الخدمات
+        # يحمل قيمتها. وسطرٌ جديد كان يُطيل اللوحة فلا تكتمل على ٣٦٠.
+        rc = await pg.evaluate("()=>({svc:(document.getElementById('rcSvc')||{}).innerText||'',"
+            "dep:(document.getElementById('rcDep')||{}).innerText||''})")
+        rec("ولوحة المراجعة تفصل قيمة الخدمات عن الرسوم",
+            str(int(base)) in rc["svc"].replace(",", "")
+            and str(int(base + 300)) in rc["dep"].replace(",", ""),
+            f"{rc['svc']} + 300 = {rc['dep']}")
+        rec("والفحص يرسل الخدمات — الرسم حكمُ خدمةٍ لا حكمُ عدد",
             bool(m["sent"]) and len(m["sent"][0].get("p_service_ids") or []) == 1,
             str(m["sent"])[:110])
         await ctx.close()
@@ -536,7 +549,7 @@ async def main():
         await pg.evaluate("()=>document.getElementById('h-new').click()")
         await pg.wait_for_timeout(700)
         has = await pg.evaluate("""()=>({s:!!document.querySelector('[data-gsolo]'),
-            f:!!document.querySelector('[data-gsolofee]'),
+            f:!!document.querySelector('[data-gsvcfee]'),
             u:!!document.querySelector('[data-gsum]')})""")
         rec("صحُّ «تُقبل وحدها» وخانةُ رسومه في ورقة المجموعة",
             has["s"] and has["f"] and has["u"], str(has))
@@ -552,7 +565,7 @@ async def main():
             document.getElementById('g-min').value='0';
             const c=document.querySelector('[data-gsolo]'); c.checked=true;
             c.dispatchEvent(new Event('change',{bubbles:true}));
-            document.querySelector('[data-gsolofee]').value='300';}""")
+            document.querySelector('[data-gsvcfee]').value='300';}""")
         await pg.wait_for_timeout(250)
         await pg.evaluate("()=>document.getElementById('g-save').click()")
         await pg.wait_for_timeout(700)
@@ -569,13 +582,23 @@ async def main():
         sm = await pg.evaluate("()=>(document.querySelector('[data-gsum]').innerText||'').trim()")
         rec("والمجموع يُقال قبل أن يُحصَّل: تعديلُ السعر والرسوم يتراكمان",
             "2,600" in sm or "2600" in sm.replace(",", ""), sm[:80])
+        # ويظهر بالرسم وحده: الحقلان انفصلا، فلا يُشترط الصحّ لرؤية المبلغ.
+        await pg.evaluate("()=>{const c=document.querySelector('[data-gsolo]');"
+            "c.checked=false; c.dispatchEvent(new Event('change',{bubbles:true}));}")
+        await pg.wait_for_timeout(250)
+        sm2 = await pg.evaluate("()=>(document.querySelector('[data-gsum]').innerText||'').trim()")
+        rec("والرسم يُحسب بلا صحِّ «تُقبل وحدها» — الحقلان مستقلّان",
+            "2,600" in sm2 or "2600" in sm2.replace(",", ""), sm2[:80])
+        await pg.evaluate("()=>{const c=document.querySelector('[data-gsolo]');"
+            "c.checked=true; c.dispatchEvent(new Event('change',{bubbles:true}));}")
+        await pg.wait_for_timeout(200)
 
         await pg.evaluate("()=>document.getElementById('g-save').click()")
         await pg.wait_for_timeout(900)
         sv = await pg.evaluate("()=>((window.__HSAVE||[]).slice(-1)[0]||{}).prices||[]")
         solo = [x for x in sv if x.get("solo_ok")]
         rec("ويُحفظ الصحُّ ومبلغُه مع المجموعة",
-            bool(solo) and Number_(solo[0].get("solo_fee")) == 300,
+            bool(solo) and Number_(solo[0].get("svc_fee")) == 300,
             str(sv)[:110])
 
         # والمجرِّب يرسل الخدمة: بلا معرّفها يُردّ الاستثناء ويُقال «موقوف».
@@ -583,7 +606,7 @@ async def main():
         await pg.wait_for_timeout(400)
         await pg.evaluate("""()=>{window.__RESOLVE__=null;
             window.__LOC__={state:'condition',checked:true,district:'العمارية',
-                            fee:300,solo:true,message:'يُطبَّق مبلغ 300 ر.س.'};
+                            fee:300,svc_fee:300,solo:true,message:'ميك اب عروس: رسوم إضافية 300 ر.س.'};
             document.getElementById('h-try').value=
               'https://www.google.com/maps/place/x/@24.7941,46.4233,15z';
             document.getElementById('h-try-go').click();}""")
