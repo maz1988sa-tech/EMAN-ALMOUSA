@@ -47,6 +47,23 @@ async def main():
     m = await pg.evaluate("()=>({q:!!document.getElementById('q'), st:document.querySelectorAll('[data-st]').length, pr:document.querySelectorAll('[data-pr]').length, csv:!!document.getElementById('bxCsv'), n:document.querySelectorAll('[data-open]').length})")
     rec("٣ شرائح الحالة والفترة", m["st"]==6 and m["pr"]==4, f"حالة={m['st']} فترة={m['pr']}")
     rec("٩ زرّ تصدير المعروض", m["csv"])
+
+    # «إجمالي المعروض» مجموعُ الأسعار وفيه عرابينُ قُبضت، فيُقرأ دَينًا وهو
+    # ليس كذلك — طلبت صاحبة العمل الباقي صراحةً. فيُقاس الثلاثة معًا:
+    # المعروض والمقبوض وفرقهما، حسابًا من البطاقات نفسها لا من نصٍّ مكتوب.
+    tot = await pg.evaluate(
+        "()=>{const L=[...document.querySelectorAll('.card .leader')]"
+        ".map(x=>({k:(x.querySelector('.k')||{}).innerText||'',"
+        "v:(x.querySelector('.v')||{}).innerText||''}));"
+        "const num=t=>Number((t.match(/[0-9.,]+/)||['0'])[0].replace(/,/g,''));"
+        "const pick=n=>{const r=L.find(x=>x.k.trim()===n);return r?num(r.v):null;};"
+        "return {shown:pick('إجمالي المعروض'), paid:pick('العربون المقبوض'),"
+        "rest:pick('إجمالي المتبقّي')};}")
+    rec("إجمالي المعروض ومقبوضه وباقيه ثلاثةُ سطور",
+        tot["shown"] and tot["paid"] and tot["rest"] is not None, str(tot))
+    rec("والباقي فرقُ الأوّلين لا رقمٌ مستقلّ",
+        tot["rest"] == max((tot["shown"] or 0) - (tot["paid"] or 0), 0),
+        f"{tot['shown']} − {tot['paid']} = {tot['rest']}")
     await pg.fill("#q","نورة"); await pg.wait_for_timeout(700)
     r1 = await pg.evaluate("()=>({n:document.querySelectorAll('[data-open]').length, v:document.getElementById('q').value, focus:document.activeElement.id})")
     rec("٢ البحث بالاسم يصفّي ويحتفظ بالتركيز", r1["v"]=="نورة" and r1["focus"]=="q", f"نتائج={r1['n']}")
