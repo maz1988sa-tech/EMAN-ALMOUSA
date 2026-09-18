@@ -176,8 +176,8 @@ async def main():
         await pg.add_init_script(
             "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
             "window.__LOC__={state:'condition',checked:true,district:'العمارية',"
-            "fee:300,svc_fee:300,solo:true,min_people:2,prices:[],"
-            "message:'ميك اب عروس: رسوم إضافية 300 ر.س في هذا الموقع — بندٌ مستقلّ يُدفع يوم الموعد ولا يدخل العربون.'};")
+            "fee:300,svc_fee:300,solo:true,min_people:2,no_group_discount:true,"
+            "fee_services:'ميك اب عروس',prices:[],message:null};")
         await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
         base = await pg.evaluate("()=>Number(((window.__state().services||[])[0]||{}).price)")
         await fill_form(pg)
@@ -196,8 +196,17 @@ async def main():
         rec("العروس الواحدة: النافذة تسمّي الخدمة والمبلغ",
             m["open"] and "300" in m["modal"] and "ميك اب عروس" in m["modal"],
             m["modal"].replace("\n", " ")[:110])
-        rec("ولا تُذيَّل بجملةٍ تكرّر ما قالته",
-            m["modal"].count("بندٌ مستقلّ") <= 1,
+        # العميلة في منتصف حجز: النافذة تقول الحكم ولا تشرح المحاسبة.
+        rec("ولا شرحَ محاسبةٍ في النافذة",
+            "العربون" not in m["modal"] and "بند" not in m["modal"],
+            m["modal"].replace("\n", " ")[:110])
+        rec("وحكمُ الموقع جملةٌ واحدة فوق البنود",
+            "للحجوزات من شخصين فأكثر" in m["modal"],
+            m["modal"].replace("\n", " ")[:110])
+        # عروسٌ واحدة لا تستحقّ خصم المجموعات أصلًا، فتحذيرُها منه تحذيرٌ
+        # من شيءٍ لم يكن — ويظهر البند حين يكون الخصم سيقع لولا الموقع.
+        rec("وسقوطُ الخصم لا يُذكر لمن لا خصمَ لها",
+            "خصم المجموعات" not in m["modal"],
             m["modal"].replace("\n", " ")[:110])
         rec("ولا تُقفل الزرّ — الاستثناء قبولٌ لا منع", not m["btn"])
         cart = m["cart"].replace(",", "")
@@ -220,6 +229,31 @@ async def main():
         rec("والفحص يرسل الخدمات — الرسم حكمُ خدمةٍ لا حكمُ عدد",
             bool(m["sent"]) and len(m["sent"][0].get("p_service_ids") or []) == 1,
             str(m["sent"])[:110])
+        await ctx.close()
+
+        # ══ بندُ الخصم يظهر لمن كان الخصم سيقع لها ═════════════════════
+        # سهرتان في العمارية: الخصم كان سيُطبَّق لولا «سعرٌ صافٍ» — فيُقال.
+        # ولا رسمَ عليها، فلا بندَ رسوم.
+        ctx = await b.new_context(viewport={"width": 430, "height": 900},
+                                  has_touch=True, is_mobile=True, device_scale_factor=2)
+        await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
+            r.fulfill(content_type="application/javascript", body=MOCK)))
+        pg = await ctx.new_page()
+        await pg.add_init_script(
+            "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
+            "window.__LOC__={state:'condition',checked:true,district:'العمارية',"
+            "fee:0,svc_fee:0,min_people:2,no_group_discount:true,prices:[],message:null};")
+        await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
+        await pg.evaluate("()=>window.__pick(1,2)"); await pg.wait_for_timeout(400)
+        await pg.evaluate("()=>window.__sheet()"); await pg.wait_for_timeout(600)
+        await pg.fill("#nm", "نورة"); await pg.fill("#ph", "0501234567")
+        await pg.fill("#locTxt", "العمارية"); await pg.fill("#loc", LONG)
+        await pg.wait_for_timeout(1500)
+        d = await pg.evaluate("()=>(document.getElementById('locModal')||{}).innerText||''")
+        rec("سهرتان: يُقال سقوطُ خصم المجموعات", "خصم المجموعات" in d,
+            d.replace("\n", " ")[:110])
+        rec("ولا بندَ رسومٍ لمن لا رسمَ عليها", "رسوم موقع" not in d,
+            d.replace("\n", " ")[:110])
         await ctx.close()
 
         # ══ الثغرة: فحصٌ بشخصين ثمّ يُنقَص العدد ═══════════════════════

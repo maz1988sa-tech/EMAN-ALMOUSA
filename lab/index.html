@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=55">
+<link rel="stylesheet" href="assets/fonts.css?v=56">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=55">
+<link rel="stylesheet" href="assets/client-theme.css?v=56">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -303,6 +303,7 @@
       </span>
       <h3 id="locModalTitle">جارٍ فحص الموقع…</h3>
       <p id="locModalNote">لحظة من فضلك.</p>
+      <ul class="terms" id="locModalTerms" hidden></ul>
       <button class="ok" type="button" id="locModalOk" hidden>حسنًا</button>
       <a class="rcpt-wa" id="locModalWa" hidden target="_blank" rel="noopener">تواصلي معنا عبر واتساب</a>
     </div>
@@ -484,7 +485,7 @@ import {
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=55';
+} from './assets/db.js?v=56';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -1247,6 +1248,28 @@ const REQUIRED = [
    تشاركه أغلب العميلات. فيُقال لها ذلك **هنا** لا عند الإرسال: زرٌّ يُقفل
    في آخر الطريق بلا سببٍ أسوأ من رفضٍ مبكرٍ مفهوم. */
 
+/* نصُّ نافذة الشرط: جملةٌ واحدة تقول حكم الموقع، وتحتها بنودٌ لا تُذكر
+   إلّا إن كانت تخصّ ما اختارته هذه العميلة. والعميلة في منتصف حجزٍ،
+   فلا شرحَ محاسبةٍ هنا — الملخّص أمامها بعد سطرين.
+
+   وسقوطُ خصم المجموعات لا يُذكر إلّا إن كان خصمٌ سيقع لولا الموقع: عروسٌ
+   واحدة لا تستحقّه أصلًا، فذِكرُه لها تحذيرٌ من شيءٍ لم يكن. */
+function locTerms(r) {
+  const note = (r.message || '').trim()
+    || (Number(r.min_people) > 1 ? minPeopleLine(Number(r.min_people)) : '');
+  const terms = [];
+  const fee = Number(r.svc_fee) || 0;
+  if (fee > 0) {
+    terms.push(`لخدمة ${r.fee_services || 'المختارة'}: تطبق رسوم موقع إضافية بقيمة ${money(fee)} ر.س`);
+  }
+  if (r.no_group_discount && discountPeople() >= GROUP_MIN) {
+    terms.push('لا يطبق خصم المجموعات في هذا الموقع');
+  }
+  return { note, terms };
+}
+const minPeopleLine = (n) =>
+  `الخدمة متاحة في هذا الموقع للحجوزات من ${n === 2 ? 'شخصين' : `${n} أشخاص`} فأكثر.`;
+
 function locModal(kind, opts = {}) {
   const box = el('locModal');
   const on = kind !== 'off';
@@ -1255,6 +1278,11 @@ function locModal(kind, opts = {}) {
   el('locModalOk').hidden = kind === 'checking';
   el('locModalTitle').textContent = opts.title || '';
   el('locModalNote').textContent  = opts.note  || '';
+  el('locModalNote').hidden = !opts.note;
+  /* البنود نصٌّ من القاعدة، فيُهرَّب قبل أن يُركَّب. */
+  const terms = el('locModalTerms');
+  terms.hidden = !(opts.terms && opts.terms.length);
+  terms.innerHTML = (opts.terms || []).map((t) => `<li>${esc(t)}</li>`).join('');
   const wa = el('locModalWa');
   wa.hidden = !opts.wa;
   if (opts.wa) wa.href = opts.wa;
@@ -1325,16 +1353,9 @@ async function runLocCheck() {
   } else if (r.state === 'condition') {
     state.loc = { lat: pt.lat, lng: pt.lng, checked: r.checked !== false,
                   fee: Number(r.fee) || 0, svcFee: Number(r.svc_fee) || 0,
-                  district: r.district, message: r.message,
+                  district: r.district, message: r.message, feeServices: r.fee_services,
                   noGroupDiscount: !!r.no_group_discount, prices: r.prices || [] };
-    locModal('bad', {
-      title: r.district || 'شرطٌ على الموقع',
-      /* رسالةُ رسمِ الخدمة تحمل الخدمة والمبلغ وموعد الدفع، فلا تُذيَّل
-         بجملةٍ تكرّرها. وما عداها يبقى كما كان. */
-      note: (r.message || '') + (Number(r.fee) > 0 && !Number(r.svc_fee)
-        ? ` تُضاف بندًا مستقلًّا باسم «رسوم ${r.district || 'الموقع'}»، وتُدفع يوم الموعد.`
-        : ''),
-    });
+    locModal('bad', { title: r.district || 'شرطٌ على الموقع', ...locTerms(r) });
   } else {
     // بلا شرط: لا نافذة ولا تنبيه. تكمل كما لو لم يكن هناك فحص.
     state.loc = { lat: pt.lat, lng: pt.lng, checked: r.checked !== false, fee: 0,

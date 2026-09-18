@@ -702,3 +702,13 @@ button{border:0;background:none;cursor:pointer}
 .t-pill.bad{background:rgba(168,73,63,.12);border-color:rgba(168,73,63,.4);color:#a8493f}
 .link-box{display:flex;gap:8px;align-items:center;border:1px solid var(--line-l);background:rgba(255,255,255,.7);padding:8px 10px}
 .link-box input{flex:1;min-width:0;border:0;background:none;outline:none;direction:ltr;font-size:11px;color:var(--ink)}
+
+/* بنودُ نافذة الموقع: الصندوق موسَّطٌ والبنودُ قائمة، فتُصفّ إلى اليمين
+   في لوحٍ خاصّ — نصٌّ موسَّط بنقاطٍ يُقرأ ركامًا لا قائمة. */
+.rcpt-modal .terms{margin:12px 0 0;padding:11px 13px 11px 11px;list-style:none;
+  text-align:right;background:rgba(43,28,22,.045);border:1px solid var(--line-l);
+  display:flex;flex-direction:column;gap:7px}
+.rcpt-modal .terms li{font-size:13px;line-height:1.65;color:var(--ink);
+  position:relative;padding-inline-start:14px}
+.rcpt-modal .terms li::before{content:'';position:absolute;inset-inline-start:2px;top:7px;
+  width:5px;height:5px;border-radius:50%;background:var(--clay)}
