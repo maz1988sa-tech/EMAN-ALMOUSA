@@ -212,6 +212,80 @@ async def main():
         n2 = await pg2.evaluate("()=>document.getElementById('mPickNote').hidden")
         rec("مطفأة: لا سطر تفسير في اللوح", n2)
         await ctx2.close()
+
+        # ── جولة ثالثة: يومُ «عمل خاص» خارج المدى ─────────────────────
+        # الشهور القادمة مغلقة كلُّها، وصاحبة العمل فتحت يومًا بعينه فيها.
+        # كان الشهر يُشطب واليوم لا يظهر قطّ — فالمدى كان يسبق الفعل الصريح.
+        import datetime as _dt
+        far = _dt.date.today() + _dt.timedelta(days=150)   # المدى في المحاكي ١٢٠
+        far_iso = far.isoformat()
+        for show in (True, False):
+            MOCK3 = MOCK if show else MOCK_OFF
+            ctx3 = await b.new_context(viewport={"width": 390, "height": 760},
+                                       has_touch=True, is_mobile=True, device_scale_factor=2)
+            # المعالج يُنادى بوسيطين (route, request)، فوسيطٌ افتراضيّ ثانٍ
+            # يلتقط الطلبَ لا النصّ — فيُغلَق على النصّ بدالّةٍ مولِّدة.
+            def _handler(body):
+                return lambda r, *_: asyncio.ensure_future(r.fulfill(
+                    content_type="application/javascript", body=body))
+            await ctx3.route("**/assets/vendor/supabase.js", _handler(MOCK3))
+            pg3 = await ctx3.new_page()
+            await pg3.add_init_script(f"window.__OPEN_AHEAD__=['{far_iso}'];")
+            await pg3.goto(f"http://127.0.0.1:{PORT}/index.html")
+            await pg3.wait_for_timeout(1500)
+            await to_date(pg3)
+            tag = "ظاهرة" if show else "مطفأة"
+
+            # السهم يبلغ شهر اليوم المفتوح
+            o3 = await pg3.evaluate("""async(want)=>{const nx=document.getElementById('mNext');
+              let n=0, hit=false;
+              while(n<40){ const t=document.getElementById('monthLabelText').textContent;
+                const cur=window.__state ? null : null;
+                if(document.querySelector('.part-msg')) { hit=true; break; }
+                if(nx.disabled) break; nx.click(); n++; await new Promise(r=>setTimeout(r,120)); }
+              await new Promise(r=>setTimeout(r,500));
+              const days=[...document.querySelectorAll('#cal .week .day:not(.blank)')];
+              const on=days.filter(d=>!d.disabled).map(d=>d.textContent.trim());
+              return {hit, n, label:document.getElementById('monthLabelText').textContent,
+                      shut:document.getElementById('cal').classList.contains('shut'),
+                      shutMsg:!!document.querySelector('.shut-msg'),
+                      part:(document.querySelector('.part-msg')||{}).textContent||'',
+                      on, nDays:days.length};}""", far_iso)
+            rec(f"{tag}: السهم يبلغ شهرَ اليوم المفتوح خارج المدى", o3["hit"],
+                f'{o3["label"]} بعد {o3["n"]}')
+            rec(f"{tag}: الشهر لا يُرمَّد ولا رسالةَ إغلاق عليه",
+                not o3["shut"] and not o3["shutMsg"])
+            rec(f"{tag}: اليوم المفتوح وحده قابلٌ للضغط",
+                o3["on"] == [str(far.day)], f'مفتوح={o3["on"]} من {o3["nDays"]}')
+            rec(f"{tag}: وسطرٌ يقول إنّ المفتوح أيامٌ بعينها",
+                "إلّا الأيام المفعّلة" in o3["part"], o3["part"][:70])
+
+            # اللوح: شهرُه يُضغط ولا يُشطب وعليه علامة، وجارُه المغلق مشطوب
+            await pg3.click("#monthLabel"); await pg3.wait_for_timeout(450)
+            g3 = await pg3.evaluate("""(m)=>{const cells=[...document.querySelectorAll('#mPickGrid .mo')];
+              const c=cells[m]; const nb=cells[(m+1)%12];
+              return {part:c.classList.contains('part'), off:c.disabled,
+                      struck:c.classList.contains('shut'),
+                      nbStruck: nb.classList.contains('shut'),
+                      year:document.getElementById('yLabel').textContent};}""", far.month - 1)
+            # قد يكون اللوح على سنةٍ غير سنة اليوم المفتوح — يُنتقل إليها أوّلًا
+            if g3["year"] != str(far.year):
+                await pg3.evaluate("""async(y)=>{const nxt=document.getElementById('yNext');
+                  let n=0; while(document.getElementById('yLabel').textContent!==String(y) && !nxt.disabled && n<5){
+                    nxt.click(); n++; await new Promise(r=>setTimeout(r,100)); }}""", far.year)
+                await pg3.wait_for_timeout(200)
+                g3 = await pg3.evaluate("""(m)=>{const cells=[...document.querySelectorAll('#mPickGrid .mo')];
+                  const c=cells[m]; const nb=cells[(m+1)%12];
+                  return {part:c.classList.contains('part'), off:c.disabled,
+                          struck:c.classList.contains('shut'),
+                          nbStruck: nb.classList.contains('shut'),
+                          year:document.getElementById('yLabel').textContent};}""", far.month - 1)
+            rec(f"{tag}: في اللوح شهرُه يُضغط ولا يُشطب وعليه علامة",
+                g3["part"] and not g3["off"] and not g3["struck"], str(g3))
+            if show:
+                rec("ظاهرة: وجارُه بلا يومٍ مفتوح يبقى مشطوبًا", g3["nbStruck"], str(g3))
+            await ctx3.close()
+
         await b.close()
 
 asyncio.run(main())

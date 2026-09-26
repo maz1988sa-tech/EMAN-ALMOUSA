@@ -219,6 +219,14 @@ export async function getAvailableSlots(date, durationMin, excludeId = null) {
   return (data || []).map((r) => (typeof r === 'string' ? r : r.slot));
 }
 
+/* الأيام التي فتحتها صاحبة العمل «عمل خاص» خارج مدى الحجز. تُقرأ مرّةً مع
+   الإعدادات: بها يبقى شهرُها في اللوح قابلًا للاختيار بدل شطبه. */
+export async function getOpenDaysAhead() {
+  const { data, error } = await sb.rpc('open_days_ahead');
+  if (error) throw error;
+  return (data || []).map((r) => r.the_date);
+}
+
 export async function getDaysWithAvailability(from, days, durationMin) {
   const { data, error } = await sb.rpc('days_with_availability', {
     p_from: from, p_days: days, p_duration_min: durationMin,

@@ -236,13 +236,28 @@
             return ok(SLOTS.filter((_, i) => dur <= 60 || i % 2 === 0).map(slot => ({ slot })));
           }
           if (fn === 'days_with_availability') {
+            /* كما القاعدة: من p_from لا من اليوم، وما بعد المدى صفرٌ إلّا يومًا
+               فُتح «عمل خاص» باسمه. كان المحاكي يعدّ من اليوم دائمًا فلا
+               يُقاس شهرٌ بعيد — ومحاكٍ أسخى من القاعدة يُخفي عطبًا. */
             const out = [];
+            const openAhead = new Set(window.__OPEN_AHEAD__ || []);
+            const horizon = day(Number(publicSettings().max_advance_days) || 120);
+            const start = args.p_from
+              ? new Date(...String(args.p_from).split('-').map((x, k) => Number(x) - (k === 1 ? 1 : 0)))
+              : new Date();
             for (let i = 0; i < (args.p_days || 14); i++) {
-              const d = day(i);
-              const dow = new Date(d).getDay();
-              out.push({ the_date: d, slot_count: (dow === 5 || i === 9) ? 0 : (args.p_duration_min > 120 ? 4 : 8) });
+              const dt = new Date(start); dt.setDate(dt.getDate() + i);
+              const d = iso(dt);
+              const dow = dt.getDay();
+              const idx = Math.round((dt - new Date(day(0))) / 86400000);
+              let n = (dow === 5 || idx === 9) ? 0 : (args.p_duration_min > 120 ? 4 : 8);
+              if (d > horizon && !openAhead.has(d)) n = 0;
+              out.push({ the_date: d, slot_count: n });
             }
             return ok(out);
+          }
+          if (fn === 'open_days_ahead') {
+            return ok((window.__OPEN_AHEAD__ || []).map((d) => ({ the_date: d })));
           }
           if (fn === 'create_booking') {
             (window.__BOOKED = window.__BOOKED || []).push(args);

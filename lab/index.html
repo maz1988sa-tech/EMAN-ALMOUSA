@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=56">
+<link rel="stylesheet" href="assets/fonts.css?v=57">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=56">
+<link rel="stylesheet" href="assets/client-theme.css?v=57">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -475,7 +475,7 @@
 <script src="assets/config.js"></script>
 <script type="module">
 import {
-  getPublicSettings, getServices, getDaysWithAvailability, getAvailableSlots,
+  getPublicSettings, getServices, getDaysWithAvailability, getAvailableSlots, getOpenDaysAhead,
   checkLocation,
   mapPoint,
   mapPointMessage,
@@ -485,7 +485,7 @@ import {
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=56';
+} from './assets/db.js?v=57';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -509,6 +509,7 @@ const state = {
   time: null,        // 'HH:MM'
   slots: [],
   monthDays: {},     // 'YYYY-MM-DD' -> slot_count
+  openAhead: new Set(), // أيامُ «عمل خاص» خارج مدى الحجز
   busy: false,
   booking: null,     // نتيجة createBooking
   receiptFile: null,    // الملف الذي اختارته العميلة
@@ -952,6 +953,7 @@ function renderMonth() {
      تُوهم العميلة أن في الموقع خللًا. */
   paintShut(shut);
   if (shut) return;
+  paintPart(isPartMonth(curY, curM));
   const anyFree = Object.values(state.monthDays).some((n) => n > 0);
   if (!anyFree) {
     week.innerHTML = `<div class="state-msg" style="grid-column:1/-1">
@@ -970,6 +972,18 @@ function paintShut(on) {
   const box = document.createElement('div');
   box.className = 'shut-msg';
   box.innerHTML = `<i>هذا الشهر ${w.m} للحجز${w.tail}.<br>اختاري شهرًا من المتاحة.</i>`;
+  cal.appendChild(box);
+}
+
+function paintPart(on) {
+  const cal = el('cal');
+  const old = cal.querySelector('.part-msg');
+  if (old) old.remove();
+  if (!on) return;
+  const w = closedWord();
+  const box = document.createElement('p');
+  box.className = 'part-msg';
+  box.textContent = `هذا الشهر ${w.m} للحجز${w.tail} — إلّا الأيام المفعّلة.`;
   cal.appendChild(box);
 }
 
@@ -1023,8 +1037,23 @@ function monthBounds() {
                        todayDate.getDate() + days);
   const open = new Date(far.getFullYear(), far.getMonth(), 1);
   const show = state.settings ? state.settings.show_closed_months !== false : true;
-  const last = show ? new Date(open.getFullYear() + 1, open.getMonth(), 1) : open;
+  let last = show ? new Date(open.getFullYear() + 1, open.getMonth(), 1) : open;
+  /* ويومٌ فُتح «عمل خاص» خارج المدى يمدّ الحدَّ إليه ولو أُطفئ إظهار
+     الشهور المغلقة — فُتح بالاسم، فلا يُحجب بحكمٍ عامّ. */
+  for (const iso of state.openAhead || []) {
+    const d = parseDate(iso), m1 = new Date(d.getFullYear(), d.getMonth(), 1);
+    if (m1 > last) last = m1;
+  }
   return { first, open, last, show };
+}
+/* شهرٌ خارج المدى فيه يومٌ مفتوح بالاسم: لا يُشطب ولا يُغلق، ويُفتح
+   منه ذلك اليوم وحده — القاعدة تردّ لغيره صفرًا. */
+function monthHasOpenDay(y, m) {
+  for (const iso of state.openAhead || []) {
+    const d = parseDate(iso);
+    if (d.getFullYear() === y && d.getMonth() === m) return true;
+  }
+  return false;
 }
 /* الكلمة التي تختارها إيمان مؤنّثة («غير مفتوحة») لأنها خبرٌ عن الشهور.
    وحين تُسند إلى «هذا الشهر» تُذكَّر. و«بعد» تصحّ مع «مفتوحة» — فهي وعدٌ
@@ -1038,8 +1067,11 @@ function closedWord() {
 }
 function isShutMonth(y, m) {
   const { open, show } = monthBounds();
-  return show && new Date(y, m, 1) > open;
+  return show && new Date(y, m, 1) > open && !monthHasOpenDay(y, m);
 }
+/* خارج المدى ومفتوحٌ جزئيًّا: يُقال ذلك فوق الشبكة، وإلّا ظنّت العميلة
+   أنّ بقيّة أيام الشهر معطّلة لعطبٍ لا لحكم. */
+const isPartMonth = (y, m) => new Date(y, m, 1) > monthBounds().open && monthHasOpenDay(y, m);
 function renderNav() {
   const { first, last } = monthBounds();
   const cur = new Date(curY, curM, 1);
@@ -1091,10 +1123,15 @@ function renderPick() {
   for (let m = 0; m < 12; m += 1) {
     const d = new Date(pickY, m, 1);
     const past = d < first;
-    const shut = d > open;
+    const part = d > open && monthHasOpenDay(pickY, m);
+    const shut = d > open && !part;
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'mo'; b.textContent = MONTHS[m];
     b.dataset.m = m;
+    if (part) {
+      b.classList.add('part');
+      b.setAttribute('aria-label', `${MONTHS[m]} ${pickY} — أيامٌ محدودة`);
+    }
     if (past || shut) {
       b.disabled = true;
       b.classList.add(shut ? 'shut' : 'gone');
@@ -1921,6 +1958,11 @@ async function renderTracking(token) {
   const token = new URLSearchParams(location.search).get('t');
   try {
     state.settings = await getPublicSettings();
+    /* أيامُ «عمل خاص» خارج المدى: لولاها شُطب شهرُها في اللوح ولم يصله
+       السهم، فتُضبط في اللوحة ولا تراها عميلةٌ قطّ. وسقوطُ قراءتها لا يوقف
+       الصفحة — تعود الشهور إلى حكم المدى وحده. */
+    try { state.openAhead = new Set(await getOpenDaysAhead()); }
+    catch { state.openAhead = new Set(); }
     if (state.settings) {
       document.title = `حجز موعد — ${state.settings.business_name}`;
       const wa = state.settings.whatsapp_phone;
