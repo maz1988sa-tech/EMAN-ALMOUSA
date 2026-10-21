@@ -207,6 +207,9 @@
             const HGD    = [{ district_id: 1, group_id: 'g1' }];
             const HGP    = [{ group_id: 'g1', service_id: 's2', price: 800,
                               solo_ok: false, svc_fee: 0 }];
+            const CH     = BOOKINGS.map((b) => ({ booking_id: b.id, phone: b.client_phone,
+                              name: b.client_name, the_date: b.the_date, booked_at: b.created_at,
+                              price: b.price, status: b.status, source: b.source }));
             const snap = {
               version: 2, taken_at: new Date().toISOString(),
               settings: SETTINGS,
@@ -217,7 +220,7 @@
               message_templates: TEMPLATES, message_outbox: OUTBOX,
               ref_counters: REFC, visits: VISITS, activity_log: LOG, receipt_scans: SCANS,
               districts: DISTS, hood_groups: HG,
-              hood_group_districts: HGD, hood_group_prices: HGP,
+              hood_group_districts: HGD, hood_group_prices: HGP, client_history: CH,
             };
             snap.counts = {
               bookings: snap.bookings.length, booking_items: snap.booking_items.length,
@@ -227,6 +230,7 @@
               activity_log: LOG.length, receipt_scans: SCANS.length,
               districts: DISTS.length, hood_groups: HG.length,
               hood_group_districts: HGD.length, hood_group_prices: HGP.length,
+              client_history: CH.length,
               receipts: 2,
             };
             return ok(snap);
@@ -312,6 +316,37 @@
               { id: 3, ar: 'حي العليا', lat: 24.68687, lng: 46.68733, group_id: null },
               { id: 4, ar: 'حي النخيل', lat: 24.74000, lng: 46.63000, group_id: null },
             ]);
+          }
+          /* قاعدة العميلات كما تحسبها القاعدة: من سطور الحجوزات (وما يُحقن في
+             __CLIENT_HISTORY__ لحجوزاتٍ حُذفت جماعيًّا)، صفٌّ لكلّ جوال، الاسمُ
+             والموقعُ من الأحدث، والملغى لا يُعدّ ولا يُجمع. محاكٍ يردّ صفوفًا
+             جاهزة كان سيُمرّر شاشةً لا تعرف شكل الحساب. */
+          if (fn === 'admin_clients') {
+            const hist = BOOKINGS.map((b) => ({
+              phone: b.client_phone || null, name: b.client_name || null,
+              loc_text: b.loc_text || null, loc_district: b.loc_district || null, loc_map: b.loc_map || null,
+              the_date: b.the_date, booked_at: b.created_at, price: Number(b.price) || 0, status: b.status,
+            })).concat(window.__CLIENT_HISTORY__ || []);
+            const by = new Map();
+            for (const h of hist) {
+              const k = h.phone || `name:${h.name || ''}`;
+              if (!by.has(k)) by.set(k, []);
+              by.get(k).push(h);
+            }
+            const out = [...by.values()].map((hs) => {
+              const s = [...hs].sort((a, b) => String(b.booked_at).localeCompare(String(a.booked_at)));
+              const live = hs.filter((h) => !['cancelled', 'rejected'].includes(h.status));
+              const place = s.find((h) => h.loc_text || h.loc_district || h.loc_map);
+              return {
+                phone: s[0].phone, name: s[0].name,
+                loc: place ? (place.loc_text || place.loc_district || null) : null,
+                loc_map: place ? place.loc_map : null,
+                bookings: live.length, total: live.reduce((n, h) => n + Number(h.price || 0), 0),
+                first_at: hs.map((h) => h.booked_at).sort()[0],
+                last_date: live.map((h) => h.the_date).sort().slice(-1)[0] || null,
+              };
+            }).sort((a, b) => String(b.first_at).localeCompare(String(a.first_at)));
+            return ok(out);
           }
           if (fn === 'admin_hood_groups') {
             return ok(window.__HGROUPS || [

@@ -849,6 +849,13 @@ export const admin = {
     return data || [];
   },
 
+  /** قاعدة العميلات: صفٌّ لكلّ عميلة، من سجلٍّ يبقى بعد الحذف الجماعيّ. */
+  async clients() {
+    const { data, error } = await sb.rpc('admin_clients');
+    if (error) throw error;
+    return data || [];
+  },
+
   /** المجموعات بأحيائها وأسعارها. */
   async hoodGroups() {
     const { data, error } = await sb.rpc('admin_hood_groups');

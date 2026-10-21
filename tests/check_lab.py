@@ -45,8 +45,20 @@ for i in ITEMS:
                        capture_output=True, text=True).stdout.strip()
     if not a or a != b:
         drift.append(i)
-rec("الجذر لم يتغيّر إلّا نسخًا من المختبر", not drift,
-    f"@{last[:8]} — {drift[:3] if drift else 'مطابق'}")
+# والاستثناء الوحيد ترقيةٌ جزئيّة طلبها صاحب المشروع صراحةً: تُسمّى بكومتها
+# في tools/partial-promotions. فالجذر المختلف يُقبل حين يُعرف لماذا اختلف،
+# ويسقط حين لا يُعرف — وذلك ما يحرسه هذا الفحص أصلًا.
+approved = {}
+pp = REPO / 'tools' / 'partial-promotions'
+if pp.exists():
+    for ln in pp.read_text(encoding='utf-8').splitlines():
+        if ln.strip() and not ln.lstrip().startswith('#'):
+            sha, _, why = ln.strip().partition(' ')
+            approved[sha] = why.strip()
+ok_drift = not drift or last in approved
+rec("الجذر لم يتغيّر إلّا نسخًا من المختبر", ok_drift,
+    f"@{last[:8]} — " + ('مطابق' if not drift else
+                         f"ترقيةٌ جزئيّة معتمدة: {approved[last]}" if last in approved else str(drift[:3])))
 
 # ولا يُترك الجذر معدَّلًا خارج كومت: تغييرٌ لم يُسجَّل يفلت من كلّ حارس.
 dirty = subprocess.run(['git', '-C', str(REPO), 'status', '--porcelain', '--', *ITEMS],

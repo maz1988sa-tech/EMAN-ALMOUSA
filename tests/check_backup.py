@@ -69,7 +69,9 @@ async def main():
         WANT = ["settings", "services", "availability_rules", "date_overrides",
                 "bookings", "booking_items", "message_templates", "message_outbox",
                 "ref_counters", "visits", "activity_log", "receipt_scans",
-                "districts", "hood_groups", "hood_group_districts", "hood_group_prices"]
+                "districts", "hood_groups", "hood_group_districts", "hood_group_prices",
+                # قاعدة العميلات: تبقى بعد الحذف الجماعيّ، فهي وحدها تحمل من حُذفت حجوزاتها.
+                "client_history"]
         miss = [k for k in WANT if k not in data]
         rec("الملفّ المنزَّل يحمل كلَّ جدول", not miss, "ناقص: " + (", ".join(miss) or "لا شيء"))
         cnt = (data.get("counts") or {})
