@@ -38,8 +38,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=44">
-<link rel="stylesheet" href="assets/theme.css?v=44">
+<link rel="stylesheet" href="assets/fonts.css?v=45">
+<link rel="stylesheet" href="assets/theme.css?v=45">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -200,7 +200,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=44"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=45"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -234,7 +234,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=44';
+import { icon, hydrateIcons } from './assets/icons.js?v=45';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -244,7 +244,8 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=44';
+} from './assets/db.js?v=45';
+import { buildXlsx, XLSX_TYPE } from './assets/xlsx.js?v=45';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -401,6 +402,7 @@ const SETTING_PANES = [
   { id: 'hours',    label: 'أوقات العمل', icon: 'clock' },
   { id: 'services', label: 'الخدمات',     icon: 'lipstick' },
   { id: 'msgs',     label: 'الرسائل',     icon: 'whatsapp' },
+  { id: 'clients',  label: 'العميلات',    icon: 'users' },
   { id: 'visits',   label: 'الزوّار',      icon: 'chart' },
 ];
 
@@ -581,7 +583,8 @@ function render() {
 function renderSettingsTab() {
   const pane = SETTING_PANES.find((p) => p.id === S.settingsPane) || SETTING_PANES[0];
   ({ general: renderSettings, hours: renderHours,
-     services: renderServices, msgs: renderMessages, visits: renderVisits }[pane.id])();
+     services: renderServices, msgs: renderMessages, visits: renderVisits,
+     clients: renderClients }[pane.id])();
 
   view.insertAdjacentHTML('afterbegin', `
     <div class="panebar">
@@ -594,6 +597,10 @@ function renderSettingsTab() {
     S.settingsPane = b.dataset.pane;
     render(); hydrateIcons(view); window.scrollTo({ top: 0 });
   });
+  /* الشريط يمرّر أفقيًّا، والقسم المفتوح قد يقع خارج حافّته فيبدو مقصوصًا
+     («العميلا…») — فيُجلَب إلى المرأى. */
+  view.querySelector('.panetab[aria-current="true"]')
+    ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
 /* ── Booking card ─────────────────────────────────────────────────────── */
@@ -1706,6 +1713,157 @@ function dur(sec) {
 const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : 0);
 
 let visRangeSel = 'm';
+
+/* ── قاعدة العميلات ────────────────────────────────────────────────────
+   كلُّ من حجزت — من الرابط أو يدويًّا — صفٌّ هنا وحدها: يكتبه مشغّلٌ في
+   القاعدة عند كلّ حجز، ويبقى بعد الحذف الجماعيّ (§٧و). والشاشة تقرأ
+   وتُرتّب وتبحث وتُصدّر؛ لا تحسب شيئًا ولا تكتب. */
+let clSort = 'new', clQ = '', clRows = null;
+
+function renderClients() {
+  view.innerHTML = `
+    <div class="sec-head"><h2>قاعدة العميلات</h2><span class="rule"></span>
+      <span class="count" id="clCount"></span></div>
+    <p class="muted mb">كلُّ من حجزت — من الرابط أو يدويًّا — تُضاف هنا وحدها، وتبقى ولو حُذفت حجوزاتها جماعيًّا.</p>
+    <div class="card mb">
+      <div class="field" style="margin:0 0 10px">
+        <input class="input" id="clQ" type="search" autocomplete="off"
+               placeholder="ابحثي بالاسم أو الجوال" value="${esc(clQ)}"
+               aria-label="بحث في العميلات"></div>
+      <div class="cl-bar">
+        <div class="chiprow" role="group" aria-label="ترتيب حسب تاريخ التسجيل">
+          ${[['new', 'الأحدث أوّلًا'], ['old', 'الأقدم أوّلًا']].map(([v, l]) => `
+            <button class="chip" type="button" data-cs="${v}"
+                    aria-pressed="${clSort === v}">${l}</button>`).join('')}
+        </div>
+        <button class="btn cl-x" type="button" id="clXlsx" disabled>${icon('export', 18)} تصدير Excel</button>
+      </div>
+    </div>
+    <div id="clBody"><div class="card"><p class="hint" style="margin:0">جارٍ القراءة…</p></div></div>`;
+  hydrateIcons(view);
+
+  view.querySelectorAll('[data-cs]').forEach((b) => b.onclick = () => {
+    clSort = b.dataset.cs;
+    view.querySelectorAll('[data-cs]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    paintClients();
+  });
+  const q = document.getElementById('clQ');
+  q.oninput = () => { clQ = q.value; paintClients(); };
+  document.getElementById('clXlsx').onclick = exportClients;
+
+  loadClients();
+}
+
+async function loadClients() {
+  try { clRows = await admin.clients(); }
+  catch (e) {
+    const box = document.getElementById('clBody');
+    if (box) box.innerHTML = `<div class="card"><p class="hint" style="margin:0">${esc(isOffline(e) ? NET_MSG : `تعذّرت القراءة — ${e.message}`)}</p></div>`;
+    return;
+  }
+  paintClients();
+}
+
+/* الترتيب بتاريخ التسجيل الأوّل، والبحثُ بالاسم أو بأيّ جزءٍ من الجوال —
+   ويُطبَّع ما تكتبه («٠٥٥…» أو «+966…») فيُطابق ما في القاعدة. */
+function shownClients() {
+  const q = clQ.trim();
+  const digits = q.replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g, '').replace(/^0+/, '');
+  return (clRows || [])
+    .filter((c) => !q || (c.name || '').includes(q) || (digits && (c.phone || '').includes(digits)))
+    .sort((a, b) => (clSort === 'new' ? -1 : 1) * clientOrder(a, b));
+}
+/* ترتيبٌ تامّ: التسجيل ثمّ الاسم ثمّ الجوال. الحجز الجماعيّ يُدخل عميلاتٍ
+   كثيرات في معاملةٍ واحدة بالتوقيت نفسه، فبلا كسرٍ للتعادل لا يكون
+   «الأقدم أوّلًا» عكسَ «الأحدث أوّلًا» حرفًا بحرف. */
+function clientOrder(a, b) {
+  return String(a.first_at).localeCompare(String(b.first_at))
+      || String(a.name || '').localeCompare(String(b.name || ''), 'ar')
+      || String(a.phone || '').localeCompare(String(b.phone || ''));
+}
+
+const localDay = (ts) => (ts ? isoDate(new Date(ts)) : '');
+
+function paintClients() {
+  const box = document.getElementById('clBody');
+  if (!box || !clRows) return;
+  const rows = shownClients();
+  document.getElementById('clCount').textContent = int(clRows.length);
+  const x = document.getElementById('clXlsx');
+  x.disabled = !rows.length;
+  x.innerHTML = `${icon('export', 18)} تصدير Excel${rows.length && rows.length !== clRows.length ? ` (${int(rows.length)})` : ''}`;
+  hydrateIcons(x);
+
+  if (!clRows.length) {
+    box.innerHTML = `<div class="arch"><div class="badge lg on-surface" data-icon="users" data-icon-size="24"
+      style="margin:0 auto 10px"></div><h2>لا عميلات بعد</h2>
+      <p class="muted" style="margin-top:4px">أوّلُ حجزٍ يصل يُضيف صاحبته هنا.</p></div>`;
+    hydrateIcons(box); return;
+  }
+  if (!rows.length) {
+    box.innerHTML = `<div class="card"><p class="muted center" style="margin:0;padding:8px 0">لا نتيجة لهذا البحث.</p></div>`;
+    return;
+  }
+  box.innerHTML = `
+    <div class="card cl-table">
+      <div class="cl-head" aria-hidden="true"><span>العميلة</span><span>الحجوزات</span><span>الإجمالي</span><span></span></div>
+      ${rows.map((c) => `
+        <details class="cl-row">
+          <summary>
+            <span class="cl-who"><b>${esc(c.name || '—')}</b>
+              <span class="s ltr">${esc(prettyPhone(c.phone) || '—')}</span>
+              <span class="s">منذ ${esc(fmtDate(localDay(c.first_at), { withDow: false }))}</span></span>
+            <span class="cl-n">${int(c.bookings)}</span>
+            <span class="cl-t">${money(c.total)}</span>
+            <span class="cl-chev" data-icon="chevron" data-icon-size="16" aria-hidden="true"></span>
+          </summary>
+          <div class="cl-more">
+            <div class="leader"><span class="k">الحي</span><span class="d"></span><span class="v">${esc(c.loc || '—')}</span></div>
+            <div class="leader"><span class="k">الموقع على الخريطة</span><span class="d"></span><span class="v">${
+              c.loc_map ? `<a href="${esc(c.loc_map)}" target="_blank" rel="noopener">فتح الخريطة</a>` : '—'}</span></div>
+            <div class="leader"><span class="k">أوّل تسجيل</span><span class="d"></span><span class="v">${esc(fmtDate(localDay(c.first_at), { withDow: false }))}</span></div>
+            <div class="leader"><span class="k">آخر موعد</span><span class="d"></span><span class="v">${c.last_date ? esc(fmtDate(c.last_date, { withDow: false })) : '—'}</span></div>
+            <div class="leader"><span class="k">إجمالي المبلغ</span><span class="d"></span><span class="v">${riyal(c.total)}</span></div>
+            ${c.phone ? `<div class="cl-acts">
+              <a class="btn" href="${waHref(c.phone)}" target="_blank" rel="noopener">${icon('whatsapp', 18)} واتساب</a>
+              <a class="btn" href="${telHref(c.phone)}">${icon('phone', 18)} اتصال</a></div>` : ''}
+          </div>
+        </details>`).join('')}
+    </div>`;
+  hydrateIcons(box);
+}
+
+/* التصدير ملفُّ Excel حقيقيّ لا CSV: الجوال فيه نصٌّ فلا يصير 9.66E+11،
+   والتاريخ تاريخٌ يُرتَّب، والورقة من اليمين. ويصدّر المعروضَ بترتيبه —
+   كما يفعل «تصدير المعروض» في الحجوزات — فما يُرى هو ما يُنزَّل. */
+function exportClients() {
+  const rows = shownClients();
+  if (!rows.length) return;
+  const local = (p) => { const n = normalisePhone(p); return n ? `0${n.slice(3)}` : (p || ''); };
+  const bytes = buildXlsx({
+    sheet: 'العميلات',
+    columns: [
+      { label: 'الاسم', type: 'text', width: 24 },
+      { label: 'الجوال', type: 'text', width: 14 },
+      { label: 'الحي', type: 'text', width: 26 },
+      { label: 'رابط الموقع', type: 'text', width: 34 },
+      { label: 'عدد الحجوزات', type: 'number', width: 13 },
+      { label: 'إجمالي المبلغ (ر.س)', type: 'money', width: 18 },
+      { label: 'أوّل تسجيل', type: 'date', width: 13 },
+      { label: 'آخر موعد', type: 'date', width: 13 },
+    ],
+    rows: rows.map((c) => [c.name || '', local(c.phone), c.loc || '', c.loc_map || '',
+      Number(c.bookings) || 0, Number(c.total) || 0, localDay(c.first_at), c.last_date || '']),
+  });
+  download(`قاعدة-العميلات-${today()}.xlsx`, bytes, XLSX_TYPE);
+  toast(`صُدّر الملفّ — ${clientsWord(rows.length)}`, 'ok');
+}
+/* العدد والمعدود في العربية: «٦ عميلة» خطأ يُرى في رسالة نجاح. */
+function clientsWord(n) {
+  if (n === 1) return 'عميلة واحدة';
+  if (n === 2) return 'عميلتان';
+  return `${int(n)} ${n % 100 >= 3 && n % 100 <= 10 ? 'عميلات' : 'عميلة'}`;
+}
 
 function renderVisits() {
   view.innerHTML = `
