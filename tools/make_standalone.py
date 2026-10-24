@@ -55,12 +55,15 @@ def build(page: str, pane: str | None, extra_js: str) -> str:
     html = html.replace('<script type="module">',
                         f'<script type="importmap">{json.dumps({"imports": imap})}</script>\n<script type="module">', 1)
 
-    # الصور التي تطلبها الصفحة بمسارها (شعار الرأس) تُضمَّن كذلك.
-    def img(m):
-        f = SRC / m.group(1)
-        mime = {'png': 'image/png', 'jpg': 'image/jpeg', 'svg': 'image/svg+xml', 'webp': 'image/webp'}
-        return f'src="{b64(f.read_bytes(), mime.get(f.suffix[1:], "application/octet-stream"))}"' if f.exists() else m.group(0)
-    html = re.sub(r'src="(assets/brand/[^"?]+)(?:\?v=\d+)?"', img, html)
+    # صور العلامة وفيديوهاتها تُضمَّن حيثما ذُكرت: في `src` و`srcset`، وفي
+    # `url()` داخل الأنماط المضمَّنة (مسارها هناك نسبيٌّ إلى assets/)، وفي
+    # نصوص JS التي تبني بطاقات الخدمات — فالمحاكاة تعرض الصفحة كما هي.
+    mime = {'png': 'image/png', 'jpg': 'image/jpeg', 'svg': 'image/svg+xml',
+            'webp': 'image/webp', 'mp4': 'video/mp4'}
+    def asset(m):
+        f = SRC / 'assets' / 'brand' / m.group(1)
+        return b64(f.read_bytes(), mime.get(f.suffix[1:], 'application/octet-stream')) if f.exists() else m.group(0)
+    html = re.sub(r'(?:assets/)?brand/([A-Za-z0-9_.-]+\.(?:png|jpg|svg|webp|mp4))(?:\?v=\d+)?', asset, html)
 
     # ما لا يعمل من القرص ولا يلزم التجربة: عامل الخدمة والبيان.
     html = re.sub(r'<link rel="manifest"[^>]*>', '', html)

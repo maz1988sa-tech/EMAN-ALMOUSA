@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=58">
+<link rel="stylesheet" href="assets/fonts.css?v=59">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=58">
+<link rel="stylesheet" href="assets/client-theme.css?v=59">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -78,7 +78,9 @@
     <section class="screen hero on" data-name="الواجهة">
       <div class="hero-media">
         <div class="hero-shift">
-          <img class="hero-img" src="assets/brand/hero_still.jpg" alt="إيمان آل موسى — ميك اب أرتست">
+          <img class="hero-img" src="assets/brand/hero_still-800.webp"
+               srcset="assets/brand/hero_still-800.webp 800w, assets/brand/hero_still-1170.webp 1170w"
+               sizes="100vw" fetchpriority="high" alt="إيمان آل موسى — ميك اب أرتست">
           <div class="discover">اكتشفي المزيد</div>
         </div>
       </div>
@@ -199,7 +201,7 @@
 
     <!-- 05 تواصل -->
     <section class="screen light contact" data-name="تواصل">
-      <div class="dust" style="background-image:url('assets/brand/dust_light.jpg')"></div>
+      <div class="dust" style="background-image:url('assets/brand/dust_light.webp')"></div>
       <div class="pad">
 
         <div class="booked" id="booked" hidden>
@@ -485,7 +487,7 @@ import {
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=58';
+} from './assets/db.js?v=59';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -494,10 +496,10 @@ const UI = {
   maxQty: 12,                 // نفس سقف النظام القائم
   monthsAhead: 2,             // سنوات التنقل في منتقي الشهور
   media: [                    // خلفية بطاقة الخدمة: تُطابق بالاسم ثم بالترتيب
-    { match: /عروس|عرائس|زفاف|bridal/i, video: 'assets/brand/svc_bridal.mp4',  poster: 'assets/brand/pst_bridal.jpg',  thumb: 'assets/brand/thumb_bridal.jpg' },
-    { match: /سهر|مناسب|evening/i,      video: 'assets/brand/svc_evening.mp4', poster: 'assets/brand/pst_evening.jpg', thumb: 'assets/brand/thumb_evening.jpg' },
+    { match: /عروس|عرائس|زفاف|bridal/i, video: 'assets/brand/svc_bridal.mp4',  poster: 'assets/brand/pst_bridal.webp', thumb: 'assets/brand/thumb_bridal.webp' },
+    { match: /سهر|مناسب|evening/i,      video: 'assets/brand/svc_evening.mp4', poster: 'assets/brand/pst_evening.webp', thumb: 'assets/brand/thumb_evening.webp' },
   ],
-  fallback: { video: '', poster: 'assets/brand/dust_a.jpg', thumb: 'assets/brand/dust_a.jpg' },
+  fallback: { video: '', poster: 'assets/brand/dust_a.webp', thumb: 'assets/brand/dust_a.webp' },
 };
 
 /* ── الحالة (نفس نموذج النظام القائم) ─────────────────────────────────── */
