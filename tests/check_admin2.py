@@ -57,13 +57,23 @@ async def main():
         "v:(x.querySelector('.v')||{}).innerText||''}));"
         "const num=t=>Number((t.match(/[0-9.,]+/)||['0'])[0].replace(/,/g,''));"
         "const pick=n=>{const r=L.find(x=>x.k.trim()===n);return r?num(r.v):null;};"
-        "return {shown:pick('إجمالي المعروض'), paid:pick('العربون المقبوض'),"
-        "rest:pick('إجمالي المتبقّي')};}")
+        "return {shown:pick('إجمالي المعروض'), paid:pick('إجمالي العربون المستلم'),"
+        "rest:pick('إجمالي المبلغ المتبقي')};}")
     rec("إجمالي المعروض ومقبوضه وباقيه ثلاثةُ سطور",
         tot["shown"] and tot["paid"] and tot["rest"] is not None, str(tot))
     rec("والباقي فرقُ الأوّلين لا رقمٌ مستقلّ",
         tot["rest"] == max((tot["shown"] or 0) - (tot["paid"] or 0), 0),
         f"{tot['shown']} − {tot['paid']} = {tot['rest']}")
+    # والمستحقات: البطاقة نفسها — الإجمالي والعربون والمتبقّي — لا سطرًا واحدًا.
+    await tab(pg,"المستحقات")
+    dues = await pg.evaluate(
+        "()=>{const c=document.querySelector('.money-totals');if(!c)return null;"
+        "const L=[...c.querySelectorAll('.leader')].map(x=>[(x.querySelector('.k')||{}).innerText||'',"
+        "Number(((x.querySelector('.v')||{}).innerText||'').replace(/[^0-9.]/g,''))]);return L;}")
+    rec("المستحقات تعرض الإجمالي والعربون المستلم والمتبقي",
+        bool(dues) and [k for k, _ in dues] == ['إجمالي الحجوزات', 'إجمالي العربون المستلم', 'إجمالي المبلغ المتبقي']
+        and dues[2][1] == dues[0][1] - dues[1][1], str(dues))
+    await tab(pg,"الحجوزات")
     await pg.fill("#q","نورة"); await pg.wait_for_timeout(700)
     r1 = await pg.evaluate("()=>({n:document.querySelectorAll('[data-open]').length, v:document.getElementById('q').value, focus:document.activeElement.id})")
     rec("٢ البحث بالاسم يصفّي ويحتفظ بالتركيز", r1["v"]=="نورة" and r1["focus"]=="q", f"نتائج={r1['n']}")
