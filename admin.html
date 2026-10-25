@@ -38,8 +38,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=45">
-<link rel="stylesheet" href="assets/theme.css?v=45">
+<link rel="stylesheet" href="assets/fonts.css?v=46">
+<link rel="stylesheet" href="assets/theme.css?v=46">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -200,7 +200,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=45"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=46"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -234,7 +234,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=45';
+import { icon, hydrateIcons } from './assets/icons.js?v=46';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -244,8 +244,8 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=45';
-import { buildXlsx, XLSX_TYPE } from './assets/xlsx.js?v=45';
+} from './assets/db.js?v=46';
+import { buildXlsx, XLSX_TYPE } from './assets/xlsx.js?v=46';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -1244,7 +1244,6 @@ function renderBrowse() {
     S.bookings.filter((b) => f.test(b) && curSrc.test(b) && inWindow(b) && matchesQuery(b, S.q)).length]));
   const srcCounts = Object.fromEntries(SOURCE_FILTERS.map((f) => [f.id,
     S.bookings.filter((b) => f.test(b) && curSt.test(b) && inWindow(b) && matchesQuery(b, S.q)).length]));
-  const sum = rows.reduce((n, b) => n + Number(b.price), 0);
 
   view.innerHTML = `
     <div class="sec-head" style="margin-top:18px"><h2>الحجوزات</h2><span class="rule"></span>
@@ -1279,10 +1278,7 @@ function renderBrowse() {
       </div>` : ''}
 
     ${rows.length ? `
-      <div class="card mb">
-        <div class="leader"><span class="k">إجمالي المعروض</span><span class="d"></span>
-          <span class="v">${riyal(sum)}</span></div>
-      </div>
+      ${moneyTotals(rows, 'إجمالي المعروض')}
       <div class="list">${rows.map((b) => bookingCard(b)).join('')}</div>
       <button class="btn btn-ghost mt" id="bxCsv">${icon('export', 18)} تصدير المعروض (${int(rows.length)})</button>`
     : `<div class="empty"><div class="badge lg" data-icon="search"></div>
@@ -1395,20 +1391,36 @@ function bindMonthGrid() {
 
 /* ── Outstanding balances ─────────────────────────────────────────────── */
 
+/* مجاميع المال حيثما اجتمع العربون والمتبقّي: الإجمالي، ثمّ ما استُلم منه
+   عربونًا، ثمّ ما بقي. طلبت صاحبة العمل أن ترى الثلاثة معًا — الإجمالي
+   وحده فيه عرابينُ قُبضت فيُقرأ دَينًا وهو ليس كذلك. والسطور ثابتة ولو
+   كان العربون صفرًا: غيابُ السطر يُقرأ «لم يُحسب» لا «لم يُستلم». */
+function moneyTotals(rows, label) {
+  const sum  = rows.reduce((n, b) => n + Number(b.price || 0), 0);
+  const paid = rows.reduce((n, b) => n + Number(b.deposit || 0), 0);
+  const rest = Math.max(sum - paid, 0);
+  return `
+    <div class="card mb money-totals">
+      <div class="leader"><span class="k">${esc(label)}</span><span class="d"></span>
+        <span class="v">${riyal(sum)}</span></div>
+      <div class="leader"><span class="k">إجمالي العربون المستلم</span><span class="d"></span>
+        <span class="v paid">${riyal(paid)}</span></div>
+      <div class="leader" style="border-top:1px solid var(--line);margin-top:6px;padding-top:9px">
+        <span class="k">إجمالي المبلغ المتبقي</span><span class="d"></span>
+        <span class="v ${rest > 0 ? 'due' : 'paid'}">${rest > 0 ? riyal(rest) : 'مسدّد'}</span></div>
+    </div>`;
+}
+
 function renderDues() {
   const rows = S.bookings
     .filter((b) => ['confirmed', 'done'].includes(b.status) && Number(b.price) - Number(b.deposit) > 0)
     .sort((a, b) => a.the_date.localeCompare(b.the_date));
-  const total = rows.reduce((n, b) => n + (Number(b.price) - Number(b.deposit)), 0);
 
   view.innerHTML = `
     <div class="sec-head" style="margin-top:18px"><h2>المبالغ المستحقة</h2><span class="rule"></span>
       <span class="count">${int(rows.length)}</span></div>
     ${rows.length ? `
-      <div class="card mb">
-        <div class="leader"><span class="k">إجمالي المستحق</span><span class="d"></span>
-          <span class="v due">${riyal(total)}</span></div>
-      </div>
+      ${moneyTotals(rows, 'إجمالي الحجوزات')}
       <div class="list">${rows.map((b) => bookingCard(b)).join('')}</div>`
     : `<div class="arch" style="margin-top:18px">
         <div class="badge lg on-surface" data-icon="check" data-icon-size="24" style="margin:0 auto 10px"></div>
