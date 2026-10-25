@@ -57,10 +57,30 @@ async def main():
         "v:(x.querySelector('.v')||{}).innerText||''}));"
         "const num=t=>Number((t.match(/[0-9.,]+/)||['0'])[0].replace(/,/g,''));"
         "const pick=n=>{const r=L.find(x=>x.k.trim()===n);return r?num(r.v):null;};"
-        "return {shown:pick('إجمالي المعروض'), paid:pick('إجمالي العربون المستلم'),"
+        "return {people:pick('عدد العميلات'), shown:pick('إجمالي المبالغ المعروضة'), paid:pick('إجمالي العربون المستلم'),"
         "rest:pick('إجمالي المبلغ المتبقي')};}")
-    rec("إجمالي المعروض ومقبوضه وباقيه ثلاثةُ سطور",
+    rec("المعروضة والعربون المستلم والمتبقي وعدد العميلات",
         tot["shown"] and tot["paid"] and tot["rest"] is not None, str(tot))
+    # العربون المستلم مسبقًا لا كلُّ ما دُفع. على «الكل» في المحاكي خمسة حجوزات
+    # بـ٦٩٠٠: عرابينها عند الحجز ٥٠٠+٢٠٠+٠+٤٠٠+٢٠٠ = ١٣٠٠. والمكتملان دفعا ٦٠٠
+    # كاملة، فلو جُمع `deposit` لصار العربون ٢١٠٠ شاملًا ما استُلم يوم الموعد.
+    # وعدد العميلات سبع: حجز المجموعة بثلاثة أسماء.
+    await pg.evaluate("()=>document.querySelector('[data-st=\"all\"]').click()"); await pg.wait_for_timeout(600)
+    allv = await pg.evaluate(
+        "()=>{const L=[...document.querySelectorAll('.money-totals .leader')].map(x=>[(x.querySelector('.k')||{}).innerText||'',"
+        "Number(((x.querySelector('.v')||{}).innerText||'').replace(/[^0-9.]/g,''))]);return Object.fromEntries(L);}")
+    rec("على «الكل»: ٧ عميلات، ٦٩٠٠ معروضة، ١٣٠٠ عربون، ٥٦٠٠ متبقٍّ",
+        allv.get('عدد العميلات') == 7 and allv.get('إجمالي المبالغ المعروضة') == 6900
+        and allv.get('إجمالي العربون المستلم') == 1300 and allv.get('إجمالي المبلغ المتبقي') == 5600, str(allv))
+    # والإحصائيات تتبع الفترة: «هذا الأسبوع» يُسقط المكتمل قبل ستة أيام إن خرج منه.
+    await pg.evaluate("()=>document.querySelector('[data-pr=\"range\"]').click()"); await pg.wait_for_timeout(500)
+    await pg.fill("#f-from", (await pg.evaluate("()=>new Date(Date.now()-86400000).toISOString().slice(0,10)")))
+    await pg.dispatch_event("#f-from", "change"); await pg.wait_for_timeout(600)
+    rng = await pg.evaluate(
+        "()=>Number(([...document.querySelectorAll('.money-totals .leader')].find(x=>x.innerText.includes('المعروضة'))||{innerText:''}).innerText.replace(/[^0-9]/g,''))")
+    rec("وتتحدّث وحدها حين تتغيّر الفترة", rng == 6300, f"من أمس: {rng} (بلا مكتمل ٦٠٠ قبل ستة أيام)")
+    await pg.evaluate("()=>document.querySelector('[data-pr=\"all\"]')?.click()"); await pg.wait_for_timeout(300)
+    await pg.evaluate("()=>document.querySelector('[data-st=\"upcoming\"]').click()"); await pg.wait_for_timeout(500)
     rec("والباقي فرقُ الأوّلين لا رقمٌ مستقلّ",
         tot["rest"] == max((tot["shown"] or 0) - (tot["paid"] or 0), 0),
         f"{tot['shown']} − {tot['paid']} = {tot['rest']}")
@@ -71,7 +91,7 @@ async def main():
         "const L=[...c.querySelectorAll('.leader')].map(x=>[(x.querySelector('.k')||{}).innerText||'',"
         "Number(((x.querySelector('.v')||{}).innerText||'').replace(/[^0-9.]/g,''))]);return L;}")
     rec("المستحقات تعرض الإجمالي والعربون المستلم والمتبقي",
-        bool(dues) and [k for k, _ in dues] == ['إجمالي الحجوزات', 'إجمالي العربون المستلم', 'إجمالي المبلغ المتبقي']
+        bool(dues) and [k for k, _ in dues] == ['إجمالي الحجوزات', 'إجمالي المستلم', 'إجمالي المبلغ المتبقي']
         and dues[2][1] == dues[0][1] - dues[1][1], str(dues))
     await tab(pg,"الحجوزات")
     await pg.fill("#q","نورة"); await pg.wait_for_timeout(700)
