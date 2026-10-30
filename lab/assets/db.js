@@ -8,8 +8,24 @@
 
 const CFG = window.APP_CONFIG || {};
 
+/* «JWT issued at future»: حين يعود الجوال من النوم يُجدَّد رمز الدخول، وساعة
+   خادم الدخول تسبق ساعة خادم البيانات بجزءٍ من الثانية — فأوّلُ طلبٍ بالرمز
+   الجديد يُرفض ٤٠١ وتظهر اللوحة فارغةً بخطأٍ إنجليزيّ. وقع في ٣٠ أكتوبر: تجديدٌ
+   ثمّ رفضٌ بعده بـ٠٫٣٦ ثانية. فالطلب يُعاد بعد مهلةٍ قصيرة، ثلاث مرّاتٍ أقصاها،
+   ولا يُعاد غيرُه من الأخطاء. */
+async function fetchSkewSafe(input, init) {
+  for (let i = 0; ; i++) {
+    const res = await fetch(input, init);
+    if (res.status !== 401 || i >= 3) return res;
+    const body = await res.clone().text().catch(() => '');
+    if (!/issued at future/i.test(body)) return res;
+    await new Promise((r) => setTimeout(r, 800 * (i + 1)));
+  }
+}
+
 export const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+  global: { fetch: fetchSkewSafe },
 });
 
 /* ── Formatting ────────────────────────────────────────────────────────────
