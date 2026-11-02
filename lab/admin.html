@@ -38,8 +38,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=63">
-<link rel="stylesheet" href="assets/theme.css?v=63">
+<link rel="stylesheet" href="assets/fonts.css?v=64">
+<link rel="stylesheet" href="assets/theme.css?v=64">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -200,7 +200,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=63"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=64"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -234,7 +234,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=63';
+import { icon, hydrateIcons } from './assets/icons.js?v=64';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -244,8 +244,8 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl, mapPointMessage,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=63';
-import { buildXlsx, XLSX_TYPE } from './assets/xlsx.js?v=63';
+} from './assets/db.js?v=64';
+import { buildXlsx, XLSX_TYPE } from './assets/xlsx.js?v=64';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -395,6 +395,14 @@ const PERIOD_FILTERS = [
   { id: 'range', label: 'نطاق تاريخ' },
 ];
 
+/* الترتيب سؤالٌ غيرُ التصفية: «أيُّ الطلبات وصلني آخرًا؟» لا يجيب عنه ترتيب
+   المواعيد — طلبٌ لشهرٍ قادم وصل الآن يغرق تحت مواعيد الأسبوع. فخيارٌ ثانٍ
+   بأحدث وصول، والافتراضيّ الموعد كما كان. */
+const SORTS = [
+  { id: 'date',    label: 'حسب الموعد' },
+  { id: 'arrived', label: 'الأحدث وصولًا' },
+];
+
 // أوقات العمل والخدمات والإعدادات صارت أقسامًا تحت تبويب واحد: كلها
 // ضبطٌ يُفتح مرة كل حين، لا شاشات عمل يومي.
 const SETTING_PANES = [
@@ -421,6 +429,7 @@ const S = {
   fStatus: 'upcoming',
   fPeriod: 'all',
   fSource: 'all',
+  fSort: 'date',
   fFrom: '',
   fTo: '',
   unsubscribe: null,
@@ -449,6 +458,9 @@ function matchesQuery(b, q) {
   return String(b.client_name || '').toLowerCase().includes(needle)
       || String(b.ref || '').toLowerCase().includes(needle);
 }
+const byDate = (a, b) => (b.the_date + b.start_time).localeCompare(a.the_date + a.start_time);
+const arrivedAt = (b) => Date.parse(b.created_at || '') || 0;
+const byArrival = (a, b) => (arrivedAt(b) - arrivedAt(a)) || byDate(a, b);
 function filtered() {
   const f = STATUS_FILTERS.find((x) => x.id === S.fStatus) || STATUS_FILTERS[0];
   const src = SOURCE_FILTERS.find((x) => x.id === S.fSource) || SOURCE_FILTERS[0];
@@ -458,7 +470,7 @@ function filtered() {
     .filter((b) => src.test(b))
     .filter((b) => (!from || b.the_date >= from) && (!to || b.the_date <= to))
     .filter((b) => matchesQuery(b, S.q))
-    .sort((a, b) => (b.the_date + b.start_time).localeCompare(a.the_date + a.start_time));
+    .sort(S.fSort === 'arrived' ? byArrival : byDate);
 }
 
 const pendingCount = () => S.bookings.filter((b) => b.status === 'pending').length;
@@ -641,6 +653,78 @@ const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
   + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
   + '<path d="M4 12.5 L9.5 18 L20 6.5"/></svg>';
 
+/* ── متى وصل الطلب ───────────────────────────────────────────────────
+   البطاقة كانت تقول متى الموعد ولا تقول متى وصل الطلب، وطلبٌ لبعد غدٍ
+   وصل قبل دقائق غيرُ طلبٍ للموعد نفسه وصل قبل أسبوع. والوقت محفوظٌ مع كلّ
+   حجزٍ منذ البداية (`created_at`)، فالإضافة عرضٌ لا بيانات. قريبُه بلغة
+   الوقت («قبل ٢٥ دقيقة»، «أمس ٨:٣٢ م»)، وما مضى عليه أسبوعٌ بتاريخه.
+   والطلب الجديد — بانتظار الردّ ووصل خلال يوم — بلون الهوية: هو ما يُنتظر
+   ردُّه، فلا يُترك يُقرأ كغيره. */
+function arTimes(n, one, two, few, many) {
+  // المثنّى بلا رقم، ومن ثلاثة إلى عشرة جمع («٣ دقائق»)، وما فوقها مفرد («٢٥ دقيقة»).
+  if (n === 1) return one;
+  if (n === 2) return two;
+  return `${int(n)} ${n <= 10 ? few : many}`;
+}
+const clockOf = (d) => fmtTime(`${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`);
+const stampOk = (iso) => !!iso && !Number.isNaN(new Date(iso).getTime());
+
+function arrivedWhen(iso, now = new Date()) {
+  const d = new Date(iso);
+  const mins = (now - d) / 60000;
+  if (mins < 1) return 'الآن';
+  if (mins < 60) return `قبل ${arTimes(Math.round(mins), 'دقيقة', 'دقيقتين', 'دقائق', 'دقيقة')}`;
+  if (mins < 360) return `قبل ${arTimes(Math.round(mins / 60), 'ساعة', 'ساعتين', 'ساعات', 'ساعة')}`;
+  const day = isoDate(d), t = isoDate(now);
+  if (day === t) return `اليوم ${clockOf(d)}`;
+  if (day === addDays(t, -1)) return `أمس ${clockOf(d)}`;
+  if (day > addDays(t, -7)) return `${WEEKDAYS[d.getDay()].name} ${clockOf(d)}`;
+  return `${fmtDate(day, { withDow: false, short: true })} · ${clockOf(d)}`;
+}
+
+/** «الإثنين ٢ نوفمبر ٢٠٢٦ · ٤:٤٢ م» — كاملًا في التفاصيل، بلا اختصار. */
+const stampFull = (iso) => { const d = new Date(iso); return `${fmtDate(isoDate(d))} · ${clockOf(d)}`; };
+
+/** كم سبق الطلبُ الموعد: «بيومين و٥ ساعات»، «بـ ٤ أيام»، «بـ ٣ ساعات».
+ *  بالقطع لا بالتقريب فلا يُقال أكثرُ ممّا كان، والساعات تُذكر مع اليوم
+ *  واليومين — «بيوم» وحدها لطلبٍ سبق بسبعٍ وأربعين ساعة تُضلّل. */
+function leadBefore(b) {
+  if (!stampOk(b.created_at) || !b.the_date || !b.start_time) return '';
+  const [h, m] = String(b.start_time).split(':').map(Number);
+  const at = parseDate(b.the_date); at.setHours(h || 0, m || 0, 0, 0);
+  const mins = Math.floor((at - new Date(b.created_at)) / 60000);
+  if (!(mins > 0)) return '';
+  const by = (n, one, two, few, many) => (n <= 2 ? 'ب' + (n === 1 ? one : two) : `بـ ${arTimes(n, one, two, few, many)}`);
+  const days = Math.floor(mins / 1440), hrs = Math.floor((mins % 1440) / 60);
+  if (days >= 3) return by(days, 'يوم', 'يومين', 'أيام', 'يومًا');
+  if (days >= 1) return by(days, 'يوم', 'يومين', 'أيام', 'يومًا')
+    + (hrs ? ` و${arTimes(hrs, 'ساعة', 'ساعتين', 'ساعات', 'ساعة')}` : '');
+  if (mins >= 60) return by(Math.floor(mins / 60), 'ساعة', 'ساعتين', 'ساعات', 'ساعة');
+  return by(mins, 'دقيقة', 'دقيقتين', 'دقائق', 'دقيقة');
+}
+
+function arrivedLine(b) {
+  if (!stampOk(b.created_at)) return '';
+  const fresh = b.status === 'pending' && Date.now() - new Date(b.created_at) < 864e5;
+  const label = b.source === 'client' ? 'وصل الطلب' : 'أُضيف يدويًا';
+  return `<span class="arrived${fresh ? ' fresh' : ''}">${icon('clock', 13)}`
+       + `<span>${label} ${esc(arrivedWhen(b.created_at))}</span></span>`;
+}
+
+/* صفوف الوقت في التفاصيل. والتأكيد يُذكر إن جاء بعد الوصول: اليدويّ يُنشأ
+   مؤكَّدًا في اللحظة نفسها، فسطرُ «تأكّد» له تكرارٌ لا معلومة. */
+function timeRows(b) {
+  if (!stampOk(b.created_at)) return '';
+  const row = (k, v) => `<div class="leader"><span class="k">${k}</span><span class="d"></span>
+        <span class="v" style="font-size:13.5px">${esc(v)}</span></div>`;
+  const lead = leadBefore(b);
+  const conf = stampOk(b.confirmed_at)
+    && Math.abs(new Date(b.confirmed_at) - new Date(b.created_at)) > 120000;
+  return row(b.source === 'client' ? 'وصل الطلب' : 'أُضيف', stampFull(b.created_at))
+       + (lead ? row('قبل الموعد', lead) : '')
+       + (conf ? row('تأكّد', stampFull(b.confirmed_at)) : '');
+}
+
 function bookingCard(b, { showDate = true } = {}) {
   const items = b.booking_items || [];
   const due = Number(b.price) - Number(b.deposit);
@@ -671,7 +755,7 @@ function bookingCard(b, { showDate = true } = {}) {
         <button class="bk-main" data-open="${b.id}">
           <span class="who">
             <b><span class="nm">${esc(b.client_name)}</span>${sourceMark(b)}</b>
-            <span class="meta">${esc(meta)}</span>
+            <span class="meta">${esc(meta)}</span>${arrivedLine(b)}
           </span>
           <span class="money">
             <span class="t">${money(b.price)}</span>
@@ -1278,6 +1362,11 @@ function renderBrowse() {
           ${f.id === 'all' ? '' : icon(SOURCES[f.id].icon, 14)}${esc(f.label)}
           <i>${int(srcCounts[f.id])}</i></button>`).join('')}
     </div>
+    <div class="chiprow mb">
+      ${SORTS.map((f) => `
+        <button class="chip" data-so="${f.id}" ${f.id === S.fSort ? 'aria-pressed="true"' : ''}>
+          ${f.id === 'arrived' ? icon('clock', 14) : ''}${esc(f.label)}</button>`).join('')}
+    </div>
     ${S.fPeriod === 'range' ? `
       <div class="split mb">
         <div class="field" style="margin:0"><label class="label" for="f-from">من</label>
@@ -1308,6 +1397,9 @@ function renderBrowse() {
   });
   view.querySelectorAll('[data-sr]').forEach((b) => b.onclick = () => {
     S.fSource = b.dataset.sr; render(); hydrateIcons(view);
+  });
+  view.querySelectorAll('[data-so]').forEach((b) => b.onclick = () => {
+    S.fSort = b.dataset.so; render(); hydrateIcons(view);
   });
   view.querySelectorAll('[data-pr]').forEach((b) => b.onclick = () => {
     S.fPeriod = b.dataset.pr; render(); hydrateIcons(view);
@@ -3584,6 +3676,7 @@ async function openBooking(id) {
         <span class="v" dir="ltr">${esc(prettyPhone(b.client_phone))}</span></div>
       <div class="leader"><span class="k">رقم الطلب</span><span class="d"></span>
         <span class="v" dir="ltr">${esc(b.ref)}</span></div>
+      ${timeRows(b)}
       ${b.loc_text ? `<div class="leader"><span class="k">الحي</span><span class="d"></span>
         <span class="v" style="font-size:13.5px">${esc(b.loc_text)}</span></div>` : ''}
     </div>
