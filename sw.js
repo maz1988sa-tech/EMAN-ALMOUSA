@@ -17,7 +17,7 @@
    وبقيت الأصول على حالها: بصمتُها تكفيها.
 */
 
-const VERSION = 'v41';
+const VERSION = 'v42';
 const SHELL = `shell-${VERSION}`;
 
 const ASSETS = [
@@ -37,8 +37,10 @@ const ASSETS = [
   './assets/favicon-admin.svg',
   './assets/icon-192.svg',
   './assets/icon-512.svg',
-  './assets/icon-admin-192.svg',
-  './assets/icon-admin-512.svg',
+  './assets/icon-admin-180.png',
+  './assets/icon-admin-192.png',
+  './assets/icon-admin-512.png',
+  './assets/icon-admin-maskable-512.png',
   './assets/fonts/amiri-arabic-400-normal.woff2',
   './assets/fonts/amiri-arabic-700-normal.woff2',
   './assets/fonts/amiri-latin-400-normal.woff2',

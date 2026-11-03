@@ -1,6 +1,6 @@
 {
-  "name": "لوحة التحكم — إيمان آل موسى",
-  "short_name": "لوحة التحكم",
+  "name": "إيمان",
+  "short_name": "إيمان",
   "description": "إدارة الحجوزات وأوقات العمل.",
   "lang": "ar",
   "dir": "rtl",
@@ -12,16 +12,22 @@
   "theme_color": "#2b1c16",
   "icons": [
     {
-      "src": "assets/icon-admin-192.svg",
+      "src": "assets/icon-admin-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "assets/icon-admin-512.svg",
+      "src": "assets/icon-admin-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-admin-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
