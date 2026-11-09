@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=65">
+<link rel="stylesheet" href="assets/fonts.css?v=66">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=65">
+<link rel="stylesheet" href="assets/client-theme.css?v=66">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -487,7 +487,7 @@ import {
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=65';
+} from './assets/db.js?v=66';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -1883,6 +1883,18 @@ function showClosed() {
 /* ════════════════════════════════════════════════════════════════════════
    صفحة المتابعة ?t=
    ════════════════════════════════════════════════════════════════════════ */
+/* أيقونات صفحة المتابعة — أشكالها منقولةٌ كما هي من مجموعة الأيقونات المعتمدة
+   (assets/icons.js)، والساعة الرمليّة مرسومةٌ بالقاعدة نفسها: شبكة ٢٤ وخطّ ١٫٥ بلا تعبئة. */
+const TK_PATHS = {
+  clock: '<path d="M12 3.6a8.4 8.4 0 1 0 0 16.8 8.4 8.4 0 0 0 0-16.8Z"/><path d="M12 7.6v4.6l3.1 1.9"/>',
+  pin: '<path d="M12 21c3.6-3.9 5.5-6.9 5.5-9.5a5.5 5.5 0 0 0-11 0C6.5 14.1 8.4 17.1 12 21Z"/><path d="M12 11.5h.01"/>',
+  whatsapp: '<path d="M4 20l1.3-3.9A7.6 7.6 0 1 1 8.1 18.8ZM9.4 9.1l-.7 1.2a1.2 1.2 0 0 0 .1 1.3 8 8 0 0 0 2.9 2.9 1.2 1.2 0 0 0 1.3.1l1.2-.7"/>',
+  plus: '<path d="M12 5.4v13.2M5.4 12h13.2"/>',
+  close: '<path d="M12 3.6a8.4 8.4 0 1 0 0 16.8 8.4 8.4 0 0 0 0-16.8Z"/><path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6"/>',
+  hourglass: '<path d="M7 3.8h10M7 20.2h10M8 3.8c0 4.6 8 5.6 8 8.2s-8 3.6-8 8.2M16 3.8c0 4.6-8 5.6-8 8.2s8 3.6 8 8.2"/>',
+};
+const tkIc = (n) => `<svg class="tk-ic" viewBox="0 0 24 24" aria-hidden="true">${TK_PATHS[n]}</svg>`;
+
 async function renderTracking(token) {
   const host = el('trackView');
   host.innerHTML = '<div class="track-wrap"><div class="sk" style="height:120px"></div><div class="sk" style="height:200px"></div></div>';
@@ -1906,43 +1918,56 @@ async function renderTracking(token) {
     cancelled: 'تم إلغاء الحجز', rejected: 'نعتذر، الموعد غير متاح', no_show: 'لم يتم الحضور',
   }[b.status] || statusLabel(b.status);
 
+  /* بطاقة الموعد — التصميم «أ» المعتمد (٩ نوفمبر ٢٠٢٦، CLAUDE.md §٧ي). */
+  const dparts = fmtDate(b.the_date).split(' ');            // [اليوم، الرقم، الشهر، السنة]
+  const hasDep = Number(b.deposit) > 0;
+  const depCell = hasDep
+    ? `<div><span class="lbl">العربون المستلم</span><b>${money(b.deposit)}<i class="rs"></i></b></div>`
+    : b.receipt_received
+      ? '<div><span class="lbl">إيصال العربون</span><b class="soft">قيد المراجعة</b></div>'
+      : b.status === 'pending'
+        ? '<div><span class="lbl">العربون</span><b class="soft">بانتظار التأكيد</b></div>' : '';
+  const dueCell = hasDep
+    ? `<div class="due"><span class="lbl">المتبقي</span><b>${due > 0 ? `${money(due)}<i class="rs"></i>` : '<span class="soft">مسدّد بالكامل</span>'}</b></div>` : '';
+  const stripCols = 1 + (depCell ? 1 : 0) + (dueCell ? 1 : 0);
+  const waLink = state.settings?.whatsapp_phone
+    ? `<a class="tk-wa" href="${waHref(state.settings.whatsapp_phone, `استفسار عن الحجز رقم ${b.ref}`)}" target="_blank" rel="noopener">${tkIc('whatsapp')}<span>تواصلي معنا</span></a>` : '';
+
   host.innerHTML = `
-    <div class="track-wrap">
-      <div class="track-hero">
-        <span class="seal"><svg width="22" height="16" viewBox="0 0 17 13" fill="none"><path d="M1 6.5 6 12 16 1" stroke="currentColor" stroke-width="1.5"/></svg></span>
+    <div class="track-wrap tk">
+      <div class="tk-head">
         <h2>${esc(headline)}</h2>
-        <p>رقم الطلب <span class="ref">${esc(b.ref)}</span></p>
+        <div class="tk-meta"><b class="t-pill ${tone}">${esc(statusLabel(b.status))}</b><span class="tk-ref">${esc(b.ref)}</span></div>
       </div>
-      <div class="t-rows">
-        <div class="row"><span>الحالة</span><b class="t-pill ${tone}">${esc(statusLabel(b.status))}</b></div>
-        <div class="row"><span>التاريخ</span><b>${fmtDate(b.the_date)}</b></div>
-        <div class="row"><span>الوقت</span><b dir="ltr">${time12(b.start_time)}</b></div>
-        <div class="row"><span>المدة</span><b>${fmtDuration(b.duration_min)}</b></div>
-        ${b.loc_text ? `<div class="row"><span>الموقع</span><b>${esc(b.loc_text)}</b></div>` : ''}
+      <div class="tk-when">
+        <div class="tk-day"><small>${esc(dparts[0] || '')}</small><b>${esc(dparts[1] || '')}</b><span>${esc((dparts[2] || '') + ' ' + (dparts[3] || ''))}</span></div>
+        <div class="tk-det">
+          <div>${tkIc('clock')}<span dir="ltr">${time12(b.start_time)}</span></div>
+          <div>${tkIc('hourglass')}<span>${fmtDuration(b.duration_min)}</span></div>
+          ${b.loc_text ? `<div>${tkIc('pin')}<span>${esc(b.loc_text)}</span></div>` : ''}
+        </div>
       </div>
-      <div class="t-rows">
+      <div class="tk-card">
+        <h3>الخدمات</h3>
         ${groupItems(items).map((g) => `<div class="row"><span>${esc(g.name)}${
           g.n > 1 ? ` <em class="qty">${g.n} × ${money(g.unit)}</em>` : ''}${
           g.people.length ? ` <em class="who-list">${esc(g.people.join(' · '))}</em>` : ''}</span><b>${money(g.total)}<i class="rs"></i></b></div>`).join('')}
         ${Number(b.discount) > 0 ? `
-          <div class="row"><span>المجموع قبل الخصم</span><b>${money(b.items_total)}<i class="rs"></i></b></div>
-          <div class="row"><span>خصم المجموعة</span><b>−${money(b.discount)}<i class="rs"></i></b></div>` : ''}
-        <div class="row"><span>الإجمالي</span><b>${money(b.price)}<i class="rs"></i></b></div>
-        ${Number(b.deposit) > 0 ? `
-          <div class="row"><span>العربون المستلم</span><b>${money(b.deposit)}<i class="rs"></i></b></div>
-          <div class="row"><span>المتبقي</span><b>${due > 0 ? `${money(due)}<i class="rs"></i>` : 'مسدّد بالكامل'}</b></div>`
-        : b.receipt_received ? `
-          <div class="row"><span>إيصال العربون</span><b class="t-pill warn">وصلنا الإيصال — قيد المراجعة</b></div>` : ''}
+          <div class="row sub"><span>المجموع قبل الخصم</span><b>${money(b.items_total)}<i class="rs"></i></b></div>
+          <div class="row off"><span>خصم المجموعة</span><b><span class="neg">−${money(b.discount)}</span><i class="rs"></i></b></div>` : ''}
+      </div>
+      <div class="tk-strip" style="--n:${stripCols}">
+        <div><span class="lbl">الإجمالي</span><b>${money(b.price)}<i class="rs"></i></b></div>
+        ${depCell}${dueCell}
       </div>
       ${b.cancel_requested && ['pending', 'confirmed'].includes(b.status)
         ? '<div class="state-msg"><p>وصلنا طلب الإلغاء وسيتم التواصل معك.</p></div>' : ''}
-      <div class="bk-actions">
+      <div class="tk-acts">
+        ${waLink}
         ${['pending', 'confirmed'].includes(b.status) && !b.cancel_requested
-          ? '<button class="bk-cal" type="button" id="askCancel"><span>طلب إلغاء الحجز</span></button>' : ''}
-        ${state.settings?.whatsapp_phone
-          ? `<a class="bk-cal" href="${waHref(state.settings.whatsapp_phone, `استفسار عن الحجز رقم ${b.ref}`)}" target="_blank" rel="noopener"><span>تواصلي معنا</span></a>` : ''}
+          ? `<button class="tk-ib cancel" type="button" id="askCancel" aria-label="طلب إلغاء الحجز" title="طلب إلغاء الحجز">${tkIc('close')}</button>` : ''}
+        <a class="tk-ib" href="./" aria-label="حجز موعد جديد" title="حجز موعد جديد">${tkIc('plus')}</a>
       </div>
-      <p style="text-align:center"><a class="c-top" href="./">حجز موعد جديد</a></p>
     </div>`;
 
   const cancelBtn = el('askCancel');
