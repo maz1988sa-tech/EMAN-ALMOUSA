@@ -19,6 +19,9 @@ srv = socketserver.TCPServer(("127.0.0.1", 0), functools.partial(H, directory=RO
 PORT = srv.server_address[1]
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 MOCK = open(os.path.join(ROOT, "dev/mock-supabase.js"), encoding="utf-8").read()
+_CNT = "if (fn === 'request_cancel') { window.__CANCEL = (window.__CANCEL || 0) + 1; return ok(true); }"
+assert "if (fn === 'request_cancel') return ok(true);" in MOCK
+MOCK = MOCK.replace("if (fn === 'request_cancel') return ok(true);", _CNT)
 
 ok = fail = 0
 def rec(n, c, x=""):
@@ -83,10 +86,35 @@ async def main():
     rec("وأسماء من طلبنها", "لمى" in g["txt"] and "هند" in g["txt"], "")
     rec("بلا أخطاء (قيد المراجعة)", not errs, "; ".join(errs[:2]))
     await pg.screenshot(path=f"{_H.SHOTS}/track-pending.png", full_page=True)
-    # طلب الإلغاء ما زال يعمل
-    await pg.evaluate("()=>document.getElementById('askCancel').click()")
-    await pg.wait_for_timeout(1200)
-    rec("زرّ الإلغاء يعمل ويُعاد الرسم", await pg.evaluate("()=>!!document.getElementById('trackView').innerText"), "")
+    # الإلغاء لا يُرسَل من ضغطةٍ واحدة: الأيقونة تفتح نافذة تأكيد فقط
+    cnt = lambda: pg.evaluate("()=>window.__CANCEL||0")
+    isopen = lambda: pg.evaluate("()=>document.getElementById('cancelModal').classList.contains('open')")
+    rec("النافذة مغلقة قبل الضغط", not await isopen(), "")
+    await pg.evaluate("()=>document.getElementById('askCancel').click()"); await pg.wait_for_timeout(500)
+    rec("ضغطةٌ على الأيقونة تفتح نافذة التأكيد", await isopen(), "")
+    rec("ولا يُرسَل طلبٌ بعد الضغطة الأولى", await cnt() == 0, str(await cnt()))
+    info = await pg.evaluate("""()=>({t:document.getElementById('cancelTitle').innerText,
+      n:document.getElementById('cancelNote').innerText,
+      yes:document.getElementById('cancelYes').innerText, no:document.getElementById('cancelNo').innerText,
+      focus:document.activeElement && document.activeElement.id,
+      hid:document.getElementById('cancelModal').getAttribute('aria-hidden')})""")
+    rec("العنوان والسؤال والزرّان", info["t"] == "طلب إلغاء الحجز" and "تأكيد إلغاء حجزك" in info["n"]
+        and info["yes"] == "تأكيد الإلغاء" and info["no"] == "تراجع", str(info))
+    rec("والتركيز على «تراجع» لا على الإلغاء", info["focus"] == "cancelNo" and info["hid"] == "false", str(info))
+    await pg.evaluate("()=>document.getElementById('cancelNo').click()"); await pg.wait_for_timeout(400)
+    rec("«تراجع» يغلقها بلا إرسال", not await isopen() and await cnt() == 0, str(await cnt()))
+    await pg.evaluate("()=>document.getElementById('askCancel').click()"); await pg.wait_for_timeout(300)
+    await pg.keyboard.press("Escape"); await pg.wait_for_timeout(300)
+    rec("وزرّ Escape يغلقها بلا إرسال", not await isopen() and await cnt() == 0, str(await cnt()))
+    await pg.evaluate("()=>document.getElementById('askCancel').click()"); await pg.wait_for_timeout(300)
+    await pg.evaluate("()=>document.getElementById('cancelVeil').click()"); await pg.wait_for_timeout(300)
+    rec("والضغط خارجها يغلقها بلا إرسال", not await isopen() and await cnt() == 0, str(await cnt()))
+    await pg.evaluate("()=>document.getElementById('askCancel').click()"); await pg.wait_for_timeout(500)
+    await pg.screenshot(path=f"{_H.SHOTS}/track-cancel-dialog.png")
+    await pg.evaluate("()=>document.getElementById('cancelYes').click()"); await pg.wait_for_timeout(1500)
+    rec("«تأكيد الإلغاء» وحده يُرسل الطلب — مرّةً واحدة", await cnt() == 1, str(await cnt()))
+    rec("وتُغلق النافذة", not await isopen(), "")
+    rec("بلا أخطاء في مسار الإلغاء", not errs, "; ".join(errs[:2]))
     await ctx.close()
 
     # ٣) منجَز: لا زرّ إلغاء، وزرّ الحجز الجديد باقٍ

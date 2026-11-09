@@ -727,6 +727,12 @@ button{border:0;background:none;cursor:pointer}
 .tk-ib.cancel{color:#8a3b32}
 .tk-ib .tk-ic{width:19px;height:19px}
 .tk-wa:focus-visible,.tk-ib:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+.cx-acts{display:grid;gap:10px;margin-top:18px}
+.cx-no,.cx-yes{height:46px;font-size:14px;font-weight:500}
+.cx-no{background:var(--ink);color:#fff}
+.cx-yes{background:transparent;border:1px solid #8a3b32;color:#8a3b32}
+.cx-yes[disabled]{opacity:.5}
+.cx-no:focus-visible,.cx-yes:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
 .t-pill{padding:5px 11px;border-radius:999px;font-size:10px;border:1px solid var(--line-l)}
 .t-pill.ok{background:rgba(95,115,89,.14);border-color:rgba(95,115,89,.4);color:#4a5b45}
 .t-pill.warn{background:rgba(176,112,92,.14);border-color:rgba(176,112,92,.42);color:#8a5442}
