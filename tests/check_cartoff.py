@@ -29,7 +29,7 @@ async def main():
             await pg.evaluate("()=>window.__pick(1,2)")
             await pg.wait_for_timeout(120)
             mid=await pg.evaluate("()=>{const e=document.getElementById('cartOff');const cs=getComputedStyle(e);return {pop:e.classList.contains('pop'),anim:cs.animationName,t:cs.transform};}")
-            await pg.wait_for_timeout(800)
+            await pg.wait_for_timeout(1300)
             end=await pg.evaluate("""()=>{const e=document.getElementById('cartOff');const cs=getComputedStyle(e);
               const bar=document.getElementById('svcCart').getBoundingClientRect();
               const inner=document.querySelector('#svcRail .svc.active .svc-inner');
@@ -45,10 +45,16 @@ async def main():
             rec(f"[{vh}] الشريط لا يغطّي زر الحجز", end["btnBottom"] <= end["barTop"],
                 f"btn={end['btnBottom']} bar={end['barTop']} h={end['barH']}")
 
-            # تغيّر المبلغ يعيد القفزة
+            # تغيّر المبلغ بعد الظهور الأوّل لا يعيد الحركة — المبلغ يتغيّر بصمت
             await pg.evaluate("()=>window.__pick(1,3)"); await pg.wait_for_timeout(120)
-            again=await pg.evaluate("()=>document.getElementById('cartOff').classList.contains('pop')")
-            if vh==700: rec("تغيّر المبلغ يعيد القفزة", again, "")
+            again=await pg.evaluate("""()=>{const e=document.getElementById('cartOff');
+              return {running:e.getAnimations().some(a=>a.playState==='running'),t:getComputedStyle(e).transform,txt:e.innerText}}""")
+            if vh==700: rec("تغيّر المبلغ لا يعيد الحركة، والمبلغ يتبع العدد", not again["running"] and again["t"] in ("none","matrix(1, 0, 0, 1, 0, 0)") and "300" in again["txt"], str(again))
+            # يختفي الخصم ثمّ يرجع ⇒ ظهورٌ أوّل من جديد بحركته
+            await pg.evaluate("()=>window.__pick(1,1)"); await pg.wait_for_timeout(300)
+            await pg.evaluate("()=>window.__pick(1,2)"); await pg.wait_for_timeout(120)
+            back=await pg.evaluate("()=>document.getElementById('cartOff').getAnimations().some(a=>a.playState==='running')")
+            if vh==700: rec("إذا اختفى الخصم ثمّ رجع يظهر بحركته من جديد", back, "")
             if vh==700: await pg.screenshot(path=f"{_H.SHOTS}/15-cart-off.png")
             await ctx.close()
         await b.close()

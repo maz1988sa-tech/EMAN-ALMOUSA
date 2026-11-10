@@ -156,15 +156,16 @@ button{border:0;background:none;cursor:pointer}
   font-size:17px;font-weight:500;line-height:1.3;
   color:var(--blush);transform-origin:right center}
 .svc-cart .cart-off[hidden]{display:none}
-/* يظهر بقفزة تلفت العين ثم يستقرّ — يُشغَّل عند أول ظهور وعند تغيّر المبلغ. */
+/* يظهر كبيرًا متوهّجًا فوق الشريط ثمّ يصغر وينزل إلى مكانه — عند أول ظهورٍ وحده،
+   وتغيّرُ المبلغ بعده بلا حركة (١٠ نوفمبر). والمبلغ أبيض أعرض ليُقرأ من نظرة. */
+.svc-cart .cart-off #cartOffVal{color:#fff;font-weight:700}
 @keyframes offPop{
-  0%  {opacity:0;transform:scale(.82) translateY(4px)}
-  42% {opacity:1;transform:scale(1.16)}
-  64% {transform:scale(.96)}
-  82% {transform:scale(1.05)}
-  100%{opacity:1;transform:none}
+  0%  {opacity:0;transform:translateY(-56px) scale(1.35);text-shadow:0 0 0 rgba(230,194,177,0)}
+  22% {opacity:1;transform:translateY(-56px) scale(1.35);text-shadow:0 0 18px rgba(230,194,177,.9)}
+  100%{opacity:1;transform:none;text-shadow:0 0 0 rgba(230,194,177,0)}
 }
-.cart-off.pop{animation:offPop .62s var(--ease) both}
+.cart-off.pop{animation:offPop 1.1s cubic-bezier(.2,.9,.25,1.15) both}
+@media (prefers-reduced-motion:reduce){.cart-off.pop{animation:none}}
 
 .cart-go{height:46px;padding:0 20px;border-radius:999px;background:#fff;color:var(--ink);font-size:12.5px;display:flex;align-items:center;gap:10px;transition:transform .18s ease}
 .cart-go:active{transform:scale(.97)}
