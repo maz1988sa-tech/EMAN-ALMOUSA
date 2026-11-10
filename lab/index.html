@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=67">
+<link rel="stylesheet" href="assets/fonts.css?v=68">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=67">
+<link rel="stylesheet" href="assets/client-theme.css?v=68">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -90,6 +90,7 @@
     <section class="screen svc-screen" data-name="الخدمات">
       <div class="svc-rail" id="svcRail"></div>
       <div class="svc-progress" id="svcProgress"></div>
+      <div class="svc-head" id="svcHead"><span class="k">اختاري إطلالتك</span><h2>خدماتنا</h2></div>
       <button class="arrow l" id="svcNext" type="button" aria-label="التالي"><svg width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M8 1 1.5 7.5 8 14" stroke="currentColor" stroke-width="1.2"/></svg></button>
       <button class="arrow r" id="svcPrev" type="button" aria-label="السابق" disabled><svg width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="m1 1 6.5 6.5L1 14" stroke="currentColor" stroke-width="1.2"/></svg></button>
       <div class="svc-cart" id="svcCart">
@@ -505,7 +506,7 @@ import {
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=67';
+} from './assets/db.js?v=68';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -696,7 +697,7 @@ document.addEventListener('touchend', (e) => {
   if (dt > MAXT) return;
   if (Math.abs(dx) > Math.abs(dy)) {
     if (Math.abs(dx) < TH) return;
-    if (idx === 1) goSvc(sIdx + (dx < 0 ? 1 : -1));
+    if (idx === 1 && !splitOn()) goSvc(sIdx + (dx < 0 ? 1 : -1));
     return;
   }
   if (Math.abs(dy) < TH) return;
@@ -742,8 +743,15 @@ function renderServices() {
     cards = [];
     return;
   }
+  /* خدمتان بالضبط ⇒ الشاشة المقسومة: الخدمتان معًا من أوّل لحظة، فلا تظنّ
+     العميلة أنّ الميك اب للعرائس وحدهنّ. وما عدا ذلك يبقى كما كان (شريطٌ
+     يُسحب جانبًا) لأنّ الأنصاف تضيق إن زادت الخدمات. */
+  const split = state.services.length === 2;
+  splitMode(split);
   svcRail.innerHTML = state.services.map((s, i) => {
     const m = mediaFor(s);
+    const nm = split ? shortName(s.name) : s.name;
+    const hasOff = s.group_discount && Number(state.settings?.group_discount_amount || 0) > 0;
     const fs = frameStyle(m);
     const bg = m.video
       ? `<video class="bg" muted loop playsinline preload="metadata" poster="${m.poster}" style="${fs}"><source src="${m.video}"></video>`
@@ -751,12 +759,14 @@ function renderServices() {
     return `
       <article class="svc${i === 0 ? ' active' : ''}" data-svc="${esc(s.id)}">
         <div class="bgwrap">${bg}</div>
-        <div class="svc-num">${String(i + 1).padStart(2, '0')}</div>
+        <div class="svc-num">${String(i + 1).padStart(2, '0')}</div>${split ? `
+        <div class="svc-lbl"><b>${esc(nm)}</b><span class="pm"><span>${esc(fmtDuration(Number(s.duration_min)))}</span><i class="dot"></i><span dir="ltr">${money(s.price)}<i class="rs"></i></span></span>${hasOff ? '<span class="offtag">يُطبَّق خصم المجموعات</span>' : ''}</div>
+        <div class="svc-tap"><span>اضغطي للتفاصيل</span></div>` : ''}
         <div class="svc-inner">
           <div class="svc-kicker">اختاري إطلالتك</div>
           <div class="svc-body">
             <div class="svc-count">${String(i + 1).padStart(2, '0')} / ${String(state.services.length).padStart(2, '0')}<em></em></div>
-            <h2>${esc(s.name)}</h2>
+            <h2>${esc(nm)}</h2>
             <p class="sub">${esc((s.name.match(/عروس|عرائس/) ? 'BRIDAL LOOK' : s.name.match(/سهر/) ? 'EVENING LOOK' : 'SIGNATURE LOOK'))}</p>
             <div class="svc-hr"></div>
             <div class="meta"><span>المدة <b>${esc(fmtDuration(Number(s.duration_min)))}</b></span><i class="dot"></i><span>القيمة <b>${money(s.price)}</b><i class="rs"></i></span>${
@@ -780,7 +790,9 @@ function renderServices() {
           </div>
         </div>
       </article>`;
-  }).join('');
+  }).join('') + (split
+    ? '<div class="svc-hdl" role="slider" tabindex="0" aria-label="الفاصل بين الخدمتين، اسحبيه لتكبير إحدى الخدمتين" aria-valuemin="9" aria-valuemax="91" aria-valuenow="50"><span class="grip"></span></div>'
+    : '');
 
   svcProgress.style.gridTemplateColumns = `repeat(${state.services.length},1fr)`;
   svcProgress.innerHTML = state.services.map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join('');
@@ -792,6 +804,7 @@ function renderServices() {
   nextBtn.disabled = state.services.length < 2;
   prevBtn.disabled = true;
   sIdx = 0;
+  if (split) { splitP = .5; splitApply(false); }
   paintCards();
 }
 
@@ -801,6 +814,10 @@ function paintCards() {
     if (!card) return;
     const n = state.counts[s.id] || 0, on = n > 0;
     card.classList.toggle('picked', on);
+    /* في الشاشة المقسومة يُقال على الشريحة نفسها إن كانت الخدمة مختارة، وإلّا
+       ظنّت العميلة أنّها لم تختر وهي ترى الفيديوين معًا. */
+    const tap = card.querySelector('.svc-tap span');
+    if (tap) tap.textContent = on ? `تمت الإضافة${n > 1 ? ` · ${n}` : ''}` : 'اضغطي للتفاصيل';
     const pick = card.querySelector('.pick');
     pick.classList.toggle('on', on);
     pick.querySelector('.lbl').textContent = on ? 'عدد الأشخاص' : 'احجزي هذه الخدمة';
@@ -841,8 +858,100 @@ function onCartChange() {
   if (monthMins !== totalMins()) loadMonth(curY, curM);
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+   الشاشة المقسومة — خدمتان
+   خطٌّ فاصل بين الفيديوين يُسحب: يكبر الفيديو في اتجاه السحب، وعند الترك قريبًا
+   من الحافة يُكمل وحده، وإن كان بعيدًا يقف حيث تُرك. والضغط على فيديو صغير
+   يكبّره وعلى المكبَّر يعيد الاثنين. لا أزرار.
+   ════════════════════════════════════════════════════════════════════════ */
+const SPLIT_MIN = .09, SPLIT_MAX = .91, SPLIT_RATE = .5;
+let splitP = .5, splitDrag = null, splitHush = false;
+const splitOn = () => svcRail.classList.contains('split');
+/* اسم الخدمة في القاعدة قد يحمل ملاحظةً بين قوسين («… (يطبق خصم للمجموعات)») —
+   هنا يُعرض الاسم وحده، والخصم يُقال بوسمٍ مستقلّ فلا يلتفّ الاسم ولا يختلّ
+   اصطفاف الخدمتين. وهو عرضٌ فقط: السلة والفاتورة تبقيان بالاسم المحفوظ. */
+const shortName = (n) => String(n).replace(/\s*[(（][^)）]*[)）]\s*$/, '').trim() || String(n);
+function splitMode(on) {
+  svcRail.classList.toggle('split', on);
+  document.querySelector('.svc-screen').classList.toggle('is-split', on);
+}
+function splitPlace() {
+  const h = svcRail.querySelector('.svc-hdl');
+  if (h && cards[0]) h.style.left = `${cards[0].offsetWidth + 1.5}px`;
+}
+function splitApply(animate) {
+  if (cards.length !== 2) return;
+  splitP = Math.max(SPLIT_MIN, Math.min(SPLIT_MAX, splitP));
+  cards[0].style.flexGrow = splitP; cards[1].style.flexGrow = 1 - splitP;
+  const L = splitP >= .58, R = splitP <= .42;
+  cards[0].classList.toggle('sel', L); cards[0].classList.toggle('nar', R);
+  cards[1].classList.toggle('sel', R); cards[1].classList.toggle('nar', L);
+  sIdx = splitP >= .5 ? 0 : 1;
+  cards.forEach((c, i) => c.classList.toggle('active', i === sIdx));
+  const h = svcRail.querySelector('.svc-hdl');
+  if (h) h.setAttribute('aria-valuenow', String(Math.round(splitP * 100)));
+  /* الخطّ يتبع الحدّ طوال حركة التوسيع لا في نهايتها. */
+  if (animate) {
+    const t = performance.now();
+    (function f() { splitPlace(); if (performance.now() - t < 800) requestAnimationFrame(f); })();
+  } else splitPlace();
+}
+svcRail.addEventListener('pointerdown', (e) => {
+  if (!splitOn() || e.button > 0 || e.target.closest('.pick')) return;
+  splitDrag = { x: e.clientX, p0: splitP, moved: false, onH: !!e.target.closest('.svc-hdl'), t: performance.now() };
+});
+document.addEventListener('pointermove', (e) => {
+  if (!splitDrag) return;
+  const dx = e.clientX - splitDrag.x;
+  if (!splitDrag.moved) {
+    if (Math.abs(dx) < (splitDrag.onH ? 3 : 9)) return;
+    splitDrag.moved = true; svcRail.classList.add('dragging');
+  }
+  splitP = splitDrag.p0 + dx / svcRail.clientWidth; splitApply(false);
+});
+document.addEventListener('pointerup', (e) => {
+  if (!splitDrag) return;
+  const d = splitDrag; splitDrag = null; svcRail.classList.remove('dragging');
+  if (!d.moved) return;
+  splitHush = true; setTimeout(() => { splitHush = false; }, 90);
+  const v = (e.clientX - d.x) / Math.max(1, performance.now() - d.t);
+  if (splitP >= .74 || (v > .6 && splitP > .55)) splitP = SPLIT_MAX;
+  else if (splitP <= .26 || (v < -.6 && splitP < .45)) splitP = SPLIT_MIN;
+  splitApply(true);
+});
+document.addEventListener('pointercancel', () => {
+  if (!splitDrag) return;
+  splitDrag = null; svcRail.classList.remove('dragging'); splitApply(true);
+});
+svcRail.addEventListener('click', (e) => {
+  if (!splitOn() || splitHush || e.target.closest('.pick, .svc-hdl')) return;
+  const card = e.target.closest('.svc'); if (!card) return;
+  const i = cards.indexOf(card);
+  const wide = i === 0 ? splitP >= .58 : splitP <= .42;
+  splitP = wide ? .5 : (i === 0 ? SPLIT_MAX : SPLIT_MIN);
+  splitApply(true);
+});
+svcRail.addEventListener('keydown', (e) => {
+  const h = e.target.closest && e.target.closest('.svc-hdl');
+  if (!h || !splitOn()) return;
+  if (e.key === 'ArrowLeft') splitP -= .1;
+  else if (e.key === 'ArrowRight') splitP += .1;
+  else if (e.key === 'Home') splitP = SPLIT_MIN;
+  else if (e.key === 'End') splitP = SPLIT_MAX;
+  else if (e.key === 'Enter') splitP = .5;
+  else return;
+  e.preventDefault(); e.stopPropagation(); splitApply(true);
+});
+if (window.ResizeObserver) new ResizeObserver(splitPlace).observe(svcRail);
+
 function goSvc(n) {
   n = Math.max(0, Math.min(cards.length - 1, n));
+  if (splitOn() && cards.length === 2) {
+    /* المفاتيح والأسهم تكبّر الخدمة المطلوبة، كما يفعل السحب بالضبط. */
+    const want = n === 0 ? SPLIT_MAX : SPLIT_MIN;
+    if (Math.abs(splitP - want) > .005) { splitP = want; splitApply(true); }
+    return;
+  }
   if (n === sIdx || !cards.length) return;
   sIdx = n;
   svcRail.style.transform = `translate3d(${-n * 100}%,0,0)`;
@@ -859,7 +968,12 @@ prevBtn.addEventListener('click', () => goSvc(sIdx - 1));
 function playVideos() {
   cards.forEach((c, i) => {
     const v = c.querySelector('video'); if (!v) return;
-    if (idx === 1 && i === sIdx) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+    if (idx === 1 && (i === sIdx || splitOn())) {
+      /* في الشاشة المقسومة يعمل الفيديوان معًا وبنصف السرعة: بسرعته الأصلية
+         يُتعب العين حين يتجاور اثنان — طلب صاحب المشروع. */
+      if (splitOn()) { v.defaultPlaybackRate = SPLIT_RATE; v.playbackRate = SPLIT_RATE; }
+      const p = v.play(); if (p && p.catch) p.catch(() => {});
+    }
     else { try { v.pause(); } catch { /* ignore */ } }
   });
 }
@@ -1878,6 +1992,7 @@ function showError(err) {
   console.error(err);
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
   const isNetwork = offline || err instanceof TypeError;
+  splitMode(false);
   svcRail.innerHTML = `<article class="svc active"><div class="bgwrap"><img class="bg" src="${UI.fallback.poster}" alt=""></div>
     <div class="svc-inner"><div class="svc-body">
       <h2>${isNetwork ? 'تعذّر الاتصال' : 'تعذّر تحميل البيانات'}</h2>
@@ -1889,6 +2004,7 @@ function showError(err) {
 
 function showClosed() {
   const wa = state.settings?.whatsapp_phone;
+  splitMode(false);
   svcRail.innerHTML = `<article class="svc active"><div class="bgwrap"><img class="bg" src="${UI.fallback.poster}" alt=""></div>
     <div class="svc-inner"><div class="svc-body">
       <h2>الحجز مغلق مؤقتًا</h2>

@@ -181,6 +181,48 @@ button{border:0;background:none;cursor:pointer}
 .svc-swipe svg{animation:swipeX 1.9s ease-in-out infinite}
 @keyframes swipeX{0%,100%{transform:translateX(0);opacity:.55}50%{transform:translateX(-6px);opacity:1}}
 
+/* ════════════════════════════════════════════════════════════════════════
+   الشاشة المقسومة — خدمتان (٩ نوفمبر ٢٠٢٦، التصميم «ب»)
+   ════════════════════════════════════════════════════════════════════════ */
+.svc-screen{--svc-pb:calc(var(--gut) + env(safe-area-inset-bottom))}
+.svc-screen.has-cart{--svc-pb:calc(var(--gut) + var(--cart-h,89px) + 15px + env(safe-area-inset-bottom))}
+.svc-head{display:none;position:absolute;z-index:6;top:calc(var(--bar) + 6px);inset-inline:20px;flex-direction:column;align-items:center;gap:8px;text-align:center;pointer-events:none}
+.svc-head .k{font-size:11px;font-weight:200;letter-spacing:.06em;color:#fff}
+.svc-head h2{margin:0;font-size:21px;font-weight:500;letter-spacing:-.01em;text-shadow:0 1px 10px rgba(0,0,0,.5)}
+.svc-lbl,.svc-tap{display:none}
+.is-split .svc-head{display:flex}
+.is-split .svc-progress,.is-split .arrow{display:none}
+.svc-rail.split{position:relative;gap:3px;touch-action:none;transform:none!important;transition:none}
+.svc-rail.split.dragging{cursor:ew-resize}
+.svc-rail.split .svc{flex:1 1 0;min-width:0;cursor:pointer;transition:flex-grow .6s var(--ease)}
+.svc-rail.split.dragging .svc{transition:none}
+.svc-rail.split .svc .bgwrap{inset:0;transform:none!important}
+.svc-rail.split .svc-kicker,.svc-rail.split .svc-swipe{display:none}
+.svc-rail.split .svc-num{inset-inline:0;left:0;right:0;top:calc(var(--bar) + 78px);text-align:center;font:400 34px/1 var(--serif);color:rgba(255,255,255,.9);letter-spacing:0;transition:opacity .35s}
+.svc-rail.split .svc-lbl{display:flex;position:absolute;z-index:3;inset-inline:12px;bottom:calc(var(--svc-pb) + 82px);flex-direction:column;align-items:center;gap:8px;text-align:center;transition:opacity .35s}
+.svc-lbl b{font-size:18px;font-weight:500;line-height:1.25;white-space:nowrap}
+.svc-lbl .pm{display:flex;direction:rtl;align-items:center;justify-content:center;gap:7px;font-size:12px;color:rgba(255,255,255,.85)}
+.svc-lbl .pm .dot{width:3px;height:3px;border-radius:50%;background:var(--clay-2)}
+.svc-lbl .offtag{position:absolute;top:100%;margin-top:9px;white-space:nowrap;font-size:11.5px;font-weight:500;line-height:1.3;color:var(--blush);border:1px solid rgba(201,138,114,.6);background:rgba(176,112,92,.22);border-radius:999px;padding:5px 11px}
+.svc-rail.split .svc-tap{display:flex;position:absolute;z-index:3;inset-inline:6px;bottom:var(--svc-pb);justify-content:center;transition:opacity .35s}
+.svc-tap span{font-size:12px;padding:9px 14px;border:1px solid rgba(255,255,255,.4);border-radius:999px;background:rgba(21,12,9,.28);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);white-space:nowrap}
+.svc.picked .svc-tap span{background:rgba(255,255,255,.94);color:var(--ink);border-color:transparent}
+.svc-rail.split .svc-body{visibility:hidden;opacity:0;transform:translateY(16px);pointer-events:none;transition:opacity .4s,transform .5s var(--ease),visibility 0s .4s}
+.svc-rail.split .svc.sel .svc-body{visibility:visible;opacity:1;transform:none;pointer-events:auto;transition:opacity .4s,transform .5s var(--ease),visibility 0s}
+.svc-rail.split .svc.sel .svc-lbl,.svc-rail.split .svc.sel .svc-tap,.svc-rail.split .svc.sel .svc-num{opacity:0;pointer-events:none}
+.svc-rail.split .svc.nar::after{background:rgba(21,12,9,.62)}
+.svc-rail.split .svc.nar .svc-lbl{inset-inline:0;bottom:calc(var(--svc-pb) + 96px)}
+.svc-rail.split .svc.nar .svc-lbl b{writing-mode:vertical-rl;transform:rotate(180deg);font-size:14px}
+.svc-rail.split .svc.nar .svc-lbl .pm,.svc-rail.split .svc.nar .svc-lbl .offtag,.svc-rail.split .svc.nar .svc-tap,.svc-rail.split .svc.nar .svc-num{opacity:0}
+/* الخطّ الفاصل: يُسحب بالإصبع، لا زرّ فيه */
+.svc-hdl{position:absolute;z-index:8;top:0;bottom:0;left:50%;width:36px;margin-left:-18px;cursor:ew-resize;display:flex;align-items:center;justify-content:center;touch-action:none;outline:none}
+.svc-hdl::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:2px;margin-left:-1px;background:rgba(255,255,255,.92);box-shadow:0 0 10px rgba(0,0,0,.45)}
+.svc-hdl .grip{position:relative;width:7px;height:56px;border-radius:4px;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.5);transition:height .2s;animation:gripPulse 2.4s ease-in-out infinite}
+.svc-rail.dragging .svc-hdl .grip{height:72px;animation:none}
+.svc-hdl:focus-visible .grip{outline:2px solid var(--clay-2);outline-offset:3px}
+@keyframes gripPulse{0%,100%{box-shadow:0 2px 12px rgba(0,0,0,.5),0 0 0 0 rgba(255,255,255,.45)}60%{box-shadow:0 2px 12px rgba(0,0,0,.5),0 0 0 9px rgba(255,255,255,0)}}
+@media (prefers-reduced-motion:reduce){.svc-hdl .grip{animation:none}}
+
 /* light screens */
 .light{background:var(--paper);color:var(--ink)}
 .light::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 58% at 50% -8%,rgba(176,112,92,.13),transparent 62%)}
