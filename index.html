@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=54">
+<link rel="stylesheet" href="assets/fonts.css?v=55">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=54">
+<link rel="stylesheet" href="assets/client-theme.css?v=55">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -481,7 +481,7 @@ import {
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=54';
+} from './assets/db.js?v=55';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -775,10 +775,6 @@ function paintCards() {
     if (!card) return;
     const n = state.counts[s.id] || 0, on = n > 0;
     card.classList.toggle('picked', on);
-    /* في الشاشة المقسومة يُقال على الشريحة نفسها إن كانت الخدمة مختارة، وإلّا
-       ظنّت العميلة أنّها لم تختر وهي ترى الفيديوين معًا. */
-    const tap = card.querySelector('.svc-tap span');
-    if (tap) tap.textContent = on ? `تمت الإضافة${n > 1 ? ` · ${n}` : ''}` : 'اضغطي للتفاصيل';
     const pick = card.querySelector('.pick');
     pick.classList.toggle('on', on);
     pick.querySelector('.lbl').textContent = on ? 'عدد الأشخاص' : 'احجزي هذه الخدمة';
@@ -854,7 +850,7 @@ function splitApply(animate) {
 }
 svcRail.addEventListener('pointerdown', (e) => {
   if (!splitOn() || e.button > 0 || e.target.closest('.pick')) return;
-  splitDrag = { x: e.clientX, p0: splitP, moved: false, onH: !!e.target.closest('.svc-hdl'), t: performance.now() };
+  splitDrag = { x: e.clientX, p0: splitP, moved: false, onH: !!e.target.closest('.svc-hdl'), trail: [{ x: e.clientX, t: performance.now() }] };
 });
 document.addEventListener('pointermove', (e) => {
   if (!splitDrag) return;
@@ -863,6 +859,10 @@ document.addEventListener('pointermove', (e) => {
     if (Math.abs(dx) < (splitDrag.onH ? 3 : 9)) return;
     splitDrag.moved = true; svcRail.classList.add('dragging');
   }
+  /* آخر ١٢٠ مللي وحدها تقرّر السرعة: من بدأت بطيئةً ثمّ قذفت بإصبعها أرادت الانتقال. */
+  const now = performance.now(), tr = splitDrag.trail;
+  tr.push({ x: e.clientX, t: now });
+  while (tr.length > 2 && now - tr[0].t > 120) tr.shift();
   splitP = splitDrag.p0 + dx / svcRail.clientWidth; splitApply(false);
 });
 document.addEventListener('pointerup', (e) => {
@@ -870,9 +870,15 @@ document.addEventListener('pointerup', (e) => {
   const d = splitDrag; splitDrag = null; svcRail.classList.remove('dragging');
   if (!d.moved) return;
   splitHush = true; setTimeout(() => { splitHush = false; }, 90);
-  const v = (e.clientX - d.x) / Math.max(1, performance.now() - d.t);
-  if (splitP >= .74 || (v > .6 && splitP > .55)) splitP = SPLIT_MAX;
-  else if (splitP <= .26 || (v < -.6 && splitP < .45)) splitP = SPLIT_MIN;
+  /* السحبة السريعة نيّةُ انتقال: تُكمل إلى آخرها في اتّجاهها أينما بدأت. والبطيئة
+     تقف حيث تُركت، إلّا قرب الحافة فتُكمل. */
+  const t0 = d.trail[0], last = d.trail[d.trail.length - 1], now = performance.now();
+  const v = now - last.t > 100 ? 0 : (e.clientX - t0.x) / Math.max(16, now - t0.t);
+  const far = Math.abs(e.clientX - d.x) >= 24;
+  if (far && v > .3) splitP = SPLIT_MAX;
+  else if (far && v < -.3) splitP = SPLIT_MIN;
+  else if (splitP >= .74) splitP = SPLIT_MAX;
+  else if (splitP <= .26) splitP = SPLIT_MIN;
   splitApply(true);
 });
 document.addEventListener('pointercancel', () => {

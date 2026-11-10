@@ -82,12 +82,34 @@ async def main():
             async def drag_to(f_, release=True):
                 gg = await pg.evaluate(GEO); rail_x = gg["hdl"]["cx"] - gg["w"][0] - 1.5
                 await pg.mouse.move(gg["hdl"]["cx"], gg["hdl"]["cy"]); await pg.mouse.down()
-                await pg.mouse.move(rail_x + gg["railW"] * f_, gg["hdl"]["cy"], steps=24)
-                await pg.wait_for_timeout(80)
+                x0, x1 = gg["hdl"]["cx"], rail_x + gg["railW"] * f_
+                for k in range(1, 31):  # سحبٌ بطيء: ~٣٠ خطوة كلٌّ ٢٥ مللي
+                    await pg.mouse.move(x0 + (x1 - x0) * k / 30, gg["hdl"]["cy"]); await pg.wait_for_timeout(25)
+                await pg.wait_for_timeout(40)
                 mid = await pg.evaluate(GEO)
                 if release:
                     await pg.mouse.up(); await pg.wait_for_timeout(1000)
                 return mid, await pg.evaluate(GEO)
+
+            async def flick(dx, start=None):
+                """سحبةٌ سريعة قصيرة (٩٠ بكسل في ثلاث حركات) ثمّ ترك — أبطأ من إصبعٍ حقيقيّ في المتصفّح الآليّ."""
+                gg = await pg.evaluate(GEO); y = gg["hdl"]["cy"] + 120
+                x = start if start is not None else gg["hdl"]["cx"]
+                await pg.mouse.move(x, y); await pg.mouse.down()
+                for k in range(1, 4):
+                    await pg.mouse.move(x + dx * k / 3, y)
+                await pg.mouse.up(); await pg.wait_for_timeout(1000)
+                return await pg.evaluate(GEO)
+
+            g = await flick(90)
+            rec(T + "سحبةٌ سريعة نحو اليمين من المنتصف تفتح الخدمة ١ كاملة", frac(g) > .895, f"{frac(g):.2f}")
+            g = await flick(-90, start=g["hdl"]["cx"] - 60)
+            rec(T + "وسحبةٌ سريعة عكسها تنتقل إلى الخدمة ٢ كاملة", frac(g, 1) > .895, f"{frac(g,1):.2f}")
+            g = await flick(90, start=g["hdl"]["cx"] + 60)
+            rec(T + "والعكس صحيح: سريعة نحو اليمين ترجع إلى الخدمة ١", frac(g) > .895, f"{frac(g):.2f}")
+            await pg.click("#svcRail .svc.sel", position={"x": 60, "y": 200}); await pg.wait_for_timeout(1000)
+            g = await pg.evaluate(GEO)
+            rec(T + "الضغط يعيد الفيديوين قبل فحص السحب البطيء", abs(g["w"][0] - g["w"][1]) <= 1.5, f"{g['w']}")
 
             mid, after = await drag_to(.65)
             rec(T + "السحب إلى ٦٥٪ يتبع الإصبع", abs(frac(mid) - .65) < .03, f"{frac(mid):.2f}")
@@ -125,10 +147,16 @@ async def main():
             rec(T + "الاختيار يظهر في الشريط والإجمالي صحيح (٦٠٠ لخدمةٍ واحدة)",
                 cart["on"] and cart["total"].replace(",", "") == "600", f"{cart}")
             rec(T + "التفاصيل لا يغطّيها شريط السلّة", cart["gap"] >= 0, f"gap={cart['gap']}")
-            rec(T + "الشريحة المختارة تقول «تمت الإضافة» وهي مصغّرة", cart["tap"][1].startswith("تمت الإضافة"), f"{cart['tap']}")
+            rec(T + "لا شريطٌ ثانٍ فوق السلّة: الشريحة تبقى «اضغطي للتفاصيل» والاختيار في شريط السلّة وحده",
+                cart["tap"] == ["اضغطي للتفاصيل", "اضغطي للتفاصيل"], f"{cart['tap']}")
             await pg.click("#svcRail .svc.sel .q-plus"); await pg.wait_for_timeout(300)
             tot = await pg.evaluate("document.getElementById('cartTotal').textContent")
             rec(T + "زرّ + يزيد العدد ويتبعه الإجمالي (٢ × ٨٠٠ − خصم المجموعات)", tot.replace(",", "") == "1000", tot)
+            # «متابعة» في شريط السلّة تمضي إلى خطوة الحجز التالية كما كانت
+            await pg.click("#cartGo"); await pg.wait_for_timeout(900)
+            r_ = await pg.evaluate("(()=>{const r=document.getElementById('svcRail').getBoundingClientRect();return [r.top,r.left]})()")
+            rec(T + "«متابعة» تنقل إلى الخطوة التالية بالخدمات المختارة", abs(r_[0]) > vh / 2 or abs(r_[1]) > vw / 2, f"{r_}")
+            await pg.evaluate("window.__goto(1)"); await pg.wait_for_timeout(900)
             # الفيديو والسحب الأفقي على مستوى الشاشة لا يخلطان
             before = (await pg.evaluate(GEO))["w"]
             await pg.evaluate("""()=>{const mk=(x,y)=>new Touch({identifier:1,target:document.body,clientX:x,clientY:y});
