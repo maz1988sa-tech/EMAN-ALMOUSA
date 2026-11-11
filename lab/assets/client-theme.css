@@ -407,6 +407,9 @@ button{border:0;background:none;cursor:pointer}
 .time.sel{background:var(--clay);border-color:var(--clay);color:#fff}
 .time[disabled]{opacity:.3;text-decoration:line-through}
 .footbar{padding-top:14px;display:grid;grid-template-columns:1fr 1.9fr;gap:10px;align-items:center;border-top:1px solid var(--line-l)}
+/* خطوة الموعد: «عودة» بين الإجمالي و«متابعة». عمود الإجمالي لا يضيق عن رقمه أبدًا
+   (على ٣٦٠ يأخذ عرض الرقم ويضيق «متابعة»)، وما بقي بنسبة الشريط نفسها ١ : ١٫٩. */
+.footbar.has-back{grid-template-columns:minmax(max-content,1fr) 84px 1.9fr}
 .total{position:relative;min-height:54px;display:flex;align-items:center}
 .total small{position:absolute;top:2px;inset-inline-start:0;font-size:9.5px;color:var(--muted);letter-spacing:.04em}
 .total b{display:block;margin:0;font:500 29px/1 var(--serif);direction:ltr}
