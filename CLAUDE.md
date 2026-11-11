@@ -74,16 +74,18 @@ bash tools/promote.sh            # ارفع المختبر إلى الحيّ ث�
 الخطوط، ونسب التباين من البكسل، وهندسة العناصر، وحمولة الحفظ.
 
 ```bash
-python3 tests/sync.py        # يبني build/testroot من lab/  — قبل كل تشغيل
-python3 tests/run.py         # الطُّقُم كلّها
-python3 tests/run.py check_month check_receipt2
-python3 tests/run.py --list
+.venv/bin/python tests/sync.py        # يبني build/testroot من lab/  — قبل كل تشغيل
+.venv/bin/python tests/run.py         # الطُّقُم كلّها
+.venv/bin/python tests/run.py check_month check_receipt2
+.venv/bin/python tests/run.py --list
 ```
 
-يلزمه Python 3.11+ و Playwright:
+يلزمه Python 3.11+ و Playwright، وهما في بيئةٍ معزولة `.venv/` داخل المستودع
+(خارج git). **على جهاز صاحب المشروع `python3` هو 3.9 من Xcode**، فكلُّ أمر
+`python3` في هذا الدليل يُشغَّل بـ`.venv/bin/python`. وإن ضاعت البيئة:
 
 ```bash
-pip install playwright && python3 -m playwright install chromium
+/opt/homebrew/opt/python@3.13/bin/python3.13 -m venv .venv && .venv/bin/pip install playwright pillow openpyxl && .venv/bin/python -m playwright install chromium
 ```
 
 لا تحتاج الطُّقُم قاعدةً حيّة: `dev/mock-supabase.js` يقوم مقامها ويُحقن

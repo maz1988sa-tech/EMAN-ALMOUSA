@@ -85,11 +85,17 @@ cd "$HOME/Documents/D&P/08_Apps/Eman/EMAN-ALMOUSA"
 claude
 ```
 
-- **مرّة واحدة لتشغيل الفحوص**: يلزم Python 3.11+ وPlaywright:
+- **الفحوص تعمل من بيئةٍ معزولة في `.venv/`** (جاهزة منذ ١١ نوفمبر: Python 3.13
+  من Homebrew، ومعه Playwright وChromium وPillow وopenpyxl). `python3` على هذا
+  الجهاز هو 3.9 من Xcode فلا يصلح — **شغِّل كلَّ أمر Python بـ`.venv/bin/python`**:
   ```bash
-  pip3 install playwright && python3 -m playwright install chromium
+  .venv/bin/python tests/run.py check_split
   ```
-- قبل كلّ تشغيل: `python3 tests/sync.py`، ولقياس الحيّ ابنِ جذر الفحص من الجذر (§١٠ في `CLAUDE.md`):
+  وإن ضاع المجلّد (وهو خارج git) يُعاد هكذا:
+  ```bash
+  /opt/homebrew/opt/python@3.13/bin/python3.13 -m venv .venv && .venv/bin/pip install playwright pillow openpyxl && .venv/bin/python -m playwright install chromium
+  ```
+- قبل كلّ تشغيل: `.venv/bin/python tests/sync.py`، ولقياس الحيّ ابنِ جذر الفحص من الجذر (§١٠ في `CLAUDE.md`):
   ```bash
   T=build/testroot; rm -rf "${T:?}"/*; cp index.html admin.html sw.js manifest.webmanifest manifest-admin.webmanifest "$T"/; cp -r assets dev "$T"/
   ```
