@@ -285,6 +285,18 @@
             (window.__TRACK = window.__TRACK || []).push([fn.replace('track_', ''), args]);
             return ok(null);
           }
+
+          /* ــ ترحيب العميلة العائدة: نعم أو لا وحسب (§٧ن) ــــــــــــــــــــ
+             الأرقام العائدة يمليها الفحص في window.__RETURNING__ بصيغة 9665…،
+             و__RETURNING_DELAY__ يجعل لحظة السؤال قابلةً للقياس، و__RETURNING_FAIL__
+             يجرّب العطب. */
+          if (fn === 'is_returning_client') {
+            const res = window.__RETURNING_FAIL__
+              ? { data: null, error: { message: 'mock failure' } }
+              : { data: (window.__RETURNING__ || []).includes(String(args.p_phone)), error: null };
+            const d = Number(window.__RETURNING_DELAY__) || 0;
+            return d ? new Promise((r) => setTimeout(() => r(res), d)) : Promise.resolve(res);
+          }
           if (fn === 'admin_visits') {
             return ok(window.__VISITS === null ? [{ visitors:0, sessions:0, new_visitors:0,
               bounced:0, reached_form:0, booked:0, avg_seconds:0, med_seconds:0 }]

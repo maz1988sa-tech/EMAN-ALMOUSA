@@ -17,7 +17,7 @@
    وبقيت الأصول على حالها: بصمتُها تكفيها.
 */
 
-const VERSION = 'v51';
+const VERSION = 'v52';
 const SHELL = `shell-${VERSION}`;
 
 const ASSETS = [

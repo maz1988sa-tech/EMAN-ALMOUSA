@@ -22,9 +22,10 @@ declare
   stale text[] := '{}';
   leaked text[] := '{}';
 
-  /* ما يبقى خارج اللقطة عن قصد — ومعه سببه في 0021_snapshot_all.sql:
-     `admins` جدولُ صلاحية لا بيانات، ونسخةٌ تُسرَّب فتُعيد منح الوصول. */
-  excluded text[] := array['admins'];
+  /* ما يبقى خارج اللقطة عن قصد، ومعه سببه:
+     `admins` جدولُ صلاحية لا بيانات، ونسخةٌ تُسرَّب فتُعيد منح الوصول (0021_snapshot_all.sql).
+     `returning_checks` عدّادُ دقائق يدور على نفسه بلا هويّة، لا يُستعاد منه شيء (0040_returning_client.sql). */
+  excluded text[] := array['admins', 'returning_checks'];
 begin
   select user_id into uid from public.admins limit 1;
   if uid is null then

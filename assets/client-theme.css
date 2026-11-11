@@ -487,6 +487,19 @@ button{border:0;background:none;cursor:pointer}
 .field.phone{display:grid;grid-template-columns:1fr auto;align-items:end;gap:10px}
 .field.phone .pre{direction:ltr;font:500 15px/1 var(--serif);color:var(--muted);padding-bottom:4px}
 .field.phone input{direction:ltr;text-align:right}
+/* ترحيب العميلة العائدة (§٧ن): سطرٌ تحت خانة الجوال حين يكون الرقم لعميلةٍ خلصت خدمتها.
+   هو والخانة في غلافٍ واحد هو عنصر الشبكة، فمطويًّا لا يأخذ شيئًا ولا تُضاف له فجوة: العميلة
+   الجديدة ترى النافذة كما كانت. ويتّسع بانسياب فينزل ما تحته بهدوء، ثمّ يظهر النصّ على خطّ
+   عنوان الخانة (حدّها ١ + حشوها ١٤). ومطويًّا يغيب عن قارئ الشاشة بعد أن ينطوي. */
+.ph-wrap{display:grid}
+.ph-hello{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.22,1,.36,1),margin-top .45s cubic-bezier(.22,1,.36,1)}
+.ph-hello > div{min-height:0;overflow:hidden}
+.ph-hello p{margin:0;display:flex;align-items:center;gap:7px;padding:0 15px;font-size:12px;font-weight:500;line-height:1.55;color:var(--clay);
+  opacity:0;visibility:hidden;transform:translateY(-5px);
+  transition:opacity .28s ease,transform .45s cubic-bezier(.22,1,.36,1),visibility 0s linear .45s}
+.ph-hello svg{flex:none}
+.ph-hello.on{grid-template-rows:1fr;margin-top:7px}
+.ph-hello.on p{opacity:1;visibility:visible;transform:none;transition-delay:.12s,.12s,0s}
 .ref-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 15px;border:1px dashed rgba(176,112,92,.55);background:rgba(176,112,92,.09)}
 .ref-card small{display:block;font-size:9px;color:var(--muted);letter-spacing:.05em}
 .ref-card b{display:block;margin-top:3px;direction:ltr;font:500 17px/1 var(--serif);letter-spacing:.08em}
@@ -688,6 +701,7 @@ button{border:0;background:none;cursor:pointer}
   .pane[data-pane="form"] .grow{padding-block:9px;gap:8px}
   .fields{gap:8px}
   .field{padding:8px 13px 9px}
+  .ph-hello p{padding:0 14px}
   .field input{padding:4px 0 1px}
   .recap{padding:10px 14px;gap:5px}
   .arts.pair .art{width:112px;height:138px;border-radius:56px 56px 6px 6px}

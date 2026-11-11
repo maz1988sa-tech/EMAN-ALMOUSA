@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=74">
+<link rel="stylesheet" href="assets/fonts.css?v=75">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=74">
+<link rel="stylesheet" href="assets/client-theme.css?v=75">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -385,9 +385,13 @@
         <div class="grow">
           <div class="fields">
             <div class="field"><label for="nm">الاسم الكامل<i class="req" aria-hidden="true"></i></label><input id="nm" type="text" autocomplete="name" required aria-required="true" placeholder="مثال: إيمان آل موسى"></div>
-            <div class="field phone">
-              <div><label for="ph">رقم الجوال<i class="req" aria-hidden="true"></i></label><input id="ph" type="tel" inputmode="numeric" autocomplete="tel" required aria-required="true" placeholder="05X XXX XXXX"></div>
-              <span class="pre">+966</span>
+            <!-- ترحيب العميلة العائدة (§٧ن): يتّسع تحت الخانة حين يكون الرقم لعميلةٍ خلصت خدمتها. -->
+            <div class="ph-wrap">
+              <div class="field phone">
+                <div><label for="ph">رقم الجوال<i class="req" aria-hidden="true"></i></label><input id="ph" type="tel" inputmode="numeric" autocomplete="tel" required aria-required="true" placeholder="05X XXX XXXX"></div>
+                <span class="pre">+966</span>
+              </div>
+              <div class="ph-hello" id="phHello" aria-live="polite"><div><p><svg width="14" height="13" viewBox="0 0 14 13" fill="none" aria-hidden="true"><path d="M7 12S1 8.2 1 4.3A3.1 3.1 0 0 1 7 3a3.1 3.1 0 0 1 6 1.3C13 8.2 7 12 7 12Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg><span id="phHelloTxt"></span></p></div></div>
             </div>
             <div class="field"><label for="locTxt">الحي والمدينة<i class="req" aria-hidden="true"></i></label><input id="locTxt" type="text" required aria-required="true" placeholder="مثال: حي النخيل، الرياض"></div>
             <div class="field map" id="locField">
@@ -529,10 +533,10 @@ import {
   createBooking, getBookingByToken, requestCancel,
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositFor, verifyReceipt, checkReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
-  trackVisit, trackPing, trackBooked,
+  trackVisit, trackPing, trackBooked, isReturningClient,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=74';
+} from './assets/db.js?v=75';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -1697,6 +1701,47 @@ loc.addEventListener('input', () => {
 });
 phone.addEventListener('input', unifyPhone);
 REQUIRED.forEach((r) => r.in.addEventListener('blur', () => { r.touched = true; gate(); }));
+
+/* ── ترحيب العميلة العائدة (§٧ن) ─────────────────────────────────────────
+   حين يكتمل رقمٌ لعميلةٍ خلصت خدمتها يظهر تحت الخانة «أهلًا بعودتك سارة، نوّرتينا من
+   جديد». الاسم ممّا كتبته هي في الخانة الأولى لا من القاعدة: القاعدة تجاوب بنعم أو لا
+   وحسب، فمن يكتب رقمًا لا يعرف اسم صاحبته. وكلُّ رقمٍ يُسأل عنه مرّةً في الزيارة، وأيُّ
+   عطبٍ «لا» بصمت فلا يعطّل شيئًا. */
+const phHello = el('phHello'), phHelloTxt = el('phHelloTxt');
+const helloSeen = new Map();          // الرقم المطبَّع ← نعم أو لا
+let helloFor = null, helloAsk = 0, helloTimer = 0;
+function helloName() {
+  const t = nameIn.value.trim().split(/\s+/).filter(Boolean);
+  if (!t.length) return '';
+  // الاسم الأوّل، و«أم فهد» كاملًا لا «أم» وحدها.
+  const n = /^(أم|ام|إم)$/.test(t[0]) && t[1] ? `${t[0]} ${t[1]}` : t[0];
+  return n.length >= 2 ? n : '';
+}
+function paintHello() {
+  const n = helloName(), who = document.createElement('bdi');
+  who.textContent = n;
+  phHelloTxt.replaceChildren(...(n ? ['أهلًا بعودتك ', who] : ['أهلًا بعودتك']), '، نوّرتينا من جديد');
+}
+function showHello(on) {
+  if (on) paintHello();
+  phHello.classList.toggle('on', on);
+}
+function checkReturning() {
+  const p = normalisePhone(phone.value);
+  if (p && p === helloFor) return;    // الرقم نفسه: لا سؤال ولا وميض
+  helloFor = p; helloAsk += 1; clearTimeout(helloTimer);
+  if (!p) { showHello(false); return; }
+  if (helloSeen.has(p)) { showHello(helloSeen.get(p)); return; }
+  showHello(false);
+  const ask = helloAsk;
+  helloTimer = setTimeout(async () => {
+    const yes = await isReturningClient(p);
+    helloSeen.set(p, yes);
+    if (ask === helloAsk) showHello(yes);   // وإلّا تغيّر الرقم أثناء السؤال
+  }, 250);
+}
+phone.addEventListener('input', checkReturning);
+nameIn.addEventListener('input', () => { if (phHello.classList.contains('on')) paintHello(); });
 
 /* ── لوحة العربون ─────────────────────────────────────────────────────
    الرفع يسبق إنشاء الحجز لأن الخادم يرفض حجزًا بلا إيصال. لو نجح الرفع

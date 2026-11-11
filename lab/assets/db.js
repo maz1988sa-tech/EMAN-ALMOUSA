@@ -426,6 +426,16 @@ export async function trackBooked(id) {
   try { await sb.rpc('track_booked', { p_id: id }); } catch { /* لا شيء */ }
 }
 
+/* ترحيب العميلة العائدة (§٧ن): هل لهذا الرقم موعدٌ مكتمل؟ القاعدة تجاوب بنعم أو لا
+   وحسب — لا اسم ولا تاريخ. وأيُّ عطبٍ أو تجاوزٍ للحدّ «لا» بصمت: الترحيب زيادةٌ لا
+   تعطّل الحجز. */
+export async function isReturningClient(phone) {
+  try {
+    const { data, error } = await sb.rpc('is_returning_client', { p_phone: phone });
+    return !error && data === true;
+  } catch { return false; }
+}
+
 /* قراءة الإحداثيّات من رابط الخرائط. موضعُها هنا لا في الصفحة لأنّ
    اللوحة تحتاجها أيضًا: مجرِّبُ الموقع عند صاحبة العمل يقرأ ما تقرؤه
    صفحة العميلة حرفًا بحرف — وإلّا اختبرت شيئًا وعاشت العميلة غيره. */
