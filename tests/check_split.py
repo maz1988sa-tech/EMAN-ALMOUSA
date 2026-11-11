@@ -152,48 +152,62 @@ async def main():
             # المقترح «أ»: لا زرّ أبيض في البطاقة بعد الإضافة؛ العدّاد وسهم المتابعة مربّعٌ واحد في الشريط
             A = await pg.evaluate("""()=>{const c=document.querySelector('#svcRail .svc.sel'),r=e=>e.getBoundingClientRect();
               const cb=document.getElementById('svcCart'),co=document.getElementById('cartCombo'),go=document.getElementById('cartNext'),
-                    q=co.querySelector('.cq'),nar=document.querySelector('#svcRail .svc.nar'),body=c.querySelector('.svc-body'),
-                    hd=document.querySelector('#svcRail .svc-hdl');
+                    q=co.querySelector('.cq'),hd=document.querySelector('#svcRail .svc-hdl'),hb=getComputedStyle(hd,'::before');
               const vis=e=>e.offsetParent!==null&&getComputedStyle(e).display!=='none';
+              const hx=r(hd).left+r(hd).width/2, hit=document.elementFromPoint(hx,r(cb).top+r(cb).height/2);
               return {cardPick:vis(c.querySelector('.pick')),goOld:vis(document.getElementById('cartGo')),combo:vis(co),
                 qty:document.getElementById('cartQty').textContent,
                 tops:[r(q).top,r(go).top].map(Math.round),hs:[r(q).height,r(go).height,r(co).height].map(Math.round),
                 arrowLeft:r(go).right<=r(q).left+1, inside:r(co).right<=r(cb).right&&r(co).left>=r(cb).left,
-                cartL:Math.round(r(cb).left),cartR:Math.round(r(cb).right),narR:Math.round(r(nar).right),narL:Math.round(r(nar).left),
-                hdlX:Math.round(r(hd).left+r(hd).width/2),bodyL:Math.round(r(body).left),bodyR:Math.round(r(body).right),
+                cartL:Math.round(r(cb).left),cartR:Math.round(r(cb).right),cartT:Math.round(r(cb).top),
+                lineEnd:Math.round(r(hd).bottom-parseFloat(hb.bottom)),hdlX:Math.round(hx),hitBar:cb.contains(hit),
                 color:getComputedStyle(go).color,anim:getComputedStyle(go.querySelector('svg')).animationName,
                 sw:getComputedStyle(go.querySelector('path')).strokeWidth}}""")
             rec(T + "بعد الإضافة يختفي زرّ البطاقة الأبيض", not A["cardPick"], f"{A['cardPick']}")
             rec(T + "«متابعة» النصّيّ مخفيّ، ومكانه مربّع العدّاد والسهم", not A["goOld"] and A["combo"] and A["inside"], f"{A}")
-            rec(T + "العدّاد يبدأ بـ١ للخدمة المفتوحة", A["qty"] == "1", A["qty"])
+            rec(T + "العدّاد يبدأ بـ١: شخصٌ واحد في السلّة", A["qty"] == "1", A["qty"])
             rec(T + "العدّاد والسهم على خطٍّ واحد وبارتفاعٍ واحد", len(set(A["tops"])) == 1 and len(set(A["hs"])) == 1, f"{A['tops']} {A['hs']}")
             rec(T + "السهم في الطرف الأيسر من المربّع", A["arrowLeft"])
             rec(T + "السهم أخضر عريض وينبض", A["color"] == "rgb(46, 125, 79)" and A["anim"] == "arwPulse" and float(A["sw"].replace("px", "")) >= 2.5, f"{A['color']} {A['anim']} {A['sw']}")
-            side_ok = A["cartL"] > A["hdlX"] if A["narL"] < A["hdlX"] else A["cartR"] < A["hdlX"]
-            rec(T + "الشريط يبدأ بعد الخطّ الأبيض ولا يغطّيه", side_ok, f"cart {A['cartL']}–{A['cartR']} hdl {A['hdlX']}")
-            rec(T + "وحافّتاه حافّتا نصّ الخدمة نفسها", abs(A["cartL"] - A["bodyL"]) <= 1 and abs(A["cartR"] - A["bodyR"]) <= 1, f"{A['cartL']},{A['cartR']} vs {A['bodyL']},{A['bodyR']}")
+            # المقترح «ب» (١١ نوفمبر): الشريط ثابت في المنتصف في كلّ الحالات، والخدمتان والخطّ خلفه
+            rec(T + "الشريط ثابت في المنتصف بعرض الشاشة والخدمة مكبَّرة (١٨ من كلّ جانب)", A["cartL"] == 18 and A["cartR"] == vw - 18, f"{A['cartL']}–{A['cartR']} من {vw}")
+            rec(T + "والخطّ الأبيض يقف فوق الشريط والخدمة مكبَّرة", A["lineEnd"] <= A["cartT"] - 4, f"line {A['lineEnd']} cartT {A['cartT']}")
+            rec(T + "والضغط على الشريط حيث يمرّ الخطّ يصل الشريط لا الفاصل", A["hitBar"], f"x={A['hdlX']}")
             await pg.click("#cartPlus"); await pg.wait_for_timeout(300)
             tot = await pg.evaluate("document.getElementById('cartTotal').textContent")
             q = await pg.evaluate("document.getElementById('cartQty').textContent")
             rec(T + "زرّ + في الشريط يزيد العدد ويتبعه الإجمالي (٢ × ٦٠٠ − خصم المجموعات ١٠٠ للواحدة)", tot.replace(",", "") == "1000" and q == "2", f"{tot} q={q}")
-            # التبديل إلى الخدمة الأخرى: العدّاد يتبعها، والأولى تبقى في الإجمالي
-            await pg.click("#svcRail .svc.nar", position={"x": 10, "y": 200}); await pg.wait_for_timeout(1000)
+            # التبديل إلى الخدمة الأخرى: الشريط لا يتحرّك، ونصّ الداخلة لا يظهر وهي ضيّقة
+            mv = await pg.evaluate("""async()=>{const cb=document.getElementById('svcCart'),nar=document.querySelector('#svcRail .svc.nar'),
+              cur=document.querySelector('#svcRail .svc.sel'),L=[],W=[];let early=null;const t0=performance.now();
+              nar.click();
+              await new Promise(res=>{(function f(){const b=cb.getBoundingClientRect(),t=performance.now()-t0;L.push(b.left);W.push(b.width);
+                if(early===null&&t>=200)early={inn:+getComputedStyle(nar.querySelector('.svc-body')).opacity,
+                  out:+getComputedStyle(cur.querySelector('.svc-body')).opacity,w:Math.round(nar.getBoundingClientRect().width)};
+                if(t<900)requestAnimationFrame(f);else res();})();});
+              return {minL:Math.min(...L),maxL:Math.max(...L),minW:Math.min(...W),maxW:Math.max(...W),early};}""")
+            rec(T + "الشريط لا يتحرّك ولا ينضغط أثناء التنقّل بين الخدمتين", mv["maxL"] - mv["minL"] < .5 and mv["maxW"] - mv["minW"] < .5, f"{mv}")
+            rec(T + "أثناء التنقّل: نصّ الخارجة اختفى، ونصّ الداخلة لا يظهر وهي ضيّقة", mv["early"]["inn"] < .05 and mv["early"]["out"] < .05, f"{mv['early']}")
+            await pg.wait_for_timeout(400)
             sw_ = await pg.evaluate("""[document.getElementById('cartQty').textContent,document.getElementById('cartMinus').disabled,
               getComputedStyle(document.querySelector('#svcRail .svc.sel .pick')).display]""")
-            rec(T + "عند فتح الخدمة الأخرى يتبعها العدّاد (٠) وزرّ بطاقتها ظاهر", sw_[0] == "0" and sw_[1] and sw_[2] != "none", f"{sw_}")
+            rec(T + "عند فتح الخدمة الأخرى يبقى العدّاد ٢ (كلّ من في السلّة) و− يعمل، وزرّ بطاقتها ظاهر", sw_[0] == "2" and not sw_[1] and sw_[2] != "none", f"{sw_}")
             await pg.click("#cartPlus"); await pg.wait_for_timeout(300)
             st_ = await pg.evaluate("[document.getElementById('cartQty').textContent,document.getElementById('cartMeta').textContent,document.getElementById('cartTotal').textContent]")
-            rec(T + "+ يضيف الخدمة الثانية دون أن يمسّ الأولى", st_[0] == "1" and st_[1].startswith("خدمتان"), f"{st_}")
+            rec(T + "+ يضيف الخدمة المفتوحة وحدها: العدّاد ٣ وخدمتان", st_[0] == "3" and st_[1].startswith("خدمتان"), f"{st_}")
             await pg.click("#cartMinus"); await pg.wait_for_timeout(300)
             st_ = await pg.evaluate("[document.getElementById('cartQty').textContent,document.getElementById('cartMeta').textContent,getComputedStyle(document.querySelector('#svcRail .svc.sel .pick')).display]")
-            rec(T + "− عند ١ يزيل الخدمة ويعود زرّ «احجزي هذه الخدمة»", st_[0] == "0" and st_[1].startswith("خدمة واحدة") and st_[2] != "none", f"{st_}")
+            rec(T + "− على خدمةٍ فيها واحد يزيلها ويعود زرّ «احجزي هذه الخدمة»", st_[0] == "2" and st_[1].startswith("خدمة واحدة") and st_[2] != "none", f"{st_}")
+            await pg.click("#cartMinus"); await pg.wait_for_timeout(300)
+            st_ = await pg.evaluate("[document.getElementById('cartQty').textContent,document.getElementById('cartMeta').textContent,document.getElementById('cartTotal').textContent]")
+            rec(T + "و− والخدمة المفتوحة فارغة ينقص من الأخرى التي في السلّة", st_[0] == "1" and "شخص واحد" in st_[1] and st_[2].replace(",", "") == "600", f"{st_}")
             # في المنتصف: الشريط على العرض كلّه، والخطّ الأبيض يقف فوقه
             await pg.click("#svcRail .svc.sel", position={"x": 60, "y": 200}); await pg.wait_for_timeout(1000)
             M = await pg.evaluate("""(()=>{const cb=document.getElementById('svcCart').getBoundingClientRect(),
               h=getComputedStyle(document.querySelector('#svcRail .svc-hdl'),'::before'),hd=document.querySelector('#svcRail .svc-hdl').getBoundingClientRect();
               return {cartL:Math.round(cb.left),cartT:Math.round(cb.top),lineEnd:Math.round(hd.bottom-parseFloat(h.bottom)),q:document.getElementById('cartQty').textContent}})()""")
             rec(T + "في المنتصف يقف الخطّ الأبيض فوق الشريط", M["lineEnd"] <= M["cartT"] - 4, f"{M}")
-            rec(T + "وفي المنتصف يتبع العدّاد آخر خدمةٍ مختارة", M["q"] == "2", f"{M}")
+            rec(T + "وفي المنتصف يبقى العدّاد كلَّ من في السلّة", M["q"] == "1", f"{M}")
             # السهم ينقل إلى الخطوة التالية كما كانت «متابعة»
             await pg.click("#cartNext"); await pg.wait_for_timeout(900)
             r_ = await pg.evaluate("(()=>{const r=document.getElementById('svcRail').getBoundingClientRect();return [r.top,r.left]})()")

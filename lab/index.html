@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=72">
+<link rel="stylesheet" href="assets/fonts.css?v=73">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=72">
+<link rel="stylesheet" href="assets/client-theme.css?v=73">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -99,7 +99,8 @@
           <svg width="18" height="12" viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M17 6H1m5 5L1 6l5-5" stroke="currentColor" stroke-width="1.1"/></svg>
         </button>
         <!-- الشاشة المقسومة: العدّاد وسهم المتابعة في مربّعٍ واحد بدل «متابعة» (المقترح «أ»
-             المعتمد، ١٠ نوفمبر). العدّاد لخدمة الشاشة المفتوحة، فلا يصعد زرٌّ أبيض فوق الشريط. -->
+             المعتمد، ١٠ نوفمبر)، فلا يصعد زرٌّ أبيض فوق الشريط. الرقم كلُّ من في السلّة، و+ للخدمة
+             المفتوحة و− للسلّة كلّها (المقترح «ب»، ١١ نوفمبر). -->
         <div class="cart-combo" id="cartCombo">
           <div class="cq">
             <button type="button" id="cartMinus" aria-label="إنقاص العدد">−</button>
@@ -525,7 +526,7 @@ import {
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=72';
+} from './assets/db.js?v=73';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -890,19 +891,13 @@ const shortName = (n) => String(n).replace(/\s*[(（][^)）]*[)）]\s*$/, '').tr
 function splitMode(on) {
   svcRail.classList.toggle('split', on);
   document.querySelector('.svc-screen').classList.toggle('is-split', on);
-  if (!on) { const bar = el('svcCart'); bar.style.left = bar.style.right = ''; }
 }
+/* الخطّ يتبع الحدّ بين الخدمتين. أمّا شريط السلّة فثابتٌ في المنتصف بعرض الشاشة في كلّ
+   الحالات (المقترح «ب»، ١١ نوفمبر): كان يلحق نصّ الخدمة المكبَّرة، فإذا تنقّلت العميلة قاس
+   نصّ الداخلة وهي ضيّقة فانضغط إلى ٣٠ نقطة وخرج طرفه من الشاشة ثمّ تمدّد. */
 function splitPlace() {
   const h = svcRail.querySelector('.svc-hdl');
   if (h && cards[0]) h.style.left = `${cards[0].offsetWidth + 1.5}px`;
-  /* الشريط يبدأ بعد الخطّ الأبيض حين تكون إحدى الخدمتين مكبَّرة، بحافّتَي نصّها
-     نفسهما، فلا يقع فوق الشريحة الضيّقة ولا يغطّي الخطّ. */
-  const bar = el('svcCart'), wide = cards.find((c) => c.classList.contains('sel'));
-  if (splitOn() && wide && bar.offsetParent) {
-    const sr = bar.offsetParent.getBoundingClientRect(), br = wide.querySelector('.svc-body').getBoundingClientRect();
-    bar.style.left = `${Math.round(br.left - sr.left)}px`;
-    bar.style.right = `${Math.round(sr.right - br.right)}px`;
-  } else { bar.style.left = bar.style.right = ''; }
 }
 function splitApply(animate) {
   if (cards.length !== 2) return;
@@ -1042,8 +1037,9 @@ function renderCart() {
 }
 el('cartGo').addEventListener('click', () => go(2));
 el('cartNext').addEventListener('click', () => go(2));
-/* عدّاد الشريط في الشاشة المقسومة يتبع الخدمة المكبَّرة؛ وفي المنتصف آخرَ خدمةٍ لمستها
-   العميلة، فلا يقفز العدد إلى خدمةٍ لم تقصدها. */
+/* + في الشريط يضيف الخدمة المكبَّرة؛ وفي المنتصف آخرَ خدمةٍ لمستها العميلة، فلا يقفز إلى خدمةٍ
+   لم تقصدها. والرقم بين − و+ كلُّ من في السلّة (المقترح «ب»، ١١ نوفمبر): لا يصفر إذا فتحت
+   الخدمة الأخرى فتظنّ العميلة أنّ حجزها ضاع، ويزيد واحدًا إذا أضافتها. */
 let lastSvc = null;
 function comboSvc() {
   if (!splitOn() || state.services.length !== 2) return null;
@@ -1052,17 +1048,27 @@ function comboSvc() {
   const pk = state.services.filter((s) => state.counts[s.id] > 0);
   return pk.find((s) => s.id === lastSvc) || pk[0] || state.services[0];
 }
+/* و− للسلّة كلّها: ينقص من الخدمة المفتوحة إن كان فيها أحد، وإلّا من الأخرى — فتحذف العميلة
+   ما أضافته وهي على أيّ جهة، ولا تُضطرّ إلى الرجوع إليه. */
+function minusSvc() {
+  const s = comboSvc(); if (!s) return null;
+  if (state.counts[s.id] > 0) return s;
+  return state.services.find((x) => state.counts[x.id] > 0) || null;
+}
 function paintCombo() {
   const s = comboSvc(); if (!s) return;
-  const n = state.counts[s.id] || 0, nm = shortName(s.name);
-  el('cartQty').textContent = n;
+  const n = state.counts[s.id] || 0, nm = shortName(s.name), m = minusSvc();
+  el('cartQty').textContent = people();
   const mi = el('cartMinus'), pl = el('cartPlus');
-  mi.disabled = n === 0;
-  mi.setAttribute('aria-label', n <= 1 ? `إزالة ${nm}` : `إنقاص عدد ${nm}`);
+  mi.disabled = !m;
+  if (m) {
+    const mn = shortName(m.name);
+    mi.setAttribute('aria-label', state.counts[m.id] <= 1 ? `إزالة ${mn}` : `إنقاص عدد ${mn}`);
+  }
   pl.disabled = n >= UI.maxQty;
   pl.setAttribute('aria-label', `زيادة عدد ${nm}`);
 }
-el('cartMinus').addEventListener('click', () => { const s = comboSvc(); if (s) bump(s.id, -1); });
+el('cartMinus').addEventListener('click', () => { const s = minusSvc(); if (s) bump(s.id, -1); });
 el('cartPlus').addEventListener('click', () => { const s = comboSvc(); if (s) bump(s.id, +1); });
 
 /* ارتفاع الشريط يتغيّر بتغيّر محتواه (سطر الخصم قد يلتفّ سطرين على الشاشات

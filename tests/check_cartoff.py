@@ -29,6 +29,12 @@ async def main():
             await pg.evaluate("()=>window.__pick(1,2)")
             await pg.wait_for_timeout(120)
             mid=await pg.evaluate("()=>{const e=document.getElementById('cartOff');const cs=getComputedStyle(e);return {pop:e.classList.contains('pop'),anim:cs.animationName,t:cs.transform};}")
+            # الحركة متّصلة (١١ نوفمبر): كانت تقف ربع ثانيةٍ في الأعلى قبل أن تنزل فتبدو كأنها علقت ثمّ فُكّت
+            hold=await pg.evaluate("""()=>{const e=document.getElementById('cartOff'),a=e.getAnimations()[0]; if(!a) return null;
+              const y=t=>{a.currentTime=t;return new DOMMatrix(getComputedStyle(e).transform).m42;};
+              a.pause(); const y0=y(0), y100=y(100), dur=a.effect.getComputedTiming().duration; a.finish(); return {y0,y100,dur};}""")
+            if vh==700: rec("الحركة تبدأ من أوّل لحظة بلا وقفة (بعد ١٠٠ مللي قطعت ٤٠٪ من طريقها) وتنتهي في أقلّ من ثانية",
+                hold is not None and hold["y0"] < -5 and (1 - hold["y100"] / hold["y0"]) >= .4 and hold["dur"] <= 700, str(hold))
             await pg.wait_for_timeout(1300)
             end=await pg.evaluate("""()=>{const e=document.getElementById('cartOff');const cs=getComputedStyle(e);
               const bar=document.getElementById('svcCart').getBoundingClientRect();
