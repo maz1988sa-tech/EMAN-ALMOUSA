@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=73">
+<link rel="stylesheet" href="assets/fonts.css?v=74">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=73">
+<link rel="stylesheet" href="assets/client-theme.css?v=74">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -405,15 +405,21 @@
             <div class="field"><label for="prf">ملاحظات <span class="opt">اختياري</span></label><input id="prf" type="text" placeholder="نوع البشرة، الستايل المفضّل، وقت الوصول…"></div>
           </div>
           <div class="recap">
-            <div><span>الخدمات</span><b id="rcSvc">—</b></div>
+            <div class="multi"><span>الخدمات</span><b id="rcSvc" class="svcs">—</b></div>
             <div><span>الموعد</span><b id="rcWhen">—</b></div>
             <div id="rcFeeRow" hidden><span id="rcFeeLbl">رسوم موقع</span><b id="rcFee">—</b></div>
-            <div><span>الإجمالي</span><b id="rcDep">—</b></div>
           </div>
           <div class="err-line" id="formErr" hidden></div>
         </div>
-        <div class="sheet-foot">
-          <button class="cta" type="button" id="toPay" disabled><span>تأكيد البيانات</span>
+        <!-- شريط خطوة الموعد بعينه (المقترح «ج»، ١١ نوفمبر): الإجمالي ثمّ «عودة» ثمّ الزرّ. كان الرجوع
+             علامة × فوق وحدها، والإجمالي سطرًا في الملخّص. -->
+        <div class="sheet-foot has-back">
+          <div class="total"><small>الإجمالي</small><b id="rcDep">—</b></div>
+          <button class="edit-back" type="button" id="sheetBack" aria-label="عودة إلى تأكيد الخدمات">
+            <svg width="16" height="11" viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M1 6h16m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.2"/></svg>
+            عودة
+          </button>
+          <button class="cta" type="button" id="toPay" disabled><span>متابعة</span>
             <svg width="18" height="12" viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M17 6H1m5 5L1 6l5-5" stroke="currentColor" stroke-width="1.1"/></svg>
           </button>
         </div>
@@ -526,7 +532,7 @@ import {
   trackVisit, trackPing, trackBooked,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=73';
+} from './assets/db.js?v=74';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -1415,15 +1421,22 @@ function sync() {
    لوحة البيانات والإرسال
    ════════════════════════════════════════════════════════════════════════ */
 const sheet = el('sheet');
+/* ملخّص اللوحة (المقترح «ج»، ١١ نوفمبر): كلّ خدمةٍ في سطرٍ باسمها المختصر وعددُها ملاصقٌ لها. كان
+   الاسم يُكتب كاملًا بملاحظته في سطرٍ واحد فينكسر وينزل «×2» وحده إلى أوّل السطر التالي. والوقت
+   معزول الاتّجاه، وإلّا قُرئ «PM 4:00» بعد التاريخ العربيّ. */
+const recapSvcHTML = (c) => c.map((s) => `<span class="it">${esc(shortName(s.name))}${
+  state.counts[s.id] > 1 ? ` <bdi dir="ltr">×${state.counts[s.id]}</bdi>` : ''}</span>`).join('');
+const recapWhenHTML = () =>
+  `${esc(state.date ? fmtDate(state.date, { short: true }) : '—')} · <bdi dir="ltr">${esc(time12(state.time))}</bdi>`;
 /* الملخّص يُرسم في موضعٍ واحد: كان داخل فتح اللوحة وحدها، فرسومُ الحيّ
    تُحسب بعد الفتح ولا يُعاد رسمه — فيظهر إجماليٌّ لا يفسّره سطر. */
 function paintRecap() {
   const c = picked();
-  const svcNames = c.length ? c.map((s) => esc(s.name) + (state.counts[s.id] > 1 ? ` ⁦×${state.counts[s.id]}⁩` : '')).join(' + ') : '—';
   const svcSum = Math.max(subtotal() - groupDiscount(), 0);
-  el('rcSvc').innerHTML = c.length && locFee() > 0
-    ? `${svcNames} — ${money(svcSum)}<i class="rs"></i>` : svcNames;
-  el('rcWhen').textContent = `${state.date ? fmtDate(state.date, { short: true }) : '—'} · ${time12(state.time)}`;
+  /* مع رسوم الحيّ سطرٌ أخير في قائمة الخدمات بقيمتها، فيُعرف شطرا الإجمالي. */
+  el('rcSvc').innerHTML = !c.length ? '—' : recapSvcHTML(c)
+    + (locFee() > 0 ? `<span class="it sum">قيمتها ${money(svcSum)}<i class="rs"></i></span>` : '');
+  el('rcWhen').innerHTML = recapWhenHTML();
   /* الرسوم سطرٌ باسم الحيّ لا رقمٌ يظهر في الإجمالي بلا تفسير — ومعه
      قيمةُ الخدمات، وإلّا بقي الإجمالي رقمًا واحدًا لا يُعرف شطراه. */
   const fee = locFee();
@@ -1443,6 +1456,7 @@ function openSheetPanel() {
 }
 function closeSheet() { sheet.classList.remove('open'); sheetOpen = false; }
 el('sheetClose').addEventListener('click', closeSheet);
+el('sheetBack').addEventListener('click', closeSheet);
 el('confirmBtn').addEventListener('click', () => {
   if (!state.date || !state.time) { toast('اختاري الموعد أولًا'); go(2); return; }
   openSheetPanel();
