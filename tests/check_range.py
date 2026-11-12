@@ -102,12 +102,7 @@ async def main():
         str(call and call.get("deposit")))
 
     # ══ ثانيًا: الفترة الاستثنائية نطاق ════════════════════════════════
-    await pg.evaluate("""()=>[...document.querySelectorAll('.tab')]
-        .find(t=>t.textContent.includes('الإعدادات')).click()""")
-    await pg.wait_for_timeout(900)
-    await pg.evaluate("""()=>{const t=[...document.querySelectorAll('.panetab')]
-        .find(x=>/أوقات|العمل/.test(x.textContent)); t && t.click();}""")
-    await pg.wait_for_timeout(900)
+    await _H.open_settings(pg, "exceptions")
 
     rows = await pg.evaluate("""()=>[...document.querySelectorAll('.rowline')]
       .filter(r=>r.querySelector('[data-delov]'))

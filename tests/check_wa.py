@@ -35,10 +35,8 @@ def rec(n, ok, note=""):
     R.append((n, ok)); print(("PASS " if ok else "FAIL ") + n + ((" — " + note) if note else ""))
 
 async def msgs_pane(pg):
-    await pg.evaluate("()=>document.querySelector('[data-tab=\"settings\"]').click()")
-    await pg.wait_for_timeout(1100)
-    await pg.evaluate("()=>document.querySelector('[data-pane=\"msgs\"]').click()")
-    await pg.wait_for_timeout(1200)
+    """«الرسائل» صفحةٌ في قائمة «الإعدادات» (§٧س)."""
+    await _H.open_settings(pg, "messages", 1100)
 
 async def open_tpl(pg, rx):
     await pg.evaluate(f"""()=>{{const r=[...document.querySelectorAll('#tplList .rowline')]

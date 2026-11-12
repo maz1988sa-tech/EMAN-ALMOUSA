@@ -39,10 +39,7 @@ HIST = f"""window.__CLIENT_HISTORY__ = [
 ];"""
 
 async def open_pane(pg):
-    await pg.evaluate("()=>{const t=[...document.querySelectorAll('[data-tab]')].find(e=>/الإعدادات/.test(e.textContent)); t&&t.click();}")
-    await pg.wait_for_timeout(700)
-    await pg.evaluate("()=>{const t=[...document.querySelectorAll('[data-pane]')].find(e=>e.dataset.pane==='clients'); t&&t.click();}")
-    await pg.wait_for_timeout(900)
+    await _H.open_settings(pg, "clients")
 
 async def main():
     async with async_playwright() as p:
@@ -57,11 +54,11 @@ async def main():
         await pg.goto(f"http://127.0.0.1:{PORT}/admin.html"); await pg.wait_for_timeout(1700)
         await open_pane(pg)
 
-        # ── القسم في شريط الإعدادات ──────────────────────────────────
-        t = await pg.evaluate("""()=>({pane:!!document.querySelector('[data-pane="clients"][aria-current="true"]'),
+        # ── الصفّ في قائمة الإعدادات يفتح صفحة «العميلات والزوّار» على زرّ «العميلات» (§٧س)
+        t = await pg.evaluate("""()=>({pane:!!document.querySelector('.setseg [data-setpage="clients"][aria-pressed="true"]'),
             head:(document.querySelector('.sec-head h2')||{}).textContent||''})""")
-        rec("قسم «العميلات» في الإعدادات ويفتح «قاعدة العميلات»",
-            t["pane"] and "قاعدة العميلات" in t["head"], t["head"])
+        rec("صفّ «العميلات» يفتح صفحة «العميلات والزوّار» على زرّ «العميلات»",
+            t["pane"] and "العميلات والزوّار" in t["head"], t["head"])
 
         rows = await pg.evaluate("""()=>[...document.querySelectorAll('.cl-row')].map(r=>({
             name:r.querySelector('.cl-who b').textContent.trim(),
@@ -124,10 +121,12 @@ async def main():
         # الجوال والتاريخ لا يُقصّان: كانا في سطرٍ واحد فقُطع التاريخ بنقاط.
         cut = await pg.evaluate("()=>[...document.querySelectorAll('.cl-who .s')].filter(e=>e.scrollWidth>e.clientWidth+1).length")
         rec("وسطرا الجوال والتاريخ لا يُقصّان", cut == 0, f"مقصوص={cut}")
-        tabv = await pg.evaluate("""()=>{const t=document.querySelector('.panetab[aria-current="true"]').getBoundingClientRect();
-            const bar=document.querySelector('.panebar').getBoundingClientRect();
-            return t.left >= bar.left - 1 && t.right <= bar.right + 1;}""")
-        rec("والقسم المفتوح يُرى كاملًا في شريط الأقسام", tabv)
+        # كان القسم المفتوح يقع خارج شريطٍ يمرّر فيُقرأ «العميلا…»؛ صار زرّين يسعان الصفحة (§٧س).
+        segv = await pg.evaluate("""()=>{const s=document.querySelector('.setseg'), r=s.getBoundingClientRect();
+            const v=document.getElementById('view').getBoundingClientRect();
+            return s.scrollWidth <= s.clientWidth && r.left >= v.left - 1 && r.right <= v.right + 1
+              && [...s.children].every((b)=>b.scrollWidth <= b.clientWidth + 1);}""")
+        rec("وزرّا «العميلات» و«الزوّار» يُريان كاملين بلا قصّ", segv)
 
         await pg.screenshot(path=f"{_H.SHOTS}/40-clients.png", full_page=True)
 

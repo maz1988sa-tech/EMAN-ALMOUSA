@@ -14,10 +14,7 @@ def rec(n,ok,note=""): R.append((n,ok)); print(("PASS " if ok else "FAIL ")+n+((
 
 async def openSettings(pg):
     await pg.wait_for_timeout(1200)
-    await pg.evaluate("()=>{const t=[...document.querySelectorAll('[data-tab]')].find(e=>/الإعدادات/.test(e.textContent)); if(t) t.click();}")
-    await pg.wait_for_timeout(900)
-    await pg.evaluate("()=>{const p=[...document.querySelectorAll('[data-pane],.panebar button,.seg button')].find(e=>/عام|الإعدادات/.test(e.textContent)); if(p&&p.click) p.click();}")
-    await pg.wait_for_timeout(900)
+    await _H.open_settings(pg, "delete")
 
 async def main():
   async with async_playwright() as p:

@@ -28,20 +28,20 @@ async def main():
         rec("لا تبويب مستقل لأوقات العمل أو الخدمات",
             not any("أوقات" in t or "الخدمات" in t for t in tabs), str(tabs))
 
-        await pg.click('[data-tab="settings"]'); await pg.wait_for_timeout(600)
-        panes = await pg.eval_on_selector_all(".panetab","e=>e.map(x=>x.textContent.trim())")
-        rec("أقسام الإعدادات بترتيبها",
-            panes[:4]==["عام","أوقات العمل","الخدمات","الرسائل"] and len(panes)>=4, str(panes))
-        grp = await pg.eval_on_selector("#set-grp","e=>e.value")
-        rec("حقل خصم المجموعة يقرأ الإعدادات", grp=="100", f"value={grp!r}")
+        await _H.open_settings(pg, None, 600)
+        groups = await pg.eval_on_selector_all(".setgroup > p.label","e=>e.map(x=>x.textContent.trim())")
+        rec("مجموعات الإعدادات بترتيبها (§٧س)",
+            groups == ["الحجز","الخدمات والمال","التواصل","العميلات والزوّار","البيانات"], str(groups))
 
-        # الأقسام تتبدّل ويعمل محتواها
-        await pg.click('[data-pane="hours"]'); await pg.wait_for_timeout(600)
+        # الصفحات تُفتح ويعمل محتواها، وخصم المجموعة بجانب الخدمات
+        await _H.open_settings(pg, "hours", 600)
         h = await pg.inner_text("#view")
-        rec("قسم أوقات العمل يفتح", "أوقات العمل الأسبوعية" in h, h[:40].replace("\n"," "))
-        await pg.click('[data-pane="services"]'); await pg.wait_for_timeout(600)
+        rec("صفحة أوقات العمل تفتح", "أوقات العمل" in h and "الأحد" in h, h[:40].replace("\n"," "))
+        await _H.open_settings(pg, "services", 600)
         sv = await pg.inner_text("#view")
-        rec("قسم الخدمات يفتح", "الخدمات والأسعار" in sv, sv[:40].replace("\n"," "))
+        rec("صفحة الخدمات تفتح", "الخدمات والأسعار" in sv, sv[:40].replace("\n"," "))
+        grp = await pg.eval_on_selector("#set-grp","e=>e.value")
+        rec("حقل خصم المجموعة في صفحة الخدمات ويقرأ الإعدادات", grp=="100", f"value={grp!r}")
         await pg.screenshot(path=f"{OUT}/settings-services.png", full_page=True)
 
         # محرّر الخدمة يحمل خانة الخصم بحالتها الصحيحة

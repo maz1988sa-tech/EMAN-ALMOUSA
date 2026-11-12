@@ -33,3 +33,17 @@ def _chrome():
     return {'executable_path': str(fixed)} if fixed.exists() else {}
 
 CHROME = _chrome()
+
+
+async def open_settings(pg, page=None, wait=900):
+    """«الإعدادات» قائمةٌ تفتح صفحات (§٧س): التبويب يُفتح على قائمته، ثمّ صفحةٌ
+    بعينها إن طُلبت بمعرّف صفّها — hours · exceptions · rules · location ·
+    services · deposit · messages · numbers · page · clients · visitors ·
+    backup · delete. الطُّقُم تعرف الطريق من هنا، فلا تتعطّل كلّما تغيّر ترتيب القائمة."""
+    await pg.evaluate("()=>document.querySelector('[data-tab=settings]').click()")
+    await pg.wait_for_timeout(wait)
+    await pg.evaluate("()=>{const b=document.getElementById('setBack'); if(b) b.click();}")
+    await pg.wait_for_timeout(300)
+    if page:
+        await pg.evaluate("(id)=>document.querySelector(`.setrow[data-setpage=${id}]`).click()", page)
+        await pg.wait_for_timeout(wait)

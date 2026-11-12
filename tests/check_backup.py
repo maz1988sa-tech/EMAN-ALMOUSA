@@ -13,10 +13,9 @@ MOCK=open(os.path.join(ROOT,"dev/mock-supabase.js"),encoding="utf-8").read()
 R=[]
 def rec(n,ok,note=""): R.append((n,ok)); print(("PASS " if ok else "FAIL ")+n+((" — "+note) if note else ""))
 
-async def settings(pg):
-    await pg.evaluate("""()=>{const t=[...document.querySelectorAll('.tab')]
-        .find(e=>e.textContent.includes('الإعدادات')); t && t.click();}""")
-    await pg.wait_for_timeout(900)
+async def settings(pg, page="backup"):
+    """النسخ الاحتياطي والحذف صفحتان في قائمة «الإعدادات» (§٧س)."""
+    await _H.open_settings(pg, page)
 
 async def main():
     async with async_playwright() as p:
@@ -99,6 +98,7 @@ async def main():
         await pg.screenshot(path=f"{OUT}/backup-list.png", full_page=True)
 
         # ── الحذف الجماعي يأخذ نسخة تلقائية أوّلًا ────────────────────────
+        await settings(pg, "delete")
         await pg.evaluate("()=>{window.__RPC=[];}")
         await pg.select_option("#pg-scope","all"); await pg.wait_for_timeout(700)
         await pg.fill("#pg-word","حذف"); await pg.wait_for_timeout(300)

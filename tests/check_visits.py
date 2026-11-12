@@ -117,11 +117,10 @@ async def main():
         await pg3.add_init_script("window.__MOCK_SIGNED_IN__ = true;")
         await pg3.goto(f"http://127.0.0.1:{PORT}/admin.html")
         await pg3.wait_for_timeout(1700)
-        await pg3.evaluate("()=>document.querySelector('[data-tab=\"settings\"]').click()")
-        await pg3.wait_for_timeout(1100)
-        rec("قسم «الزوّار» موجود في الإعدادات",
-            await pg3.evaluate("()=>!!document.querySelector('[data-pane=\"visits\"]')"))
-        await pg3.evaluate("()=>document.querySelector('[data-pane=\"visits\"]').click()")
+        await _H.open_settings(pg3, None, 1100)
+        rec("صفّ «الزوّار» موجود في قائمة الإعدادات",
+            await pg3.evaluate("()=>!!document.querySelector('.setrow[data-setpage=\"visitors\"]')"))
+        await pg3.evaluate("()=>document.querySelector('.setrow[data-setpage=\"visitors\"]').click()")
         await pg3.wait_for_timeout(1400)
 
         m = await pg3.evaluate("()=>document.getElementById('view').innerText")

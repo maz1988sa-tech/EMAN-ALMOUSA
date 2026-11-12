@@ -143,7 +143,11 @@
       in() { return q; }, gte() { return q; },
       lte() { return q; }, ilike() { return q; }, order() { return q; }, limit() { return q; },
       insert(v) { return { select: () => ({ maybeSingle: () => ok(Array.isArray(v) ? v[0] : v) }) , then:(r)=>r({data:v,error:null}) }; },
-      update(v) { return { eq: () => ({ select: () => ({ maybeSingle: () => ok({ ...rows[0], ...v }) }), then:(r)=>r({data:v,error:null}) }), then:(r)=>r({data:v,error:null}) }; },
+      /* الكتابة تُسجَّل (فيرى الفحص ما أرسلته كلّ صفحة بعينه) وتبقى في الإعدادات كما
+         في القاعدة: صفحةٌ تحفظ ثمّ تعيد القراءة ترى ما حفظته. */
+      update(v) { (window.__UPDATES = window.__UPDATES || []).push({ table: name, v });
+                  if (name === 'settings') Object.assign(SETTINGS, v);
+                  return { eq: () => ({ select: () => ({ maybeSingle: () => ok({ ...rows[0], ...v }) }), then:(r)=>r({data:v,error:null}) }), then:(r)=>r({data:v,error:null}) }; },
       upsert(v) { (window.__UPSERT = window.__UPSERT || []).push(v);
                   return { select: () => ({ maybeSingle: () => ok(v) }) }; },
       delete() { return { eq: () => ok(null) }; },

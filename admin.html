@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#2b1c16">
 <link rel="manifest" href="manifest-admin.webmanifest">
-<link rel="apple-touch-icon" href="assets/icon-admin-180.png?v=61">
+<link rel="apple-touch-icon" href="assets/icon-admin-180.png?v=62">
 <meta name="apple-mobile-web-app-title" content="إيمان">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
 <script>
@@ -40,8 +40,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=61">
-<link rel="stylesheet" href="assets/theme.css?v=61">
+<link rel="stylesheet" href="assets/fonts.css?v=62">
+<link rel="stylesheet" href="assets/theme.css?v=62">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -202,7 +202,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=61"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=62"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -236,7 +236,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=61';
+import { icon, hydrateIcons } from './assets/icons.js?v=62';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -246,8 +246,8 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=61';
-import { buildXlsx, XLSX_TYPE } from './assets/xlsx.js?v=61';
+} from './assets/db.js?v=62';
+import { buildXlsx, XLSX_TYPE } from './assets/xlsx.js?v=62';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -407,18 +407,64 @@ const SORTS = [
 
 // أوقات العمل والخدمات والإعدادات صارت أقسامًا تحت تبويب واحد: كلها
 // ضبطٌ يُفتح مرة كل حين، لا شاشات عمل يومي.
-const SETTING_PANES = [
-  { id: 'general',  label: 'عام',        icon: 'gear' },
-  { id: 'hours',    label: 'أوقات العمل', icon: 'clock' },
-  { id: 'services', label: 'الخدمات',     icon: 'lipstick' },
-  { id: 'msgs',     label: 'الرسائل',     icon: 'whatsapp' },
-  { id: 'clients',  label: 'العميلات',    icon: 'users' },
-  { id: 'visits',   label: 'الزوّار',      icon: 'chart' },
+/* الإعدادات قائمةٌ تفتح صفحات (§٧س). كانت ستّة أقسامٍ في شريطٍ يمرّر جانبيًّا
+   وآخرُه مقصوص، وأوّلها «عام» قرابة أربع شاشاتٍ بزرّ حفظٍ واحد لتسع عشرة خانة:
+   يُطفأ «استقبال حجوزات جديدة» في أعلاه والحفظ تحته بألفي نقطة، فمن انتقلت
+   قبله بقيت الصفحة مفتوحة. فصارت كإعدادات الجوال: المفتاح أوّلها ويُحفظ لحظة
+   الضغط، ثمّ مجموعاتٌ تحت كلّ صفٍّ فيها حالُه الآن، وكلّ صفحةٍ تُحفظ وحدها.
+   اعتمدها صاحب المشروع (١٢ نوفمبر ٢٠٢٦) بملاحظته: العميلات والزوّار مجموعةٌ
+   داخل الإعدادات، وصفحتهما بزرّين. */
+const SETTING_GROUPS = [
+  { label: 'الحجز',             rows: ['hours', 'exceptions', 'rules', 'location'] },
+  { label: 'الخدمات والمال',     rows: ['services', 'deposit'] },
+  { label: 'التواصل',           rows: ['messages', 'numbers', 'page'] },
+  { label: 'العميلات والزوّار',  rows: ['clients', 'visitors'] },
+  { label: 'البيانات',          rows: ['backup', 'delete'] },
 ];
+/* السطر تحت كلّ صفٍّ يُحسب ممّا حُمِّل أصلًا مع اللوحة، فالقائمة لا تنتظر طلبًا
+   (إلّا آخر نسخةٍ احتياطية، تُقرأ بعد الرسم). */
+const SETTING_PAGES = {
+  hours: { title: 'أوقات العمل', icon: 'clock', render: () => renderHours('week'), sum: () => {
+    const n = new Set(S.rules.filter((r) => r.active).map((r) => r.weekday)).size;
+    return n === 0 ? 'مغلقٌ كلّ الأيام' : n === 7 ? 'كلّ أيام الأسبوع'
+      : `${arTimes(n, 'يومٌ واحد', 'يومان', 'أيام', 'يومًا')} في الأسبوع`; } },
+  exceptions: { title: 'الإجازات والاستثناءات', icon: 'calendar', render: () => renderHours('exceptions'), sum: () => {
+    const f = S.overrides.filter((o) => (o.end_date || o.the_date) >= today())
+                         .sort((a, b) => a.the_date.localeCompare(b.the_date));
+    if (!f.length) return 'لا شيء قادم';
+    const o = f[0], d = (x) => esc(fmtDate(x, { short: true, withDow: false }));
+    return `${arTimes(f.length, 'فترةٌ قادمة', 'فترتان قادمتان', 'فترات قادمة', 'فترةً قادمة')} · ${
+      o.the_date <= today() ? `جاريةٌ حتى ${d(o.end_date || o.the_date)}` : `أقربها ${d(o.the_date)}`}`; } },
+  rules: { title: 'قواعد الحجز', icon: 'gear', render: renderRules, sum: (s) => {
+    const lead = Number(s.min_lead_hours ?? 4), adv = Number(s.max_advance_days ?? 120);
+    return `${lead ? `مهلة ${arTimes(lead, 'ساعة', 'ساعتين', 'ساعات', 'ساعة')}` : 'بلا مهلة'} · حتى ${
+      arTimes(adv, 'يوم', 'يومين', 'أيام', 'يومًا')}`; } },
+  location: { title: 'الموقع والأحياء', icon: 'pin', render: renderLocation,
+    sum: (s) => `رابط الموقع ${s.require_loc_map ? 'إلزامي' : 'اختياري'}` },
+  services: { title: 'الخدمات والأسعار', icon: 'lipstick', render: renderServicesPage, sum: (s) => {
+    const n = S.services.filter((x) => x.active).length, g = Number(s.group_discount_amount) || 0;
+    return `${n ? arTimes(n, 'خدمةٌ واحدة', 'خدمتان', 'خدمات', 'خدمة') : 'لا خدمات'}${
+      g > 0 ? ` · خصم المجموعة ${int(g)}` : ''}`; } },
+  deposit: { title: 'العربون والتحويل', icon: 'wallet', render: renderDeposit,
+    sum: (s) => `${s.bank_name ? esc(s.bank_name) : 'لا بنك بعد'} · فحص الإيصال ${s.receipt_ocr_required ? 'مشتعل' : 'مطفأ'}` },
+  messages: { title: 'الرسائل', icon: 'whatsapp', render: renderMessages, sum: (s) => {
+    const n = (S.templates || []).length;
+    return `${n ? arTimes(n, 'رسالةٌ واحدة', 'رسالتان', 'رسائل', 'رسالة') : 'لا رسائل'} · ${
+      s.wa_auto_enabled && s.wa_phone_id ? 'الإرسال التلقائي يعمل' : 'التلقائي في وضع المعاينة'}`; } },
+  numbers: { title: 'أرقام التواصل', icon: 'phone', render: renderNumbers,
+    sum: (s) => s.whatsapp_phone ? `واتساب <bdi dir="ltr">${esc(prettyPhone(s.whatsapp_phone))}</bdi>` : 'لا رقم واتساب بعد' },
+  page: { title: 'صفحة الحجز', icon: 'link', render: renderPageInfo, sum: (s) => {
+    const acc = [s.instagram_url && 'إنستقرام', s.tiktok_url && 'تيك توك'].filter(Boolean);
+    return `${s.business_name ? esc(s.business_name) : 'بلا اسم'} · ${acc.length ? acc.join(' و') : 'بلا حسابات'}`; } },
+  clients: { title: 'العميلات', icon: 'users', render: renderClients, pair: true, sum: () => 'البحث والتصدير إلى Excel' },
+  visitors: { title: 'الزوّار', icon: 'chart', render: renderVisits, pair: true, sum: () => 'الزيارات والحجوزات شهرًا بعد شهر' },
+  backup: { title: 'النسخ الاحتياطي', icon: 'copy', render: renderBackup, sum: () => 'نسخةٌ في السحابة أو على جهازك' },
+  delete: { title: 'حذف الحجوزات', icon: 'trash', render: renderPurge, danger: true, sum: () => 'تُؤخذ نسخةٌ تلقائية قبل الحذف' },
+};
 
 const S = {
   tab: 'home',
-  settingsPane: 'general',
+  settingsPage: null,
   settings: null,
   services: [],
   bookings: [],
@@ -588,9 +634,11 @@ function renderTabs() {
   const n = pendingCount();
   host.innerHTML = TABS.map((t) => `
     <button class="tab" data-tab="${t.id}" ${S.tab === t.id ? 'aria-current="page"' : ''}>${t.label}${t.id === 'home' && n ? `<span class="dot num">${int(n)}</span>` : ''}</button>`).join('');
-  host.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => {
+  host.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => guardLeave(() => {
+    /* «الإعدادات» وهي مفتوحة تعود إلى قائمتها، كما في تطبيقات الجوال. */
+    if (b.dataset.tab === 'settings' && S.tab === 'settings') S.settingsPage = null;
     S.tab = b.dataset.tab; bkFlash = ''; renderTabs(); render(); window.scrollTo({ top: 0 });
-  });
+  }));
 }
 
 function render() {
@@ -599,30 +647,114 @@ function render() {
   hydrateIcons(view);
 }
 
-/* القسم الفرعي يكتب `view` كاملًا كما كان يفعل حين كان تبويبًا مستقلًا،
-   ثم يُدسّ شريط الأقسام فوقه — الإدراج في المقدّمة لا يمسّ العناصر
-   الموجودة ولا مستمعاتها. */
+/* ── الإعدادات: القائمة وصفحاتها (§٧س) ─────────────────────────────────
+
+   تغييرٌ لم يُحفظ لا يضيع صامتًا: الخروج من صفحته — بزرّ الرجوع أو بتبويبٍ
+   آخر — يسأل، وإغلاق المتصفّح يُنبَّه. وإعادة القراءة في الخلفية (حجزٌ وصل)
+   لا ترسم الصفحة فوق ما يُكتب فيها. */
+let setDirty = false, setSave = null, setShown = null;
+window.addEventListener('beforeunload', (e) => { if (setDirty) { e.preventDefault(); e.returnValue = ''; } });
+
+function guardLeave(next) {
+  if (!setDirty) { next(); return; }
+  showSheet('تحفظين التغييرات؟', `
+    <p class="muted mb">في هذه الصفحة تغييراتٌ لم تُحفظ بعد.</p>
+    <button class="btn btn-primary mb" type="button" id="lvSave">احفظي واخرجي</button>
+    <button class="btn btn-ghost mb" type="button" id="lvDrop">اخرجي بلا حفظ</button>
+    <button class="btn btn-soft" type="button" id="lvStay">ابقي في الصفحة</button>`);
+  document.getElementById('lvStay').onclick = () => closeSheet(sheet);
+  document.getElementById('lvDrop').onclick = () => { setDirty = false; closeSheet(sheet); next(); };
+  document.getElementById('lvSave').onclick = async () => {
+    closeSheet(sheet);
+    if (setSave && await setSave()) next();
+  };
+}
+
+function openSettingsPage(id) {
+  guardLeave(() => { S.settingsPage = id; render(); window.scrollTo({ top: 0 }); });
+}
+
 function renderSettingsTab() {
-  const pane = SETTING_PANES.find((p) => p.id === S.settingsPane) || SETTING_PANES[0];
-  ({ general: renderSettings, hours: renderHours,
-     services: renderServices, msgs: renderMessages, visits: renderVisits,
-     clients: renderClients }[pane.id])();
+  const id = SETTING_PAGES[S.settingsPage] ? S.settingsPage : null;
+  if (setDirty && id && id === setShown && view.querySelector('[data-form]')) return;
+  setDirty = false; setSave = null; setShown = id;
+  if (!id) { renderSettingsList(); return; }
 
+  const p = SETTING_PAGES[id];
+  p.render();
+  /* عنوان الصفحة اسمُ صفّها. والعميلات والزوّار صفحةٌ واحدة بزرّين: عنوانها
+     اسم المجموعة، والزرّان تحته. */
+  const head = view.querySelector('.sec-head');
+  if (head) {
+    head.querySelector('h2').textContent = p.pair ? 'العميلات والزوّار' : p.title;
+    if (p.pair) {
+      head.querySelector('.count')?.setAttribute('hidden', '');
+      head.insertAdjacentHTML('afterend', `
+        <div class="viewseg setseg" role="group" aria-label="العميلات والزوّار">
+          ${['clients', 'visitors'].map((k) => `<button type="button" data-setpage="${k}"
+            aria-pressed="${k === id}">${SETTING_PAGES[k].title}</button>`).join('')}
+        </div>`);
+    }
+  }
   view.insertAdjacentHTML('afterbegin', `
-    <div class="panebar">
-      ${SETTING_PANES.map((p) => `
-        <button class="panetab" data-pane="${p.id}"
-                ${p.id === pane.id ? 'aria-current="true"' : ''}>${esc(p.label)}</button>`).join('')}
-    </div>`);
+    <button class="pg-back" type="button" id="setBack">${icon('chevron', 16)}<span>الإعدادات</span></button>`);
+  document.getElementById('setBack').onclick = () =>
+    guardLeave(() => { S.settingsPage = null; render(); window.scrollTo({ top: 0 }); });
+  view.querySelectorAll('.setseg [data-setpage]').forEach((b) => b.onclick = () => openSettingsPage(b.dataset.setpage));
+}
 
-  view.querySelectorAll('[data-pane]').forEach((b) => b.onclick = () => {
-    S.settingsPane = b.dataset.pane;
-    render(); hydrateIcons(view); window.scrollTo({ top: 0 });
-  });
-  /* الشريط يمرّر أفقيًّا، والقسم المفتوح قد يقع خارج حافّته فيبدو مقصوصًا
-     («العميلا…») — فيُجلَب إلى المرأى. */
-  view.querySelector('.panetab[aria-current="true"]')
-    ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+function renderSettingsList() {
+  const s = S.settings || {};
+  view.innerHTML = `
+    <div class="sec-head" style="margin-top:18px"><h2>الإعدادات</h2><span class="rule"></span></div>
+    <div class="card mb">
+      <label class="toggle"><input type="checkbox" id="set-open" ${s.accepting_bookings ? 'checked' : ''}>
+        <span class="grow"><span class="t">استقبال حجوزات جديدة</span>
+          <span class="s" id="set-open-s"></span></span><span class="sw"></span></label>
+    </div>
+    ${SETTING_GROUPS.map((g) => `
+      <div class="card mb setgroup">
+        <p class="label">${g.label}</p>
+        ${g.rows.map((id) => { const p = SETTING_PAGES[id]; return `
+          <button class="rowline setrow${p.danger ? ' danger' : ''}" type="button" data-setpage="${id}">
+            <span class="badge" data-icon="${p.icon}" data-icon-size="18" style="width:36px;height:36px"></span>
+            <span class="grow"><span class="t">${p.title}</span>
+              <span class="s" data-setsum="${id}">${p.sum(s)}</span></span>
+            <span class="go" data-icon="chevron" data-icon-size="16" aria-hidden="true"></span>
+          </button>`; }).join('')}
+      </div>`).join('')}`;
+
+  /* المفتاح يُحفظ لحظة الضغط، والإيقاف يسأل قبل أن ينفذ: هو الذي يُغلق الصفحة
+     أمام العميلات، فلا يُترك لزرّ حفظٍ قد يُنسى ولا لضغطةٍ بالخطأ. */
+  const open = document.getElementById('set-open');
+  const line = document.getElementById('set-open-s');
+  const paint = () => { line.textContent = open.checked
+    ? 'مفتوحة الآن · يُحفظ لحظة الضغط' : 'موقوفة الآن · العميلات لا يستطعن الحجز'; };
+  paint();
+  open.onchange = async () => {
+    const want = open.checked;
+    if (!want && !confirm('إيقاف استقبال الحجوزات؟\nتُغلق صفحة الحجز أمام العميلات حتى تعيدي تشغيله.')) {
+      open.checked = true; return;
+    }
+    open.disabled = true;
+    try {
+      await admin.saveSettings({ accepting_bookings: want });
+      S.settings = { ...S.settings, accepting_bookings: want };
+      toast(want ? 'صفحة الحجز مفتوحة للعميلات' : 'أُوقف استقبال الحجوزات', 'ok');
+    } catch (e) {
+      open.checked = !want; toast(isOffline(e) ? NET_MSG : e.message, 'danger');
+    } finally { open.disabled = false; paint(); }
+  };
+  view.querySelectorAll('.setrow').forEach((b) => b.onclick = () => openSettingsPage(b.dataset.setpage));
+
+  const bk = view.querySelector('[data-setsum="backup"]');
+  backups.list().then((rows) => {
+    if (!bk.isConnected) return;
+    const at = rows.map((r) => r.at).filter(Boolean).sort((a, b) => b - a)[0];
+    bk.textContent = !rows.length ? 'لم تُؤخذ نسخةٌ بعد'
+      : at ? `آخر نسخة ${fmtDate(isoDate(at), { short: true, withDow: false })}`
+      : arTimes(rows.length, 'نسخةٌ واحدة', 'نسختان', 'نسخ', 'نسخة');
+  }).catch(() => { /* يبقى السطر العامّ */ });
 }
 
 /* ── Booking card ─────────────────────────────────────────────────────── */
@@ -1576,7 +1708,8 @@ function renderDues() {
 
 /* ── Working hours ────────────────────────────────────────────────────── */
 
-function renderHours() {
+/* صفحتان في الإعدادات (§٧س): الأسبوع وحده والإجازات وحدها، من الرسم نفسه. */
+function renderHours(part = 'week') {
   const byDay = WEEKDAYS.map((d) => ({
     ...d, rules: S.rules.filter((r) => r.weekday === d.value),
   }));
@@ -1584,7 +1717,7 @@ function renderHours() {
   const future = S.overrides.filter((o) => (o.end_date || o.the_date) >= today())
                             .sort((a, b) => a.the_date.localeCompare(b.the_date));
 
-  view.innerHTML = `
+  const week = `
     <div class="sec-head" style="margin-top:18px"><h2>أوقات العمل الأسبوعية</h2><span class="rule"></span></div>
     <p class="muted mb">حدّدي أيامك وساعاتك، والعميلات يرَين المتاح منها فقط بعد خصم الحجوزات ووقت الانتقال.</p>
 
@@ -1607,9 +1740,9 @@ function renderHours() {
               <button class="iconbtn" data-delrule="${r.id}" aria-label="حذف الفترة" data-icon="trash"></button>
             </div>`).join('')}
         </div>`).join('')}
-    </div>
-
-    <div class="sec-head"><h2>فترات استثنائية</h2><span class="rule"></span></div>
+    </div>`;
+  const exc = `
+    <div class="sec-head" style="margin-top:18px"><h2>فترات استثنائية</h2><span class="rule"></span></div>
     <p class="muted mb">إجازة، أو ساعات مختلفة — ليومٍ أو لفترةٍ كاملة. تتقدّم على الجدول الأسبوعي.</p>
     <div class="card mb">
       ${future.length ? future.map((o) => `
@@ -1622,6 +1755,7 @@ function renderHours() {
         </div>`).join('') : '<p class="muted center" style="padding:12px 0">لا أيام استثنائية.</p>'}
     </div>
     <button class="btn btn-ghost" id="addOverride">${icon('plus', 18)} إضافة فترة استثنائية</button>`;
+  view.innerHTML = part === 'exceptions' ? exc : week;
 
   view.querySelectorAll('[data-addrule]').forEach((b) =>
     b.onclick = () => editRule({ weekday: Number(b.dataset.addrule), start_time: '16:00', end_time: '22:00', active: true }));
@@ -1631,7 +1765,8 @@ function renderHours() {
     b.onclick = async () => { await admin.deleteRule(b.dataset.delrule); toast('حُذفت الفترة', 'ok'); reload(); });
   view.querySelectorAll('[data-delov]').forEach((b) =>
     b.onclick = async () => { await admin.deleteOverride(b.dataset.delov); toast('حُذف اليوم', 'ok'); reload(); });
-  document.getElementById('addOverride').onclick = () => editOverride();
+  const addOv = document.getElementById('addOverride');
+  if (addOv) addOv.onclick = () => editOverride();
 }
 
 /* عنوان الفترة: يومٌ واحد يُكتب وحده، والنطاق بطرفيه. */
@@ -2805,38 +2940,30 @@ let bkFlash = '';
 
 /* ── Settings ─────────────────────────────────────────────────────────── */
 
-function renderSettings() {
+/* ── صفحات الإعدادات المنقولة من «عام» ────────────────────────────────
+   الخانات نفسها والتحقّق نفسه والقاعدة نفسها؛ الفرق أنّ كلّ صفحةٍ تحفظ
+   أعمدتها وحدها، وزرّها تحتها. */
+async function saveSettingsPart(patch, err, msg) {
+  err.innerHTML = '';
+  try {
+    await admin.saveSettings(patch);
+    setDirty = false; toast(msg, 'ok'); reload();
+    return true;
+  } catch (e) { err.innerHTML = note(isOffline(e) ? NET_MSG : e.message); return false; }
+}
+function watchForm(save) {
+  setSave = save;
+  const dirty = () => { setDirty = true; };
+  view.querySelectorAll('[data-form]').forEach((f) => {
+    f.addEventListener('input', dirty); f.addEventListener('change', dirty);
+  });
+}
+
+function renderRules() {
   const s = S.settings || {};
   view.innerHTML = `
-    <div class="sec-head" style="margin-top:18px"><h2>الإعدادات</h2><span class="rule"></span></div>
-
-    <div class="card mb">
-      <p class="label">صفحة الحجز</p>
-      <label class="toggle"><input type="checkbox" id="set-open" ${s.accepting_bookings ? 'checked' : ''}>
-        <span class="grow"><span class="t">استقبال حجوزات جديدة</span>
-          <span class="s">أوقفيه لإغلاق الصفحة مؤقتًا</span></span><span class="sw"></span></label>
-      <label class="toggle mb"><input type="checkbox" id="set-reqmap" ${s.require_loc_map ? 'checked' : ''}>
-        <span class="grow"><span class="t">رابط الموقع إلزامي</span>
-          <span class="s">مفعّل: لا يُرسَل الحجز بلا رابط من خرائط قوقل ·
-            مطفأ: الرابط اختياري كما هو الآن</span></span><span class="sw"></span></label>
-      <div class="field"><label class="label" for="set-name">الاسم المعروض</label>
-        <input class="input" id="set-name" value="${esc(s.business_name || '')}"></div>
-      <div class="field"><label class="label" for="set-tag">الوصف</label>
-        <input class="input" id="set-tag" value="${esc(s.tagline || '')}"></div>
-      <div class="field" style="margin:0"><label class="label">رابط صفحة العميلات</label>
-        <div class="linkbox" style="display:flex;gap:8px;align-items:center;background:var(--surface-2);
-             border:1px solid var(--line);border-radius:var(--r);padding:9px 12px">
-          <input id="pubLink" readonly value="${esc(location.origin + location.pathname.replace(/admin\.html$/, 'index.html'))}"
-                 style="flex:1;min-width:0;border:0;background:transparent;color:var(--ink-2);
-                        font-size:12.5px;direction:ltr;outline:none;font-family:ui-monospace,monospace">
-          <button class="iconbtn" id="copyPub" aria-label="نسخ" data-icon="export"></button>
-        </div>
-        <p class="hint">شاركي هذا الرابط مع العميلات.</p>
-      </div>
-    </div>
-
-    <div class="card mb">
-      <p class="label">المواعيد</p>
+    <div class="sec-head" style="margin-top:18px"><h2>قواعد الحجز</h2><span class="rule"></span></div>
+    <div class="card mb" data-form="rules">
       <div class="split mb">
         <div class="field" style="margin:0"><label class="label" for="set-buffer">وقت الانتقال (دقيقة)</label>
           <input class="input ltr" id="set-buffer" type="number" min="0" max="240" inputmode="numeric"
@@ -2868,22 +2995,93 @@ function renderSettings() {
         <p class="hint" style="margin:6px 0 0" id="set-shutprev"></p>
       </div>
     </div>
+    <div id="set-err"></div>
+    <button class="btn btn-primary mb" id="saveRules">حفظ قواعد الحجز</button>`;
 
-    <div class="card mb">
-      <p class="label">أرقام التواصل</p>
-      <div class="field"><label class="label" for="set-wa">واتساب الأعمال</label>
-        <input class="input ltr" id="set-wa" type="tel" inputmode="numeric" placeholder="05xxxxxxxx"
-               value="${s.whatsapp_phone ? esc(prettyPhone(s.whatsapp_phone)) : ''}"></div>
-      <div class="field" style="margin:0"><label class="label" for="set-drv">جوال السائق</label>
-        <input class="input ltr" id="set-drv" type="tel" inputmode="numeric" placeholder="05xxxxxxxx"
-               value="${s.driver_phone ? esc(prettyPhone(s.driver_phone)) : ''}"></div>
+  /* الشهور المغلقة: الصيغة تُخفى حين لا تُعرض الرسالة أصلًا، ومعاينتُها
+     تُكتب كما تراها العميلة تمامًا — مذكَّرةً مع «هذا الشهر». */
+  {
+    const cb = document.getElementById('set-shutmo');
+    const wrap = document.getElementById('set-shutword-wrap');
+    const sel = document.getElementById('set-shutword');
+    const prev = document.getElementById('set-shutprev');
+    const W = { 'غير مفتوحة': ['غير مفتوح', ' بعد'], 'غير متاحة': ['غير متاح', ''] };
+    const paint = () => {
+      wrap.hidden = !cb.checked;
+      const [m, tail] = W[sel.value] || W['غير مفتوحة'];
+      prev.textContent = `تقرأ العميلة: «هذا الشهر ${m} للحجز${tail}.»`;
+    };
+    cb.onchange = paint; sel.onchange = paint; paint();
+  }
+
+  const g = (id) => document.getElementById(id);
+  const save = () => saveSettingsPart({
+    travel_buffer_min: Number(g('set-buffer').value),
+    slot_step_min: Number(g('set-step').value),
+    min_lead_hours: Number(g('set-lead').value),
+    max_advance_days: Number(g('set-adv').value),
+    show_closed_months: g('set-shutmo').checked,
+    closed_month_word: g('set-shutword').value,
+  }, g('set-err'), 'حُفظت قواعد الحجز');
+  g('saveRules').onclick = save;
+  watchForm(save);
+}
+
+function renderLocation() {
+  const s = S.settings || {};
+  view.innerHTML = '';
+  view.insertAdjacentHTML('afterbegin', `
+    <div class="sec-head" style="margin-top:18px"><h2>الموقع والأحياء</h2><span class="rule"></span></div>
+    <div class="card mb" data-form="location">
+      <label class="toggle"><input type="checkbox" id="set-reqmap" ${s.require_loc_map ? 'checked' : ''}>
+        <span class="grow"><span class="t">رابط الموقع إلزامي</span>
+          <span class="s">مفعّل: لا يُرسَل الحجز بلا رابط من خرائط قوقل ·
+            مطفأ: الرابط اختياري كما هو الآن</span></span><span class="sw"></span></label>
     </div>
+    <div id="set-err"></div>
+    <button class="btn btn-primary mb" id="saveLoc">حفظ رابط الموقع</button>`);
+  const g = (id) => document.getElementById(id);
+  const save = () => saveSettingsPart({ require_loc_map: g('set-reqmap').checked }, g('set-err'), 'حُفظ رابط الموقع');
+  g('saveLoc').onclick = save;
+  watchForm(save);
+}
 
-    <div class="card mb">
-      <p class="label">العربون والتحويل</p>
+/* مبلغ خصم المجموعة بجانب الخدمات التي يقع عليها: المؤهَّلة تُحدَّد من تعديل
+   الخدمة، فكان الطرفان في قسمين. */
+function renderServicesPage() {
+  const s = S.settings || {};
+  renderServices();
+  view.insertAdjacentHTML('beforeend', `
+    <div class="sec-head"><h2>خصم المجموعة</h2><span class="rule"></span></div>
+    <div class="card mb" data-form="discount">
+      <p class="hint" style="margin-top:0">يُطبَّق تلقائيًا حين تحجز العميلة خدمةً
+        مؤهَّلة <b>لشخصين فأكثر</b>، ويُضرب في عدد الأشخاص. والمؤهَّلة تُحدَّد
+        من زرّ التعديل بجانب كلّ خدمةٍ أعلاه.</p>
+      <div class="field" style="margin:0"><label class="label" for="set-grp">الخصم عن كل شخص (ريال)</label>
+        <input class="input ltr" id="set-grp" type="number" min="0" step="10" inputmode="numeric"
+               value="${Number(s.group_discount_amount ?? 0)}">
+        <p class="hint">صفر = لا خصم. مثال: 100 يعني ٣ أشخاص سهرة ⇒ خصم 300 ريال.</p></div>
+      <div id="set-err"></div>
+      <button class="btn mb" id="saveGrp" style="margin-top:10px">حفظ الخصم</button>
+    </div>`);
+  const g = (id) => document.getElementById(id);
+  const save = () => {
+    const grp = Number(g('set-grp').value);
+    if (!(grp >= 0)) { g('set-err').innerHTML = note('مبلغ خصم المجموعة غير صحيح.'); return false; }
+    return saveSettingsPart({ group_discount_amount: grp }, g('set-err'), 'حُفظ خصم المجموعة');
+  };
+  g('saveGrp').onclick = save;
+  watchForm(save);
+}
+
+function renderDeposit() {
+  const s = S.settings || {};
+  view.innerHTML = `
+    <div class="sec-head" style="margin-top:18px"><h2>العربون والتحويل</h2><span class="rule"></span></div>
+    <div class="card mb" data-form="deposit">
       <p class="hint" style="margin-top:0">صفحة الحجز تعرض هذه البيانات للعميلة، ولا يُسجَّل حجز
         قبل رفع صورة التحويل.</p>
-      <p class="hint">مبلغ العربون يُوضع بجانب كل خدمة في «الخدمات»، ويُجمع
+      <p class="hint">مبلغ العربون يُوضع بجانب كل خدمة في «الخدمات والأسعار»، ويُجمع
         على عدد الأشخاص في الحجز.</p>
       <label class="toggle mb"><input type="checkbox" id="set-ocr" ${s.receipt_ocr_required ? 'checked' : ''}>
         <span class="grow"><span class="t">افحصي صورة الإيصال قبل قبول الحجز</span>
@@ -2899,19 +3097,78 @@ function renderSettings() {
         <input class="input" id="set-benef" placeholder="الاسم كما يظهر في الحساب"
                value="${esc(s.beneficiary_name || '')}"></div>
     </div>
+    <div id="set-err"></div>
+    <button class="btn btn-primary mb" id="saveDeposit">حفظ العربون والتحويل</button>`;
+  const g = (id) => document.getElementById(id);
+  const save = () => {
+    const err = g('set-err');
+    // الآيبان يُخزَّن بلا مسافات: SA ثم 22 رقمًا. القاعدة ترفض غير ذلك،
+    // فالأفضل أن تعرف صاحبته السبب هنا لا في رسالة خطأ من الخادم.
+    const iban = g('set-iban').value.replace(/\s+/g, '').toUpperCase();
+    if (iban && !/^SA[0-9]{22}$/.test(iban)) {
+      err.innerHTML = note('الآيبان غير صحيح — يبدأ بـ SA ويليه 22 رقمًا.'); return false;
+    }
+    return saveSettingsPart({
+      receipt_ocr_required: g('set-ocr').checked,
+      bank_name: g('set-bank').value.trim() || null,
+      iban: iban || null,
+      beneficiary_name: g('set-benef').value.trim() || null,
+    }, err, 'حُفظ العربون والتحويل');
+  };
+  g('saveDeposit').onclick = save;
+  watchForm(save);
+}
 
-    <div class="card mb">
-      <p class="label">خصم المجموعة</p>
-      <p class="hint" style="margin-top:0">يُطبَّق تلقائيًا حين تحجز العميلة خدمةً
-        مؤهَّلة <b>لشخصين فأكثر</b>، ويُضرب في عدد الأشخاص. حدّدي الخدمات المؤهَّلة
-        من قسم الخدمات.</p>
-      <div class="field" style="margin:0"><label class="label" for="set-grp">الخصم عن كل شخص (ريال)</label>
-        <input class="input ltr" id="set-grp" type="number" min="0" step="10" inputmode="numeric"
-               value="${Number(s.group_discount_amount ?? 0)}">
-        <p class="hint">صفر = لا خصم. مثال: 100 يعني ٣ أشخاص سهرة ⇒ خصم 300 ريال.</p></div>
+function renderNumbers() {
+  const s = S.settings || {};
+  view.innerHTML = `
+    <div class="sec-head" style="margin-top:18px"><h2>أرقام التواصل</h2><span class="rule"></span></div>
+    <div class="card mb" data-form="numbers">
+      <div class="field"><label class="label" for="set-wa">واتساب الأعمال</label>
+        <input class="input ltr" id="set-wa" type="tel" inputmode="numeric" placeholder="05xxxxxxxx"
+               value="${s.whatsapp_phone ? esc(prettyPhone(s.whatsapp_phone)) : ''}"></div>
+      <div class="field" style="margin:0"><label class="label" for="set-drv">جوال السائق</label>
+        <input class="input ltr" id="set-drv" type="tel" inputmode="numeric" placeholder="05xxxxxxxx"
+               value="${s.driver_phone ? esc(prettyPhone(s.driver_phone)) : ''}"></div>
     </div>
+    <div id="set-err"></div>
+    <button class="btn btn-primary mb" id="saveNumbers">حفظ الأرقام</button>`;
+  const g = (id) => document.getElementById(id);
+  const save = () => {
+    const err = g('set-err');
+    const wa = g('set-wa').value.trim(), drv = g('set-drv').value.trim();
+    if (wa && !normalisePhone(wa))  { err.innerHTML = note('رقم واتساب غير صحيح.'); return false; }
+    if (drv && !normalisePhone(drv)) { err.innerHTML = note('رقم السائق غير صحيح.'); return false; }
+    return saveSettingsPart({
+      whatsapp_phone: wa ? normalisePhone(wa) : null,
+      driver_phone: drv ? normalisePhone(drv) : null,
+    }, err, 'حُفظت الأرقام');
+  };
+  g('saveNumbers').onclick = save;
+  watchForm(save);
+}
 
-    <div class="card mb">
+function renderPageInfo() {
+  const s = S.settings || {};
+  view.innerHTML = `
+    <div class="sec-head" style="margin-top:18px"><h2>صفحة الحجز</h2><span class="rule"></span></div>
+    <div class="card mb" data-form="page">
+      <div class="field"><label class="label" for="set-name">الاسم المعروض</label>
+        <input class="input" id="set-name" value="${esc(s.business_name || '')}"></div>
+      <div class="field"><label class="label" for="set-tag">الوصف</label>
+        <input class="input" id="set-tag" value="${esc(s.tagline || '')}"></div>
+      <div class="field" style="margin:0"><label class="label">رابط صفحة العميلات</label>
+        <div class="linkbox" style="display:flex;gap:8px;align-items:center;background:var(--surface-2);
+             border:1px solid var(--line);border-radius:var(--r);padding:9px 12px">
+          <input id="pubLink" readonly value="${esc(location.origin + location.pathname.replace(/admin\.html$/, 'index.html'))}"
+                 style="flex:1;min-width:0;border:0;background:transparent;color:var(--ink-2);
+                        font-size:12.5px;direction:ltr;outline:none;font-family:ui-monospace,monospace">
+          <button class="iconbtn" id="copyPub" aria-label="نسخ" data-icon="export"></button>
+        </div>
+        <p class="hint">شاركي هذا الرابط مع العميلات.</p>
+      </div>
+    </div>
+    <div class="card mb" data-form="page">
       <p class="label">روابط التواصل الاجتماعي</p>
       <p class="hint" style="margin-top:0">تظهر في أسفل صفحة العميلة. اتركيها فارغة لإخفاء الأيقونة.</p>
       <div class="field"><label class="label" for="set-ig">إنستقرام</label>
@@ -2921,11 +3178,35 @@ function renderSettings() {
         <input class="input ltr" id="set-tt" dir="ltr" type="url" placeholder="https://tiktok.com/@..."
                value="${esc(s.tiktok_url || '')}"></div>
     </div>
-
     <div id="set-err"></div>
-    <button class="btn btn-primary mb" id="saveSettings">حفظ الإعدادات</button>
+    <button class="btn btn-primary mb" id="savePage">حفظ صفحة الحجز</button>`;
 
-    <div class="sec-head"><h2>النسخ الاحتياطي</h2><span class="rule"></span></div>
+  document.getElementById('copyPub').onclick = async () => {
+    try { await navigator.clipboard.writeText(document.getElementById('pubLink').value); toast('نُسخ الرابط', 'ok'); }
+    catch { document.getElementById('pubLink').select(); }
+  };
+
+  const g = (id) => document.getElementById(id);
+  const save = () => {
+    const err = g('set-err');
+    const ig = g('set-ig').value.trim(), tt = g('set-tt').value.trim();
+    for (const [v, name] of [[ig, 'إنستقرام'], [tt, 'تيك توك']]) {
+      if (v && !/^https:\/\/\S+$/i.test(v)) { err.innerHTML = note(`رابط ${name} يجب أن يبدأ بـ https://`); return false; }
+    }
+    return saveSettingsPart({
+      business_name: g('set-name').value.trim(),
+      tagline: g('set-tag').value.trim() || null,
+      instagram_url: ig || null,
+      tiktok_url: tt || null,
+    }, err, 'حُفظت صفحة الحجز');
+  };
+  g('savePage').onclick = save;
+  watchForm(save);
+}
+
+function renderBackup() {
+  view.innerHTML = `
+    <div class="sec-head" style="margin-top:18px"><h2>النسخ الاحتياطي</h2><span class="rule"></span></div>
     <p class="muted mb">نسخة كاملة تُحفظ في سحابة المنصّة باسم تاريخها.
       الاستعادة تُرجع المحذوف ولا تمسّ حجزًا قائمًا.</p>
     <div class="note mb">${icon('check', 18)}<span>تحمل النسخة كلَّ شيء:
@@ -2944,190 +3225,7 @@ function renderSettings() {
       <button class="btn btn-soft" id="btnBackup">${icon('wallet', 18)} ملفّ JSON</button>
       <button class="btn btn-ghost" id="btnCsv">${icon('export', 18)} تصدير CSV</button>
     </div>
-
-    <div class="sec-head" style="margin-top:26px"><h2>حذف الحجوزات</h2><span class="rule"></span></div>
-    <div class="card danger-zone">
-      <p class="hint" style="margin-top:0">يمسح الحجز وعناصره وسجلّه وصورة إيصاله.
-        <b>تُؤخذ نسخة احتياطية تلقائيًا قبل الحذف</b>، وتجدينها في «النسخ الاحتياطي»
-        أعلاه لاستعادتها متى شئتِ.</p>
-
-      <div class="field"><label class="label" for="pg-scope">النطاق</label>
-        <select class="input" id="pg-scope">
-          <option value="week">أسبوع قادم — من اليوم إلى بعد 7 أيام</option>
-          <option value="month">شهر قادم — من اليوم إلى بعد 30 يومًا</option>
-          <option value="future">كل القادم — من اليوم فصاعدًا</option>
-          <option value="past">كل الماضي — قبل اليوم</option>
-          <option value="range">نطاق تاريخي محدّد…</option>
-          <option value="all">كل الحجوزات</option>
-        </select></div>
-
-      <div id="pg-dates" class="pg-dates" hidden>
-        <div class="field" style="margin:0"><label class="label" for="pg-from">من</label>
-          <input class="input ltr" id="pg-from" type="date"></div>
-        <div class="field" style="margin:0"><label class="label" for="pg-to">إلى</label>
-          <input class="input ltr" id="pg-to" type="date"></div>
-      </div>
-
-      <p class="hint" id="pg-count" style="margin:10px 0 0">…</p>
-      <div id="pg-confirm" hidden style="margin-top:10px">
-        <label class="label" for="pg-word">لتأكيد حذف كل الحجوزات اكتبي كلمة <b>حذف</b></label>
-        <input class="input" id="pg-word" placeholder="حذف" autocomplete="off">
-      </div>
-      <div id="pg-err"></div>
-      <button class="btn btn-danger" id="pg-go" style="margin-top:12px" disabled>
-        ${icon('trash', 18)} حذف الحجوزات في النطاق</button>
-    </div>`;
-
-  /* الشهور المغلقة: الصيغة تُخفى حين لا تُعرض الرسالة أصلًا، ومعاينتُها
-     تُكتب كما تراها العميلة تمامًا — مذكَّرةً مع «هذا الشهر». */
-  {
-    const cb = document.getElementById('set-shutmo');
-    const wrap = document.getElementById('set-shutword-wrap');
-    const sel = document.getElementById('set-shutword');
-    const prev = document.getElementById('set-shutprev');
-    const W = { 'غير مفتوحة': ['غير مفتوح', ' بعد'], 'غير متاحة': ['غير متاح', ''] };
-    const paint = () => {
-      wrap.hidden = !cb.checked;
-      const [m, tail] = W[sel.value] || W['غير مفتوحة'];
-      prev.textContent = `تقرأ العميلة: «هذا الشهر ${m} للحجز${tail}.»`;
-    };
-    cb.onchange = paint; sel.onchange = paint; paint();
-  }
-
-  document.getElementById('copyPub').onclick = async () => {
-    try { await navigator.clipboard.writeText(document.getElementById('pubLink').value); toast('نُسخ الرابط', 'ok'); }
-    catch { document.getElementById('pubLink').select(); }
-  };
-
-  document.getElementById('saveSettings').onclick = async () => {
-    const err = document.getElementById('set-err');
-    const wa  = document.getElementById('set-wa').value.trim();
-    const drv = document.getElementById('set-drv').value.trim();
-    if (wa && !normalisePhone(wa))  { err.innerHTML = note('رقم واتساب غير صحيح.'); return; }
-    if (drv && !normalisePhone(drv)) { err.innerHTML = note('رقم السائق غير صحيح.'); return; }
-
-    const grp = Number(document.getElementById('set-grp').value);
-    if (!(grp >= 0)) { err.innerHTML = note('مبلغ خصم المجموعة غير صحيح.'); return; }
-    // الآيبان يُخزَّن بلا مسافات: SA ثم 22 رقمًا. القاعدة ترفض غير ذلك،
-    // فالأفضل أن تعرف صاحبته السبب هنا لا في رسالة خطأ من الخادم.
-    const ibanRaw = document.getElementById('set-iban').value.replace(/\s+/g, '').toUpperCase();
-    if (ibanRaw && !/^SA[0-9]{22}$/.test(ibanRaw)) {
-      err.innerHTML = note('الآيبان غير صحيح — يبدأ بـ SA ويليه 22 رقمًا.'); return;
-    }
-    const ig = document.getElementById('set-ig').value.trim();
-    const tt = document.getElementById('set-tt').value.trim();
-    for (const [v, name] of [[ig, 'إنستقرام'], [tt, 'تيك توك']]) {
-      if (v && !/^https:\/\/\S+$/i.test(v)) {
-        err.innerHTML = note(`رابط ${name} يجب أن يبدأ بـ https://`); return;
-      }
-    }
-    err.innerHTML = '';
-    try {
-      await admin.saveSettings({
-        accepting_bookings: document.getElementById('set-open').checked,
-        require_loc_map: document.getElementById('set-reqmap').checked,
-        business_name: document.getElementById('set-name').value.trim(),
-        tagline: document.getElementById('set-tag').value.trim() || null,
-        travel_buffer_min: Number(document.getElementById('set-buffer').value),
-        slot_step_min: Number(document.getElementById('set-step').value),
-        min_lead_hours: Number(document.getElementById('set-lead').value),
-        max_advance_days: Number(document.getElementById('set-adv').value),
-        show_closed_months: document.getElementById('set-shutmo').checked,
-        closed_month_word: document.getElementById('set-shutword').value,
-        whatsapp_phone: wa ? normalisePhone(wa) : null,
-        driver_phone: drv ? normalisePhone(drv) : null,
-        group_discount_amount: grp,
-        receipt_ocr_required: document.getElementById('set-ocr').checked,
-        bank_name: document.getElementById('set-bank').value.trim() || null,
-        iban: ibanRaw || null,
-        beneficiary_name: document.getElementById('set-benef').value.trim() || null,
-        instagram_url: ig || null,
-        tiktok_url: tt || null,
-      });
-      toast('حُفظت الإعدادات', 'ok'); reload();
-    } catch (e) { err.innerHTML = note(e.message); }
-  };
-
-  /* ── حذف الحجوزات ────────────────────────────────────────────────
-     خطوتان دائمًا: تُعرض العدّة قبل الحذف، ثم يُطلب تأكيد. و«كل الحجوزات»
-     يلزمها كتابة كلمة — لأن ضغطة واحدة لا يصحّ أن تمسح عمل موسم. */
-  {
-    const g = (id) => document.getElementById(id);
-    const scope = g('pg-scope'), dates = g('pg-dates'), cnt = g('pg-count');
-    const conf = g('pg-confirm'), word = g('pg-word'), go = g('pg-go'), perr = g('pg-err');
-    let last = { from: null, to: null, count: 0 };
-
-    const shift = (n) => addDays(today(), n);
-    function bounds() {
-      switch (scope.value) {
-        case 'week':   return [today(), shift(7)];
-        case 'month':  return [today(), shift(30)];
-        case 'future': return [today(), null];
-        case 'past':   return [null, shift(-1)];
-        case 'range':  return [g('pg-from').value || null, g('pg-to').value || null];
-        default:       return [null, null];
-      }
-    }
-
-    let seq = 0;
-    async function preview() {
-      const mine = ++seq;
-      const [from, to] = bounds();
-      dates.hidden = scope.value !== 'range';
-      conf.hidden = scope.value !== 'all';
-      perr.innerHTML = '';
-      if (scope.value === 'range' && (!from || !to)) {
-        cnt.textContent = 'اختاري تاريخي البداية والنهاية.';
-        go.disabled = true; return;
-      }
-      cnt.textContent = 'جارٍ العدّ…'; go.disabled = true;
-      try {
-        const r = await admin.purgePreview(from, to);
-        if (mine !== seq) return;                      // ردّ قديم وصل متأخّرًا
-        last = { from, to, count: r.count };
-        cnt.textContent = r.count === 0
-          ? 'لا حجوزات في هذا النطاق.'
-          : `سيُحذف ${r.count === 1 ? 'حجز واحد' : r.count === 2 ? 'حجزان'
-                : r.count <= 10 ? `${r.count} حجوزات` : `${r.count} حجزًا`}` +
-            (r.receipts.length ? ` ومعها ${r.receipts.length} صورة إيصال.` : '.');
-        gate();
-      } catch (e) {
-        if (mine !== seq) return;
-        cnt.textContent = '—'; perr.innerHTML = note(e.message); go.disabled = true;
-      }
-    }
-    function gate() {
-      go.disabled = last.count === 0
-        || (scope.value === 'all' && word.value.trim() !== 'حذف');
-    }
-
-    scope.onchange = preview;
-    g('pg-from').onchange = preview;
-    g('pg-to').onchange = preview;
-    word.oninput = gate;
-    preview();
-
-    go.onclick = async () => {
-      if (go.disabled) return;
-      const label = scope.options[scope.selectedIndex].text.split('—')[0].trim();
-      if (!confirm(`سيُحذف ${last.count} حجزًا (${label}) نهائيًا بلا تراجع.\nمتأكدة؟`)) return;
-      go.disabled = true; perr.innerHTML = '';
-      const was = go.innerHTML;
-      try {
-        /* الحذف الجماعي هو أرجح أسباب الفقد، فتُؤخذ نسخة قبله دائمًا —
-           لا بوصفها خيارًا بل شرطًا: إن تعذّرت النسخة لم يجرِ الحذف. */
-        go.textContent = 'جارٍ أخذ نسخة احتياطية…';
-        await backups.create({ auto: true });
-        go.textContent = 'جارٍ الحذف…';
-        const r = await admin.purgeBookings(last.from, last.to);
-        toast(`حُذف ${r.count} حجزًا — النسخة محفوظة`, 'ok');
-        word.value = ''; reload();
-      } catch (e) {
-        perr.innerHTML = note(isOffline(e) ? NET_MSG : e.message);
-        go.innerHTML = was; hydrateIcons(go); gate();
-      }
-    };
-  }
+`;
 
   /* ── النسخ السحابية ─────────────────────────────────────────────────
      القائمة تُبنى من التخزين نفسه لا من حالةٍ محفوظة، فما تراه هو ما هناك. */
@@ -3233,6 +3331,124 @@ function renderSettings() {
     download(`حجوزات-${today()}.csv`, csv, 'text/csv');
     toast('نُزّل الملف', 'ok');
   };
+}
+
+function renderPurge() {
+  view.innerHTML = `
+    <div class="sec-head" style="margin-top:18px"><h2>حذف الحجوزات</h2><span class="rule"></span></div>
+    <div class="card danger-zone">
+      <p class="hint" style="margin-top:0">يمسح الحجز وعناصره وسجلّه وصورة إيصاله.
+        <b>تُؤخذ نسخة احتياطية تلقائيًا قبل الحذف</b>، وتجدينها في «النسخ الاحتياطي»
+        في الإعدادات لاستعادتها متى شئتِ.</p>
+
+      <div class="field"><label class="label" for="pg-scope">النطاق</label>
+        <select class="input" id="pg-scope">
+          <option value="week">أسبوع قادم — من اليوم إلى بعد 7 أيام</option>
+          <option value="month">شهر قادم — من اليوم إلى بعد 30 يومًا</option>
+          <option value="future">كل القادم — من اليوم فصاعدًا</option>
+          <option value="past">كل الماضي — قبل اليوم</option>
+          <option value="range">نطاق تاريخي محدّد…</option>
+          <option value="all">كل الحجوزات</option>
+        </select></div>
+
+      <div id="pg-dates" class="pg-dates" hidden>
+        <div class="field" style="margin:0"><label class="label" for="pg-from">من</label>
+          <input class="input ltr" id="pg-from" type="date"></div>
+        <div class="field" style="margin:0"><label class="label" for="pg-to">إلى</label>
+          <input class="input ltr" id="pg-to" type="date"></div>
+      </div>
+
+      <p class="hint" id="pg-count" style="margin:10px 0 0">…</p>
+      <div id="pg-confirm" hidden style="margin-top:10px">
+        <label class="label" for="pg-word">لتأكيد حذف كل الحجوزات اكتبي كلمة <b>حذف</b></label>
+        <input class="input" id="pg-word" placeholder="حذف" autocomplete="off">
+      </div>
+      <div id="pg-err"></div>
+      <button class="btn btn-danger" id="pg-go" style="margin-top:12px" disabled>
+        ${icon('trash', 18)} حذف الحجوزات في النطاق</button>
+    </div>
+`;
+
+  /* ── حذف الحجوزات ────────────────────────────────────────────────
+     خطوتان دائمًا: تُعرض العدّة قبل الحذف، ثم يُطلب تأكيد. و«كل الحجوزات»
+     يلزمها كتابة كلمة — لأن ضغطة واحدة لا يصحّ أن تمسح عمل موسم. */
+  {
+    const g = (id) => document.getElementById(id);
+    const scope = g('pg-scope'), dates = g('pg-dates'), cnt = g('pg-count');
+    const conf = g('pg-confirm'), word = g('pg-word'), go = g('pg-go'), perr = g('pg-err');
+    let last = { from: null, to: null, count: 0 };
+
+    const shift = (n) => addDays(today(), n);
+    function bounds() {
+      switch (scope.value) {
+        case 'week':   return [today(), shift(7)];
+        case 'month':  return [today(), shift(30)];
+        case 'future': return [today(), null];
+        case 'past':   return [null, shift(-1)];
+        case 'range':  return [g('pg-from').value || null, g('pg-to').value || null];
+        default:       return [null, null];
+      }
+    }
+
+    let seq = 0;
+    async function preview() {
+      const mine = ++seq;
+      const [from, to] = bounds();
+      dates.hidden = scope.value !== 'range';
+      conf.hidden = scope.value !== 'all';
+      perr.innerHTML = '';
+      if (scope.value === 'range' && (!from || !to)) {
+        cnt.textContent = 'اختاري تاريخي البداية والنهاية.';
+        go.disabled = true; return;
+      }
+      cnt.textContent = 'جارٍ العدّ…'; go.disabled = true;
+      try {
+        const r = await admin.purgePreview(from, to);
+        if (mine !== seq) return;                      // ردّ قديم وصل متأخّرًا
+        last = { from, to, count: r.count };
+        cnt.textContent = r.count === 0
+          ? 'لا حجوزات في هذا النطاق.'
+          : `سيُحذف ${r.count === 1 ? 'حجز واحد' : r.count === 2 ? 'حجزان'
+                : r.count <= 10 ? `${r.count} حجوزات` : `${r.count} حجزًا`}` +
+            (r.receipts.length ? ` ومعها ${r.receipts.length} صورة إيصال.` : '.');
+        gate();
+      } catch (e) {
+        if (mine !== seq) return;
+        cnt.textContent = '—'; perr.innerHTML = note(e.message); go.disabled = true;
+      }
+    }
+    function gate() {
+      go.disabled = last.count === 0
+        || (scope.value === 'all' && word.value.trim() !== 'حذف');
+    }
+
+    scope.onchange = preview;
+    g('pg-from').onchange = preview;
+    g('pg-to').onchange = preview;
+    word.oninput = gate;
+    preview();
+
+    go.onclick = async () => {
+      if (go.disabled) return;
+      const label = scope.options[scope.selectedIndex].text.split('—')[0].trim();
+      if (!confirm(`سيُحذف ${last.count} حجزًا (${label}) نهائيًا بلا تراجع.\nمتأكدة؟`)) return;
+      go.disabled = true; perr.innerHTML = '';
+      const was = go.innerHTML;
+      try {
+        /* الحذف الجماعي هو أرجح أسباب الفقد، فتُؤخذ نسخة قبله دائمًا —
+           لا بوصفها خيارًا بل شرطًا: إن تعذّرت النسخة لم يجرِ الحذف. */
+        go.textContent = 'جارٍ أخذ نسخة احتياطية…';
+        await backups.create({ auto: true });
+        go.textContent = 'جارٍ الحذف…';
+        const r = await admin.purgeBookings(last.from, last.to);
+        toast(`حُذف ${r.count} حجزًا — النسخة محفوظة`, 'ok');
+        word.value = ''; reload();
+      } catch (e) {
+        perr.innerHTML = note(isOffline(e) ? NET_MSG : e.message);
+        go.innerHTML = was; hydrateIcons(go); gate();
+      }
+    };
+  }
 }
 
 /* ── Booking detail ───────────────────────────────────────────────────── */

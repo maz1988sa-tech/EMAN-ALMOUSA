@@ -470,14 +470,11 @@ async def main():
         pg = await ctx.new_page()
         await pg.add_init_script("window.__MOCK_SIGNED_IN__ = true;")
         await pg.goto(f"http://127.0.0.1:{PORT}/admin.html"); await pg.wait_for_timeout(2000)
-        await pg.evaluate("""()=>{const t=[...document.querySelectorAll('.tab')]
-            .find(e=>e.textContent.includes('الإعدادات')); t && t.click();}""")
-        await pg.wait_for_timeout(800)
-        tabs = await pg.eval_on_selector_all(".panetab", "e=>e.map(x=>x.textContent.trim())")
-        rec("تبويب «الأحياء» في الإعدادات", "الأحياء" in tabs, str(tabs))
+        await _H.open_settings(pg, None, 800)
+        tabs = await pg.eval_on_selector_all(".setrow .t", "e=>e.map(x=>x.textContent.trim())")
+        rec("صفّ «الموقع والأحياء» في قائمة الإعدادات", "الموقع والأحياء" in tabs, str(tabs))
 
-        await pg.evaluate("""()=>{const b=[...document.querySelectorAll('[data-pane]')]
-            .find(x=>x.dataset.pane==='hoods'); b && b.click();}""")
+        await pg.evaluate("()=>document.querySelector('.setrow[data-setpage=location]').click()")
         await pg.wait_for_timeout(1200)
         m = await pg.evaluate("""()=>({
             groups:document.querySelectorAll('[data-gedit]').length,

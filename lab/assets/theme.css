@@ -141,7 +141,7 @@
 /* الزجاج وحده يمرّر لون المشهد خلفه، فتخضرّ بطاقةٌ تصادف أن تجلس فوق
    الشجرة ويصعب قراءة ما فيها. طبقةٌ بيضاء تحت الزجاج تُبقي الشفافيّة
    وتمنع اللون من العبور: يبقى المشهد ضوءًا لا صبغة. */
-.glassy, .card, .arch, .empty, .bk, .stat, .appbar .bar, .appbar .tabs, .panebar {
+.glassy, .card, .arch, .empty, .bk, .stat, .appbar .bar, .appbar .tabs {
   background-image: linear-gradient(var(--tint), var(--tint));
   background-color: var(--glass);
   border: 1px solid var(--glass-line);
@@ -264,15 +264,23 @@ a  { color: var(--accent); }
 }
 @media (prefers-reduced-motion: reduce) { .tab .dot { animation: none; } }
 
-/* أقسام الإعدادات: الشريط نفسه بمقاسٍ أصغر. */
-.panebar { display: flex; gap: 2px; margin: 14px 0 4px; padding: 4px;
-           border-radius: var(--r-pill); overflow-x: auto; scrollbar-width: none; }
-.panebar::-webkit-scrollbar { display: none; }
-.panetab { flex: 1 0 auto; border: 0; background: transparent; color: var(--ink-3);
-           font-family: var(--ft); font-size: 12px; font-weight: 500; padding: 7px 12px;
-           border-radius: var(--r-pill); cursor: pointer; white-space: nowrap;
-           transition: background .2s var(--ease), color .2s var(--ease); }
-.panetab[aria-current="true"] { background: var(--accent); color: #FFF; }
+/* قائمة الإعدادات (§٧س): صفوفٌ تفتح صفحات بدل شريطٍ يمرّر جانبيًّا. الصفّ زرٌّ
+   كامل العرض بهيئة .rowline، وسهمه يشير إلى الداخل — يسارًا في العربية. */
+button.setrow { appearance: none; -webkit-appearance: none; width: 100%; margin: 0;
+                background: none; font: inherit; color: inherit; text-align: start; cursor: pointer;
+                border-width: 0 0 1px; border-style: solid; border-color: var(--glass-line);
+                -webkit-tap-highlight-color: transparent; }
+button.setrow:last-child { border-bottom-width: 0; }
+.setrow .go { flex: 0 0 auto; display: grid; place-items: center; color: var(--ink-3); }
+.setrow .go svg { transform: scaleX(-1); }
+.setrow.danger .t { color: var(--danger); }
+.setrow.danger .badge { background: var(--danger-bg); color: var(--danger); }
+.pg-back { display: inline-flex; align-items: center; gap: 4px; margin: 14px 4px 0;
+           padding: 6px 12px 6px 10px; border-radius: var(--r-pill); border: 1px solid var(--glass-line);
+           background: var(--glass-2); color: var(--accent); font: 600 13px/1.2 var(--fd); cursor: pointer; }
+.pg-back + .sec-head { margin-top: 12px !important; }
+.viewseg.setseg { width: auto; margin: 0 4px 14px; }   /* زرّا صفحةٍ كاملة لا مفتاحُ عرضٍ صغير */
+.viewseg.setseg > button { flex: 1; font-size: 12.5px; padding: 7px 13px; }
 
 /* ── بطاقة التحيّة ─────────────────────────────────────── */
 .greet { padding: 20px 20px 18px; margin-bottom: 12px; border-radius: var(--r-card);

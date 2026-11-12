@@ -18,10 +18,10 @@ srv = socketserver.TCPServer(("127.0.0.1", 0), functools.partial(H, directory=RO
 PORT = srv.server_address[1]
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 MOCK = open(os.path.join(ROOT, "dev/mock-supabase.js"), encoding="utf-8").read()
-# نقرأ ما يصل القاعدة لا ما يظهر على الشاشة: الإعداد يُصدَّق بحمولة الحفظ.
-_OLD = "      update(v) { return {"
-assert _OLD in MOCK, "mock update() shape changed"
-MOCK = MOCK.replace(_OLD, "      update(v) { (window.__UPDATE = window.__UPDATE || []).push([name, v]); return {", 1)
+# نقرأ ما يصل القاعدة لا ما يظهر على الشاشة: الإعداد يُصدَّق بحمولة الحفظ، والمحاكي يسجّلها
+# في window.__UPDATES.
+RULE_KEYS = {"travel_buffer_min", "slot_step_min", "min_lead_hours", "max_advance_days",
+             "show_closed_months", "closed_month_word"}
 
 R = []
 def rec(n, ok, note=""):
@@ -47,7 +47,7 @@ async def main():
         await pg.add_init_script("window.__MOCK_SIGNED_IN__ = true;")
         await pg.goto(f"http://127.0.0.1:{PORT}/admin.html")
         await pg.wait_for_timeout(1700)
-        await tab(pg, "الإعدادات")
+        await _H.open_settings(pg, "rules")   # المربّع في «قواعد الحجز» (§٧س)
 
         seen = await pg.evaluate("""()=>{
           const cb=document.getElementById('set-shutmo');
@@ -91,29 +91,28 @@ async def main():
             await pg.evaluate("()=>document.getElementById('set-shutprev').textContent"))
 
         # الحفظ يرسل الحقلين فعلًا إلى قاعدة البيانات
-        await pg.evaluate("()=>{window.__UPDATE=[];}")
+        await pg.evaluate("()=>{window.__UPDATES=[];}")
         await pg.evaluate("""()=>{
           const c=document.getElementById('set-shutmo'); c.checked=true; c.onchange();
           const s=document.getElementById('set-shutword'); s.value='غير متاحة'; s.onchange();}""")
-        await pg.click("#saveSettings")
+        await pg.click("#saveRules")
         await pg.wait_for_timeout(1200)
-        up = await pg.evaluate("()=>(window.__UPDATE||[]).filter(x=>x[0]==='settings').map(x=>x[1])")
+        up = await pg.evaluate("()=>(window.__UPDATES||[]).filter(x=>x.table==='settings').map(x=>x.v)")
         patch = up[-1] if up else {}
         rec("الحفظ يرسل تحديثًا لجدول الإعدادات", bool(up), str(len(up)))
         rec("ويحمل show_closed_months=true",
             patch.get("show_closed_months") is True, str(patch.get("show_closed_months")))
         rec("ويحمل closed_month_word المختارة",
             patch.get("closed_month_word") == "غير متاحة", str(patch.get("closed_month_word")))
-        rec("ولم يفقد بقيّة الحقول",
-            patch.get("max_advance_days") is not None and patch.get("business_name"),
-            f'{len(patch)} حقلًا')
+        rec("ويحمل حقول «قواعد الحجز» وحدها لا الإعدادات كلّها",
+            set(patch) - {"updated_at"} == RULE_KEYS, str(sorted(set(patch) - {"updated_at"})))
 
         # والإطفاء يُرسَل كذلك
-        await pg.evaluate("()=>{window.__UPDATE=[];}")
+        await pg.evaluate("()=>{window.__UPDATES=[];}")
         await pg.evaluate("()=>{const c=document.getElementById('set-shutmo');c.checked=false;c.onchange();}")
-        await pg.click("#saveSettings")
+        await pg.click("#saveRules")
         await pg.wait_for_timeout(1200)
-        up2 = await pg.evaluate("()=>(window.__UPDATE||[]).filter(x=>x[0]==='settings').map(x=>x[1])")
+        up2 = await pg.evaluate("()=>(window.__UPDATES||[]).filter(x=>x.table==='settings').map(x=>x.v)")
         rec("والإطفاء يصل كـ false",
             bool(up2) and up2[-1].get("show_closed_months") is False,
             str(up2[-1].get("show_closed_months") if up2 else None))

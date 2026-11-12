@@ -12,7 +12,7 @@ import asyncio, os, http.server, socketserver, threading, functools
 from playwright.async_api import async_playwright
 
 ROOT = str(_H.ROOT)
-OUT  = "/home/claude/proj/cmp"
+OUT  = str(_H.SHOTS)   # كان مسار حاويةٍ قديمة فيسقط الطقم في كلّ بيئةٍ غيرها
 class H(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
 srv = socketserver.TCPServer(("127.0.0.1", 0), functools.partial(H, directory=ROOT))
@@ -202,10 +202,10 @@ async def main():
           const okbg=getComputedStyle(probe).backgroundColor; probe.remove();
           return {sw:!!s, hidden:cs.opacity==='0'||cs.position==='absolute',
                   on:i.checked, bg:getComputedStyle(s).backgroundColor, okbg,
-                  panes:document.querySelectorAll('.panetab').length};}""")
+                  panes:document.querySelectorAll('.setrow').length};}""")
         rec("الخيار مفتاحٌ يُقلب لا مربّع", sw and sw["sw"] and sw["hidden"], str(sw and sw["sw"]))
         rec("المفتاح المفعّل يخضرّ", sw and (not sw["on"] or sw["bg"] == sw["okbg"]), str(sw and sw["bg"]))
-        rec("شريط أقسام الإعدادات ظاهر", sw and sw["panes"] >= 4, str(sw and sw["panes"]))
+        rec("قائمة الإعدادات ظاهرة بصفوفها الثلاثة عشر", sw and sw["panes"] == 13, str(sw and sw["panes"]))
         await pg.screenshot(path=f"{OUT}/fit-settings.png", full_page=True)
 
         # ── لا سطح شفّافٌ يختفي فوق المشهد ──────────────────────────
@@ -264,11 +264,7 @@ async def main():
             bars and "rgba(0, 0, 0, 0)" not in bars and "255, 255, 255" not in bars, bars)
 
         # ٤ · محرّر الخدمة: إطارا الفيديو والصورة وضبط التموضع
-        await pg.evaluate("""()=>[...document.querySelectorAll('.tab')]
-            .find(t=>t.textContent.includes('الإعدادات')).click()""")
-        await pg.wait_for_timeout(1000)
-        await pg.evaluate("""()=>document.querySelector('[data-pane="services"]').click()""")
-        await pg.wait_for_timeout(800)
+        await _H.open_settings(pg, "services", 1000)
         await pg.evaluate("""()=>{const r=document.querySelector('.rowline');
             r.querySelector('button,.iconbtn').click();}""")
         await pg.wait_for_timeout(1000)
@@ -290,8 +286,7 @@ async def main():
         await pg.wait_for_timeout(400)
 
         # ٥ · منطقة الحذف: سطحٌ مصمت ونصٌّ أبيض يُقرأ
-        await pg.evaluate("""()=>{const p=document.querySelector('[data-pane="general"]'); if(p) p.click();}""")
-        await pg.wait_for_timeout(1000)
+        await _H.open_settings(pg, "delete", 1000)
         dz = await pg.evaluate("""()=>{const z=document.querySelector('.danger-zone');
           if(!z) return null; const zs=getComputedStyle(z);
           const rgb=(c)=>c.match(/\\d+/g).slice(0,3).map(Number);

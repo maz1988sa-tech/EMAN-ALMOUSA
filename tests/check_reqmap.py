@@ -74,7 +74,7 @@ async def scenario(b, need):
             return {on:e.classList.contains('on'), txt:e.textContent.trim()};}""")
         rec("[إلزامي] الفراغ يقول سببه لا يصمت",
             msg["on"] and "مطلوب" in msg["txt"], msg["txt"][:46])
-        await pg.screenshot(path="/home/claude/proj/cmp/23-reqmap.png")
+        await pg.screenshot(path=f"{_H.SHOTS}/23-reqmap.png")
 
     rec(f"[{tag}] بلا أخطاء", len(errs) == 0, "; ".join(errs[:2]))
     await ctx.close()

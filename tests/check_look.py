@@ -106,8 +106,7 @@ async def main():
         await pg.wait_for_timeout(500)
 
         # ── إعدادات الرسائل ومحرّرها ──────────────────────────────────
-        await pg.click('[data-tab="settings"]'); await pg.wait_for_timeout(700)
-        await pg.click('[data-pane="msgs"]'); await pg.wait_for_timeout(700)
+        await _H.open_settings(pg, "messages", 700)
         lst = await pg.eval_on_selector_all("#tplList .rowline .t","e=>e.map(x=>x.textContent)")
         rec("قائمة الرسائل في الإعدادات", len(lst)==3, str(lst))
         kinds = await pg.eval_on_selector_all("#tplList .pill","e=>e.map(x=>x.textContent.trim())")

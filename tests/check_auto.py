@@ -17,9 +17,6 @@ srv = socketserver.TCPServer(("127.0.0.1", 0), functools.partial(H, directory=RO
 PORT = srv.server_address[1]
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 MOCK = open(os.path.join(ROOT, "dev/mock-supabase.js"), encoding="utf-8").read()
-_OLD = "      update(v) { return {"
-assert _OLD in MOCK, "mock update() shape changed"
-MOCK = MOCK.replace(_OLD, "      update(v) { (window.__UPDATE = window.__UPDATE || []).push([name, v]); return {", 1)
 _OLDU = "      upsert(v) { (window.__UPSERT = window.__UPSERT || []).push(v);"
 assert _OLDU in MOCK, "mock upsert() shape changed"
 
@@ -28,11 +25,8 @@ def rec(n, ok, note=""):
     R.append((n, ok)); print(("PASS " if ok else "FAIL ") + n + ((" — " + note) if note else ""))
 
 async def msgs_pane(pg):
-    """«الرسائل» قسمٌ فرعيّ تحت «الإعدادات» لا تبويبٌ مستقلّ."""
-    await pg.evaluate("()=>document.querySelector('[data-tab=\"settings\"]').click()")
-    await pg.wait_for_timeout(1100)
-    await pg.evaluate("()=>document.querySelector('[data-pane=\"msgs\"]').click()")
-    await pg.wait_for_timeout(1200)
+    """«الرسائل» صفحةٌ في قائمة «الإعدادات» (§٧س)."""
+    await _H.open_settings(pg, "messages", 1100)
 
 async def main():
     async with async_playwright() as p:

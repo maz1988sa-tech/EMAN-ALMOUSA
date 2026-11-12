@@ -15,10 +15,6 @@ OLD="      insert(v) { return {"
 NEW="      insert(v) { (window.__INS = window.__INS || []).push({ t:name, v }); return {"
 assert OLD in MOCK, "mock insert() shape changed"
 MOCK=MOCK.replace(OLD,NEW,1)
-OLDU = "      update(v) { return {"
-NEWU = "      update(v) { (window.__UPD = window.__UPD || []).push({ t:name, v }); return {"
-assert OLDU in MOCK, "mock update() shape changed"
-MOCK = MOCK.replace(OLDU, NEWU, 1)
 # بنود الحجز في النسخة المشتركة بلا service_id فلا تقابل عدّادًا. نُلحقها هنا
 # وحدها — دون المساس بتلك النسخة — لنختبر ورقة التعديل على حجزٍ جماعي يحمل
 # سعرًا خاصًّا محفوظًا.
@@ -134,7 +130,7 @@ async def main():
         sum4 = await pg.inner_text("#e-sum")
         rec("تغيير السعر يعيد حساب إجمالي التعديل — ١٥٠٠+٨٠٠−٢٠٠", sum4.strip().startswith("2,100"), sum4)
 
-        await pg.evaluate("()=>{window.__INS=[];window.__UPD=[];window.__RPC=[];}")
+        await pg.evaluate("()=>{window.__INS=[];window.__RPC=[];}")
         await pg.click("#e-save"); await pg.wait_for_timeout(1000)
         rpc2 = await pg.evaluate("()=>window.__RPC||[]")
         ins2 = await pg.evaluate("()=>window.__INS||[]")
