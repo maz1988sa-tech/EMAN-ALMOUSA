@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#2b1c16">
 <link rel="manifest" href="manifest-admin.webmanifest">
-<link rel="apple-touch-icon" href="assets/icon-admin-180.png?v=76">
+<link rel="apple-touch-icon" href="assets/icon-admin-180.png?v=77">
 <meta name="apple-mobile-web-app-title" content="إيمان">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
 <script>
@@ -40,8 +40,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=76">
-<link rel="stylesheet" href="assets/theme.css?v=76">
+<link rel="stylesheet" href="assets/fonts.css?v=77">
+<link rel="stylesheet" href="assets/theme.css?v=77">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -202,7 +202,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=76"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=77"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -236,7 +236,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=76';
+import { icon, hydrateIcons } from './assets/icons.js?v=77';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -246,8 +246,8 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl, mapPointMessage,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=76';
-import { buildXlsx, XLSX_TYPE } from './assets/xlsx.js?v=76';
+} from './assets/db.js?v=77';
+import { buildXlsx, XLSX_TYPE } from './assets/xlsx.js?v=77';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -429,12 +429,17 @@ const SETTING_PAGES = {
     return n === 0 ? 'مغلقٌ كلّ الأيام' : n === 7 ? 'كلّ أيام الأسبوع'
       : `${arTimes(n, 'يومٌ واحد', 'يومان', 'أيام', 'يومًا')} في الأسبوع`; } },
   exceptions: { title: 'الإجازات والاستثناءات', icon: 'calendar', render: () => renderHours('exceptions'), sum: () => {
-    const f = S.overrides.filter((o) => (o.end_date || o.the_date) >= today())
-                         .sort((a, b) => a.the_date.localeCompare(b.the_date));
+    /* الإجازات وفتراتُ «مخصّصة لخدمة» معًا (§٧ع): الموقوفة لا تُعدّ، فلا أثرَ لها. */
+    const f = [
+      ...S.overrides.filter((o) => (o.end_date || o.the_date) >= today())
+        .map((o) => ({ from: o.the_date, to: o.end_date || o.the_date })),
+      ...S.reserved.filter((p) => p.active && rsvDays(p).length)
+        .map((p) => ({ from: rsvDays(p)[0], to: rsvDays(p)[rsvDays(p).length - 1] })),
+    ].sort((a, b) => a.from.localeCompare(b.from));
     if (!f.length) return 'لا شيء قادم';
     const o = f[0], d = (x) => esc(fmtDate(x, { short: true, withDow: false }));
     return `${arTimes(f.length, 'فترةٌ قادمة', 'فترتان قادمتان', 'فترات قادمة', 'فترةً قادمة')} · ${
-      o.the_date <= today() ? `جاريةٌ حتى ${d(o.end_date || o.the_date)}` : `أقربها ${d(o.the_date)}`}`; } },
+      o.from <= today() ? `جاريةٌ حتى ${d(o.to)}` : `أقربها ${d(o.from)}`}`; } },
   rules: { title: 'قواعد الحجز', icon: 'gear', render: renderRules, sum: (s) => {
     const lead = Number(s.min_lead_hours ?? 4), adv = Number(s.max_advance_days ?? 120);
     return `${lead ? `مهلة ${arTimes(lead, 'ساعة', 'ساعتين', 'ساعات', 'ساعة')}` : 'بلا مهلة'} · حتى ${
@@ -470,6 +475,7 @@ const S = {
   bookings: [],
   rules: [],
   overrides: [],
+  reserved: [],     // فتراتٌ مخصّصة لخدمة (§٧ع)
   agendaDate: today(),
   calMonth: today().slice(0, 7),
   q: '',
@@ -601,14 +607,16 @@ function bookingsFrom() {
 async function reload(announce = false) {
   try {
     const from = bookingsFrom();
-    const [settings, services, bookings, rules, overrides, templates] = await Promise.all([
+    const [settings, services, bookings, rules, overrides, templates, reserved] = await Promise.all([
       admin.settings(), admin.services(),
       admin.bookings({ from, limit: 2000 }),
       admin.rules(), admin.overrides(addDays(today(), -30), addDays(today(), 180)),
       // القوالب لا تعطّل اللوحة لو سقطت: زرّ «تواصل» يفتح واتساب بلا رسالة.
       admin.templates().catch(() => []),
+      // الفترات المخصّصة كالقوالب: سقوطُ قراءتها لا يعطّل اللوحة (تظهر القائمة بلا صفوفها).
+      admin.reservedPeriods().catch(() => []),
     ]);
-    Object.assign(S, { settings, services, bookings, rules, overrides, templates, loadedFrom: from });
+    Object.assign(S, { settings, services, bookings, rules, overrides, templates, reserved, loadedFrom: from });
     if (settings?.business_name) document.getElementById('bizName').textContent = settings.business_name;
     renderTabs();
     render();
@@ -1710,6 +1718,7 @@ function renderDues() {
 
 /* صفحتان في الإعدادات (§٧س): الأسبوع وحده والإجازات وحدها، من الرسم نفسه. */
 function renderHours(part = 'week') {
+  if (part !== 'exceptions') rsvArmed = null;
   const byDay = WEEKDAYS.map((d) => ({
     ...d, rules: S.rules.filter((r) => r.weekday === d.value),
   }));
@@ -1741,11 +1750,16 @@ function renderHours(part = 'week') {
             </div>`).join('')}
         </div>`).join('')}
     </div>`;
+  /* الإجازات وفتراتُ «مخصّصة لخدمة» (§٧ع) قائمةٌ واحدة بترتيب التاريخ: كلاهما استثناءٌ عن الأصل. */
+  const items = [
+    ...future.map((o) => ({ d: o.the_date, o })),
+    ...S.reserved.filter((p) => rsvDays(p).length).map((p) => ({ d: rsvDays(p)[0], p })),
+  ].sort((a, b) => a.d.localeCompare(b.d));
   const exc = `
     <div class="sec-head" style="margin-top:18px"><h2>فترات استثنائية</h2><span class="rule"></span></div>
-    <p class="muted mb">إجازة، أو ساعات مختلفة — ليومٍ أو لفترةٍ كاملة. تتقدّم على الجدول الأسبوعي.</p>
+    <p class="muted mb">إجازة، أو ساعات مختلفة، أو فترة مخصّصة لخدمة — ليومٍ أو لفترةٍ كاملة.</p>
     <div class="card mb">
-      ${future.length ? future.map((o) => `
+      ${items.length ? items.map(({ o, p }) => p ? rsvRowHTML(p) : `
         <div class="rowline">
           <span class="badge" data-icon="${o.kind === 'closed' ? 'close' : 'clock'}" data-icon-size="17"
                 style="width:34px;height:34px"></span>
@@ -1765,8 +1779,274 @@ function renderHours(part = 'week') {
     b.onclick = async () => { await admin.deleteRule(b.dataset.delrule); toast('حُذفت الفترة', 'ok'); reload(); });
   view.querySelectorAll('[data-delov]').forEach((b) =>
     b.onclick = async () => { await admin.deleteOverride(b.dataset.delov); toast('حُذف اليوم', 'ok'); reload(); });
+  view.querySelectorAll('[data-rsv-edit]').forEach((b) =>
+    b.onclick = () => editReserved(S.reserved.find((p) => p.id === b.dataset.rsvEdit)));
+  view.querySelectorAll('[data-rsv-del]').forEach((b) =>
+    b.onclick = () => { rsvArmed = b.dataset.rsvDel; render(); });
+  view.querySelectorAll('[data-rsv-no]').forEach((b) =>
+    b.onclick = () => { rsvArmed = null; render(); });
+  view.querySelectorAll('[data-rsv-yes]').forEach((b) => b.onclick = async () => {
+    try { await admin.deleteReserved(b.dataset.rsvYes); rsvArmed = null; toast('حُذفت الفترة', 'ok'); reload(); }
+    catch (e) { toast(isOffline(e) ? NET_MSG : e.message, 'danger'); }
+  });
   const addOv = document.getElementById('addOverride');
   if (addOv) addOv.onclick = () => editOverride();
+}
+
+/* ── فترةٌ مخصّصة لخدمة (§٧ع) ────────────────────────────────────────────
+   تختار إيمان شهرًا أو نطاقًا أو أيامًا بعينها، وخدمةً أو أكثر، ورسالة. من في سلّتها إحدى الخدمات تُقبل
+   بكل ما معها، وغيرها يُردّ بالرسالة — والحكم في القاعدة (`reserved_block`) لا هنا.
+   المخزَّن أيامٌ بعينها مهما كانت طريقة الإدخال؛ و`mode` تلميحٌ لتفتح الورقةُ الفترةَ بالطريقة التي اختارتها.
+   وحكمٌ واحد لكلّ يوم: الأيام المأخوذة بفترةٍ أخرى تُعلَّم في التقويم قبل الاختيار، ويردّ المشغّلُ ما تسرّب. */
+const RSV_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+const RSV_DOW = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+let rsvArmed = null;      // فترةٌ ضُغط حذفُها مرّةً وتنتظر الثانية
+const rsvIso = (y, m, k) => `${y}-${String(m + 1).padStart(2, '0')}-${String(k).padStart(2, '0')}`;
+const rsvDim = (y, m) => new Date(y, m + 1, 0).getDate();
+const rsvYM = (iso) => [Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1];
+/* الاسم بلا قوس «(يطبق خصم للمجموعات)»: كما تعرضه صفحةُ العميلة (shortName). */
+const rsvName = (id) => String(S.services.find((s) => s.id === id)?.name || '')
+  .replace(/\s*[(（][^)）]*[)）]\s*$/, '').trim();
+const rsvOrder = (ids) => S.services.map((s) => s.id).filter((id) => ids.includes(id));
+/* لخدمةٍ واحدة «لخدمة ميك اب عروس»، ولأكثر «للخدمات: …». */
+const rsvSvcText = (ids) => {
+  const n = rsvOrder(ids).map(rsvName).filter(Boolean);
+  return n.length === 1 ? `لخدمة ${n[0]}` : `للخدمات: ${n.join('، ')}`;
+};
+const rsvDefaultMsg = (mode, ids) => `${mode === 'month' ? 'هذا الشهر مخصّص' : 'هذه الفترة مخصّصة'} ${rsvSvcText(ids)}`;
+const rsvN = (n) => arTimes(n, 'يوم واحد', 'يومان', 'أيام', 'يومًا');
+/* أيام فترةٍ محفوظة من اليوم فصاعدًا: الماضي لا يُحجز فلا يُعدّ. */
+const rsvDays = (p) => (p.dates || []).filter((i) => i >= today()).sort();
+
+/* أيام مسوَّدةٍ بطريقتها: month = [سنة، شهر]، range = من/إلى، days = المختارة. */
+function rsvDaysOf(d) {
+  const t = today(), out = [];
+  if (d.mode === 'month') {
+    const [y, m] = d.ym;
+    for (let k = 1; k <= rsvDim(y, m); k += 1) { const i = rsvIso(y, m, k); if (i >= t) out.push(i); }
+  } else if (d.mode === 'range') {
+    if (d.from && d.to) {
+      const a = d.from <= d.to ? d.from : d.to, b = d.from <= d.to ? d.to : d.from;
+      for (let i = a; i <= b; i = addDays(i, 1)) if (i >= t) out.push(i);
+    }
+  } else out.push(...d.picked.filter((i) => i >= t).sort());
+  return out;
+}
+function rsvGroups(ds) {
+  const g = [];
+  ds.forEach((i) => {
+    const [y, m] = rsvYM(i);
+    let x = g.find((q) => q.y === y && q.m === m);
+    if (!x) { x = { y, m, n: [] }; g.push(x); }
+    x.n.push(Number(i.slice(8)));
+  });
+  return g;
+}
+/* عنوان الفترة: الشهر «ديسمبر 2026 كاملًا»، والنطاق بطرفيه، والأيام مجموعةً بأشهرها. */
+function rsvTitle(p) {
+  const ds = rsvDays(p);
+  if (!ds.length) return '—';
+  const [y, m] = rsvYM(ds[0]);
+  if (p.mode === 'month') return `${RSV_MONTHS[m]} ${y} كاملًا${ds[0].slice(8) !== '01' ? ' (من اليوم)' : ''}`;
+  if (ds.length === 1) return fmtDate(ds[0]);
+  if (p.mode === 'range') {
+    return `${fmtDate(ds[0], { short: true, withDow: false })} — ${fmtDate(ds[ds.length - 1], { short: true, withDow: false })}`;
+  }
+  const g = rsvGroups(ds);
+  return ds.length <= 6 ? g.map((x) => `${x.n.join(' · ')} ${RSV_MONTHS[x.m]}`).join(' و ')
+    : `${rsvN(ds.length)} في ${g.map((x) => RSV_MONTHS[x.m]).join(' و ')}`;
+}
+/* الأيام المأخوذة بفترةٍ أخرى (غير المستثناة): تُعلَّم قبل الاختيار لا بعد الحفظ. */
+function rsvTaken(selfId) {
+  const m = new Map();
+  S.reserved.forEach((p) => { if (p.id !== selfId) rsvDays(p).forEach((i) => { if (!m.has(i)) m.set(i, p); }); });
+  return m;
+}
+
+function rsvRowHTML(p) {
+  if (rsvArmed === p.id) {
+    return `
+        <div class="rowline">
+          <span class="grow"><span class="t">حذف هذه الفترة؟</span>
+            <span class="s">تعود أيامها لكل الخدمات فورًا.</span></span>
+          <button class="btn btn-danger xs" type="button" data-rsv-yes="${esc(p.id)}">حذف</button>
+          <button class="btn btn-ghost xs" type="button" data-rsv-no="1">تراجع</button>
+        </div>`;
+  }
+  const svc = S.services.find((s) => p.service_ids.includes(s.id));
+  return `
+        <div class="rowline">
+          <span class="badge" data-icon="${esc(svc?.icon || 'sparkle')}" data-icon-size="17" style="width:34px;height:34px"></span>
+          <span class="grow"><span class="t">${esc(rsvTitle(p))}</span>
+            <span class="s">${esc(rsvSvcText(p.service_ids))} · ${rsvN(rsvDays(p).length)}</span></span>
+          ${p.active ? '' : '<span class="pill quiet">موقوفة</span>'}
+          <button class="iconbtn" type="button" data-rsv-edit="${esc(p.id)}" aria-label="تعديل الفترة" data-icon="edit"></button>
+          <button class="iconbtn" type="button" data-rsv-del="${esc(p.id)}" aria-label="حذف الفترة" data-icon="trash"></button>
+        </div>`;
+}
+
+/* مفتاح النوع في ورقة الاستثناء: إجازة · ساعات خاصة · مخصّصة لخدمة. */
+function excTypeSeg(cur) {
+  const t = [['closed', 'إجازة'], ['custom', 'ساعات خاصة'], ['rsv', 'مخصّصة لخدمة']];
+  return `<div class="field"><label class="label">النوع</label>
+      <div class="viewseg wide" role="group" aria-label="النوع">${t.map(([k, l]) =>
+        `<button type="button" id="${k === 'rsv' ? 'o-rsv' : `o-${k}`}" aria-pressed="${k === cur}">${l}</button>`).join('')}</div></div>`;
+}
+
+function rsvCal(d, taken) {
+  const [y, m] = d.view, lead = new Date(y, m, 1).getDay(), n = rsvDim(y, m);
+  const sel = new Set(rsvDaysOf(d)), t = today(), live = d.mode !== 'month';
+  let cells = '';
+  for (let i = 0; i < lead; i += 1) cells += '<span class="blank"></span>';
+  for (let k = 1; k <= n; k += 1) {
+    const iso = rsvIso(y, m, k), past = iso < t, tk = !past && taken.has(iso);
+    let cls = 'd';
+    if (past) cls += ' past';
+    else if (tk) cls += ' taken';
+    else if (d.mode === 'range' && (iso === d.from || iso === d.to)) cls += ' on';
+    else if (sel.has(iso)) cls += d.mode === 'days' ? ' on' : ' mid';
+    cells += (!live || past || tk)
+      ? `<span class="${cls}"${tk ? ` title="${esc(rsvTitle(taken.get(iso)))}"` : ''}>${k}</span>`
+      : `<button class="${cls}" type="button" data-rsv="day" data-v="${iso}" aria-pressed="${sel.has(iso)}">${k}</button>`;
+  }
+  const [ty, tm] = rsvYM(t), at = y * 12 + m, base = ty * 12 + tm;
+  return `<div class="mcal"><div class="mcal-nav">
+      <button class="iconbtn" type="button" data-rsv="nav" data-v="-1" aria-label="الشهر السابق" ${at <= base ? 'disabled' : ''}>${icon('chevron', 18)}</button>
+      <span class="lbl">${RSV_MONTHS[m]} ${y}</span>
+      <button class="iconbtn flip" type="button" data-rsv="nav" data-v="1" aria-label="الشهر التالي" ${at >= base + 24 ? 'disabled' : ''}>${icon('chevron', 18)}</button></div>
+      <div class="mcal-dow">${RSV_DOW.map((x) => `<span>${x}</span>`).join('')}</div>
+      <div class="mcal-grid">${cells}</div></div>`;
+}
+function rsvHint(d) {
+  const ds = rsvDaysOf(d);
+  if (d.mode === 'month') {
+    return ds.length ? `${esc(rsvTitle({ mode: 'month', dates: ds }))} · ${rsvN(ds.length)}` : 'لا أيام في هذا الشهر بعد اليوم.';
+  }
+  if (d.mode === 'range') {
+    if (!d.from) return 'اضغطي يوم البداية ثم يوم النهاية.';
+    if (!d.to) return `البداية ${esc(fmtDate(d.from))} — اضغطي يوم النهاية.`;
+    return `من ${esc(fmtDate(ds[0] || d.from))} إلى ${esc(fmtDate(ds[ds.length - 1] || d.to))} · ${rsvN(ds.length)}`;
+  }
+  return ds.length ? `${rsvN(ds.length)} مختارة · ${esc(rsvTitle({ mode: 'days', dates: ds }))}`
+    : 'اضغطي على الأيام التي تريدينها، ولك التنقّل بين الشهور.';
+}
+/* قبل الحفظ ترى إيمان ما سيحدث للحجوزات القائمة: لا شيء منها يُلغى. */
+function rsvNote(d) {
+  const ds = new Set(rsvDaysOf(d));
+  if (!ds.size || !d.services.length) return '';
+  const hit = S.bookings.filter((b) => ds.has(b.the_date) && !['cancelled', 'rejected'].includes(b.status)
+    && !(b.booking_items || []).some((it) => d.services.includes(it.service_id))).length;
+  return hit
+    ? `<div class="note warn mb">${icon('info', 18)}<span>في هذه الفترة ${arTimes(hit, 'حجزٌ واحد', 'حجزان', 'حجوزات', 'حجزًا')} قائمة لا تضمّ الخدمة المخصّصة. تبقى كما هي ولا تُلغى.</span></div>`
+    : `<div class="note ok mb">${icon('check', 18)}<span>لا حجوزات قائمة في هذه الفترة تتأثر.</span></div>`;
+}
+
+function editReserved(p = null) {
+  const t0 = today(), ds0 = p ? rsvDays(p) : [], first = ds0[0] || t0;
+  const act = S.services.filter((s) => s.active);
+  const d = {
+    id: p ? p.id : null,
+    mode: p ? p.mode : 'month',
+    services: p ? [...p.service_ids] : (act[0] ? [act[0].id] : []),
+    active: p ? p.active : true,
+    message: p ? p.message : '', touched: false, err: '',
+    ym: rsvYM(first), view: rsvYM(first),
+    from: p && p.mode === 'range' ? ds0[0] : '', to: p && p.mode === 'range' ? ds0[ds0.length - 1] : '',
+    picked: p && p.mode === 'days' ? [...ds0] : [],
+  };
+  /* الرسالة قيمةٌ حقيقيّة لا عنصرٌ بديل: ما تراه هو ما يُحفظ. وتتبع الجاهزةَ ما دامت لم تُمسّ، فتغيير الخدمة
+     أو الطريقة يغيّر نصَّها — وحين تكتب إيمان نصَّها تثبت. */
+  if (p) d.touched = d.message.trim() !== '' && d.message.trim() !== rsvDefaultMsg(d.mode, d.services);
+  else d.message = rsvDefaultMsg(d.mode, d.services);
+  const taken = rsvTaken(d.id);
+  const modes = [['month', 'شهر كامل'], ['range', 'من — إلى'], ['days', 'أيام بعينها']];
+
+  const html = () => `
+    ${p ? '' : excTypeSeg('rsv')}
+    <div class="field"><label class="label">الخدمات المخصّصة</label>
+      <div class="chiprow">${act.map((s) => `<button class="chip" type="button" data-rsv="svc" data-v="${esc(s.id)}"
+        aria-pressed="${d.services.includes(s.id)}">${icon(s.icon, 16)}${esc(rsvName(s.id))}</button>`).join('')}</div></div>
+    <div class="field"><label class="label">متى؟</label>
+      <div class="viewseg wide" role="group" aria-label="طريقة الاختيار">${modes.map(([k, l]) =>
+        `<button type="button" data-rsv="mode" data-v="${k}" aria-pressed="${d.mode === k}">${l}</button>`).join('')}</div>
+      ${rsvCal(d, taken)}
+      <p class="hint mhint" id="rsv-hint">${rsvHint(d)}</p></div>
+    <div class="field"><label class="label" for="rsv-msg">الرسالة التي تقرؤها العميلة <span class="opt">(اختياري)</span></label>
+      <input class="input" id="rsv-msg" value="${esc(d.message)}" placeholder="${esc(rsvDefaultMsg(d.mode, d.services))}" autocomplete="off" maxlength="200">
+      <p class="hint" id="rsv-prev">تقرأ العميلة: «${esc(d.message.trim() || rsvDefaultMsg(d.mode, d.services))}»</p></div>
+    <label class="toggle"><input type="checkbox" id="rsv-on" ${d.active ? 'checked' : ''}><span class="grow"><span class="t">الفترة مفعّلة</span>
+      <span class="s">أوقفيها لتبقى محفوظة بلا أثر، وفعّليها في موسمها.</span></span><span class="sw"></span></label>
+    <div id="rsv-note">${rsvNote(d)}</div>
+    <div id="rsv-err">${d.err ? `<div class="note danger mb">${icon('close', 18)}<span>${esc(d.err)}</span></div>` : ''}</div>
+    <button class="btn btn-primary" type="button" data-rsv="save">حفظ</button>`;
+
+  const host = () => document.getElementById('rsv-root');
+  function paint() {
+    const body = sheet.querySelector('.sheet-body'), top = body ? body.scrollTop : 0;
+    host().innerHTML = html();
+    if (body) body.scrollTop = top;
+  }
+  function fail(msg) {
+    d.err = msg; paint();
+    const body = sheet.querySelector('.sheet-body');
+    if (body) body.scrollTop = body.scrollHeight;
+  }
+  async function save() {
+    d.err = '';
+    const days = rsvDaysOf(d);
+    if (!d.services.length) return fail('اختاري خدمة واحدة على الأقل.');
+    if (d.mode === 'range' && (!d.from || !d.to)) return fail('اختاري يوم البداية ويوم النهاية.');
+    if (!days.length) return fail(d.mode === 'days' ? 'اختاري يومًا واحدًا على الأقل.' : 'لا أيام في هذا الاختيار بعد اليوم.');
+    const clash = days.filter((i) => taken.has(i));
+    if (clash.length) {
+      return fail(`${rsvN(clash.length)} من اختيارك داخل فترة مخصّصة أخرى (${rsvTitle(taken.get(clash[0]))}). عدّلي اختيارك أو احذفي الفترة الأخرى.`);
+    }
+    const message = d.message.trim() || rsvDefaultMsg(d.mode, d.services);
+    if (message.length > 200) return fail('الرسالة أطول من ٢٠٠ حرف.');
+    try {
+      await admin.saveReserved({
+        ...(d.id ? { id: d.id } : {}),
+        mode: d.mode, dates: days, service_ids: rsvOrder(d.services), message, active: d.active,
+      });
+      closeSheet(sheet); toast('حُفظت الفترة', 'ok'); reload();
+    } catch (e) { fail(isOffline(e) ? NET_MSG : e.message); }
+  }
+
+  showSheet(p ? 'تعديل الفترة' : 'فترة استثنائية', '<div id="rsv-root"></div>');
+  paint();
+  const root = host();
+  root.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-rsv],#o-closed,#o-custom');
+    if (!t) return;
+    if (t.id === 'o-closed' || t.id === 'o-custom') { editOverride(t.id === 'o-custom' ? 'custom' : 'closed'); return; }
+    const a = t.dataset.rsv, v = t.dataset.v;
+    if (a === 'save') { save(); return; }
+    d.err = '';
+    if (a === 'svc') {
+      d.services = d.services.includes(v) ? d.services.filter((x) => x !== v) : [...d.services, v];
+      if (!d.touched) d.message = rsvDefaultMsg(d.mode, d.services);
+    } else if (a === 'mode') {
+      d.mode = v; if (v === 'month') d.ym = [...d.view];
+      if (!d.touched) d.message = rsvDefaultMsg(d.mode, d.services);
+    } else if (a === 'nav') {
+      const x = new Date(d.view[0], d.view[1] + Number(v), 1);
+      d.view = [x.getFullYear(), x.getMonth()];
+      if (d.mode === 'month') d.ym = [...d.view];
+    } else if (a === 'day') {
+      if (d.mode === 'range') {
+        if (!d.from || (d.from && d.to)) { d.from = v; d.to = ''; }
+        else { d.to = v; if (d.to < d.from) [d.from, d.to] = [d.to, d.from]; }
+      } else d.picked = d.picked.includes(v) ? d.picked.filter((x) => x !== v) : [...d.picked, v];
+    } else return;
+    paint();
+  });
+  root.addEventListener('input', (e) => {
+    if (e.target.id !== 'rsv-msg') return;
+    d.message = e.target.value; d.touched = d.message.trim() !== ''; d.err = '';
+    const pv = document.getElementById('rsv-prev');
+    if (pv) pv.textContent = `تقرأ العميلة: «${d.message.trim() || rsvDefaultMsg(d.mode, d.services)}»`;
+  });
+  root.addEventListener('change', (e) => { if (e.target.id === 'rsv-on') d.active = e.target.checked; });
 }
 
 /* عنوان الفترة: يومٌ واحد يُكتب وحده، والنطاق بطرفيه. */
@@ -1821,7 +2101,7 @@ function editRule(rule) {
   };
 }
 
-function editOverride() {
+function editOverride(preKind = 'closed') {
   showSheet('فترة استثنائية', `
     <div class="split mb">
       <div class="field" style="margin:0">
@@ -1834,13 +2114,7 @@ function editOverride() {
       </div>
     </div>
     <p class="hint" id="o-span" style="margin:-6px 0 14px">يوم واحد.</p>
-    <div class="field">
-      <label class="label">النوع</label>
-      <div class="btn-row">
-        <button class="choice" id="o-closed" aria-pressed="true" style="justify-content:center">إجازة</button>
-        <button class="choice" id="o-custom" aria-pressed="false" style="justify-content:center">ساعات خاصة</button>
-      </div>
-    </div>
+    ${excTypeSeg('closed')}
     <div class="split mb hide" id="o-hours">
       <div class="field" style="margin:0"><label class="label" for="o-from">من</label>
         <input class="input" type="time" id="o-from" value="09:00"></div>
@@ -1864,6 +2138,7 @@ function editOverride() {
   };
   document.getElementById('o-closed').onclick = () => pick('closed');
   document.getElementById('o-custom').onclick = () => pick('custom');
+  document.getElementById('o-rsv').onclick = () => editReserved();   // §٧ع: النوع الثالث
 
   /* النهاية لا تسبق البداية: يُجرّ الطرف معها بدل أن يُرفض الإدخال. */
   const oFrom = document.getElementById('o-date');
@@ -1882,6 +2157,7 @@ function editOverride() {
   oFrom.oninput = () => { if (oTo.value < oFrom.value) oTo.value = oFrom.value; span(); };
   oTo.oninput = span;
   span();
+  if (preKind === 'custom') pick('custom');   // عودةً من ورقة «مخصّصة لخدمة»
 
   document.getElementById('o-save').onclick = async () => {
     const row = {

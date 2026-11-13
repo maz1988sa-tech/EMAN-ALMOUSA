@@ -69,6 +69,76 @@
       start_time:null, end_time:null, note:'سفر' },
   ];
 
+  /* فتراتٌ مخصّصة لخدمة (٠٠٤١): الفحصُ يُملي الصفوف في window.__RESERVED__ (الأيام ISO ومعرّفات الخدمات s1…)،
+     والكتابةُ من اللوحة تبقى وتُسجَّل في window.__RESERVED_WRITES. بلا إملاءٍ لا فترات، فلا تتأثّر بقيّة الطُّقُم. */
+  const RESERVED = (window.__RESERVED__ || []).map((r, i) => ({
+    id: r.id || `rp${i + 1}`, mode: r.mode || 'days', dates: [...r.dates].sort(),
+    service_ids: [...r.service_ids], message: r.message, active: r.active !== false,
+    created_at: r.created_at || new Date(Date.now() - (50 - i) * 60000).toISOString() }));
+  let rpSeq = RESERVED.length;
+  /* نسخةٌ حرفيّة من reserved_block: رسالةُ المنع إن كان اليوم مخصّصًا لخدماتٍ ليس في السلّة منها شيء. */
+  const reservedBlock = (d, ids) => {
+    const r = RESERVED.find((p) => p.active && p.dates.includes(d)
+      && p.service_ids.some((id) => SERVICES.some((s) => s.id === id))
+      && !(ids || []).some((id) => p.service_ids.includes(id)));
+    return r ? r.message : null;
+  };
+  /* مشغّل الجدول: تطبيعٌ ثمّ قيود ثمّ تعارض (حكمٌ واحد لكلّ يوم) — بنصّ الأخطاء نفسه. */
+  function reservedTable() {
+    const norm = (v) => {
+      const o = { ...v };
+      if (o.dates) o.dates = [...new Set(o.dates)].filter(Boolean).sort();
+      if (o.service_ids) o.service_ids = [...new Set(o.service_ids)].filter(Boolean);
+      if (o.message != null) o.message = String(o.message).trim();
+      return o;
+    };
+    const verdict = (o, selfId) => {
+      if (!o.dates || o.dates.length < 1 || o.dates.length > 400) return 'new row violates check constraint "reserved_dates_ck"';
+      if (!o.service_ids || o.service_ids.length < 1 || o.service_ids.length > 12) return 'new row violates check constraint "reserved_services_ck"';
+      if (!o.message || o.message.length > 200) return 'new row violates check constraint "reserved_message_ck"';
+      if (RESERVED.some((p) => p.id !== selfId && p.dates.some((d) => o.dates.includes(d)))) return 'أيامٌ من هذه الفترة داخل فترةٍ مخصّصة أخرى';
+      return null;
+    };
+    const log = (e) => (window.__RESERVED_WRITES = window.__RESERVED_WRITES || []).push(e);
+    const st = { op: 'select', payload: null, id: null };
+    const fail = (message) => ({ data: null, error: { message, code: 'P0001' } });
+    function exec(single) {
+      if (st.op === 'select') return { data: RESERVED.map((r) => ({ ...r })), error: null };
+      if (st.op === 'insert') {
+        rpSeq += 1;
+        const row = norm({ id: `rp${rpSeq}`, mode: 'days', active: true, created_at: new Date().toISOString(), ...st.payload });
+        const err = verdict(row, row.id);
+        if (err) return fail(err);
+        RESERVED.push(row); log({ op: 'insert', row: { ...row } });
+        return { data: single ? { ...row } : [{ ...row }], error: null };
+      }
+      if (st.op === 'update') {
+        const i = RESERVED.findIndex((r) => r.id === st.id);
+        if (i < 0) return { data: null, error: null };
+        const row = norm({ ...RESERVED[i], ...st.payload });
+        const err = verdict(row, row.id);
+        if (err) return fail(err);
+        RESERVED[i] = row; log({ op: 'update', row: { ...row } });
+        return { data: single ? { ...row } : [{ ...row }], error: null };
+      }
+      const i = RESERVED.findIndex((r) => r.id === st.id);
+      if (i >= 0) RESERVED.splice(i, 1);
+      log({ op: 'delete', id: st.id });
+      return { data: null, error: null };
+    }
+    const q = {
+      select() { return q; }, order() { return q; },
+      eq(col, val) { if (col === 'id') st.id = val; return q; },
+      insert(v) { st.op = 'insert'; st.payload = v; return q; },
+      update(v) { st.op = 'update'; st.payload = v; return q; },
+      delete() { st.op = 'delete'; return q; },
+      maybeSingle() { return Promise.resolve(exec(true)); },
+      single() { return Promise.resolve(exec(true)); },
+      then(res, rej) { return Promise.resolve(exec(false)).then(res, rej); },
+    };
+    return q;
+  }
+
   const TEMPLATES = [
     { id:'t1', title:'تأكيد الموعد', pinned:true, sort:1, active:true, builtin:true,
       auto_enabled:false, auto_trigger:null, auto_offset_min:0, auto_at_hour:null,
@@ -130,6 +200,7 @@
   const ok = (data) => Promise.resolve({ data, error: null });
 
   function table(name) {
+    if (name === 'reserved_periods') return reservedTable();
     const rows = { services: SERVICES, bookings: BOOKINGS, availability_rules: RULES,
                    date_overrides: OVERRIDES, settings: [SETTINGS], public_settings: [SETTINGS],
                    booking_items: [], activity_log: [],
@@ -227,6 +298,7 @@
               ref_counters: REFC, visits: VISITS, activity_log: LOG, receipt_scans: SCANS,
               districts: DISTS, hood_groups: HG,
               hood_group_districts: HGD, hood_group_prices: HGP, client_history: CH,
+              reserved_periods: RESERVED.map((r) => ({ ...r })),
             };
             snap.counts = {
               bookings: snap.bookings.length, booking_items: snap.booking_items.length,
@@ -236,12 +308,14 @@
               activity_log: LOG.length, receipt_scans: SCANS.length,
               districts: DISTS.length, hood_groups: HG.length,
               hood_group_districts: HGD.length, hood_group_prices: HGP.length,
-              client_history: CH.length,
+              client_history: CH.length, reserved_periods: RESERVED.length,
               receipts: 2,
             };
             return ok(snap);
           }
           if (fn === 'available_slots') {
+            /* اليوم لا يُفتح لسلّةٍ لا تناسب الفترة؛ وبلا خدماتٍ (null) لا حكم كما في القاعدة. */
+            if (args.p_service_ids && reservedBlock(args.p_date, args.p_service_ids)) return ok([]);
             const dur = args.p_duration_min || 45;
             return ok(SLOTS.filter((_, i) => dur <= 60 || i % 2 === 0).map(slot => ({ slot })));
           }
@@ -262,7 +336,13 @@
               const idx = Math.round((dt - new Date(day(0))) / 86400000);
               let n = (dow === 5 || idx === 9) ? 0 : (args.p_duration_min > 120 ? 4 : 8);
               if (d > horizon && !openAhead.has(d)) n = 0;
-              out.push({ the_date: d, slot_count: n });
+              /* «مخصّص» لا «مقفل»: يُعلَّم اليومُ الذي كان سيُفتح لولا الفترة، والمقفل في الأساس يبقى مقفلًا. */
+              let reserved = false, reserved_msg = null;
+              if (args.p_service_ids) {
+                const m = reservedBlock(d, args.p_service_ids);
+                if (m) { if (n > 0) { reserved = true; reserved_msg = m; } n = 0; }
+              }
+              out.push({ the_date: d, slot_count: n, reserved, reserved_msg });
             }
             return ok(out);
           }
@@ -270,6 +350,11 @@
             return ok((window.__OPEN_AHEAD__ || []).map((d) => ({ the_date: d })));
           }
           if (fn === 'create_booking') {
+            /* الحارس الأخير: لا يردّ بالفترة إلّا من قال إنّه يعرفها (بتّ ١ في p_features). */
+            if (((args.p_features || 0) & 1) === 1) {
+              const m = reservedBlock(args.p_date, args.p_service_ids);
+              if (m) { (window.__REFUSED = window.__REFUSED || []).push(args); return Promise.resolve({ data: null, error: { message: m, code: 'P0001' } }); }
+            }
             (window.__BOOKED = window.__BOOKED || []).push(args);
             return ok([{ ref:'EA-20260805', public_token:'tok-demo', the_date:args.p_date,
                          start_time:args.p_time, price:1500 }]);

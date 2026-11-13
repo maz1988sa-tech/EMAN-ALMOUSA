@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=76">
+<link rel="stylesheet" href="assets/fonts.css?v=77">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=76">
+<link rel="stylesheet" href="assets/client-theme.css?v=77">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -536,7 +536,7 @@ import {
   trackVisit, trackPing, trackBooked, isReturningClient,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=76';
+} from './assets/db.js?v=77';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -560,6 +560,7 @@ const state = {
   time: null,        // 'HH:MM'
   slots: [],
   monthDays: {},     // 'YYYY-MM-DD' -> slot_count
+  monthRsv: {},      // 'YYYY-MM-DD' -> رسالة الفترة المخصّصة (يومٌ كان سيُفتح لولاها، §٧ع)
   openAhead: new Set(), // أيامُ «عمل خاص» خارج مدى الحجز
   busy: false,
   booking: null,     // نتيجة createBooking
@@ -570,6 +571,10 @@ const state = {
 
 const picked    = () => state.services.filter((s) => state.counts[s.id] > 0);
 const flatPicked= () => state.services.flatMap((s) => Array.from({ length: state.counts[s.id] || 0 }, () => s));
+/* الخدمات المختارة بمعرّفاتها بلا تكرار: ما تحكم به الفترةُ المخصّصة. وبصمةُ السلّة المدّةُ معها: شهرٌ مبنيٌّ
+   على مدّةٍ واحدة لا يصحّ لخدمةٍ أخرى بالمدّة نفسها إن كانت فترةٌ تخصّ إحداهما (§٧ع). */
+const cartIds = () => [...new Set(flatPicked().map((s) => s.id))];
+const cartSig = () => `${flatPicked().reduce((n, s) => n + Number(s.duration_min), 0)}|${cartIds().sort().join(',')}`;
 /* سعرُ الخدمة في هذا الموقع. بعض الأحياء تسعيرتُها مختلفة — العروس في
    العمارية ٢٣٠٠ لا ٢٠٠٠ — و`create_booking` تحسبها من المجموعة. فلو
    عرضت الصفحةُ السعر المعتاد رأت العميلة رقمًا وحُوسبت بغيره. */
@@ -881,8 +886,8 @@ function onCartChange() {
     showCal(true);
   }
   paintCards();
-  // إتاحة الشهر محسوبة على مدة معيّنة؛ إن تغيّرت المدة فالشبكة كلها لم تعد صحيحة.
-  if (monthMins !== totalMins()) loadMonth(curY, curM);
+  // إتاحة الشهر محسوبة على سلّةٍ معيّنة — مدّتُها وخدماتُها؛ إن تغيّرت فالشبكة كلها لم تعد صحيحة.
+  if (monthSig !== cartSig()) loadMonth(curY, curM);
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -1101,7 +1106,7 @@ const DOW = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعا
 const week = el('week'), times = el('times');
 const todayDate = parseDate(today());
 let curY = todayDate.getFullYear(), curM = todayDate.getMonth(), monthBusy = false;
-let monthPending = null, monthMins = null;   // آخر مدة بُنيت عليها إتاحة الشهر
+let monthPending = null, monthSig = null;   // آخر سلّةٍ (المدّة والخدمات) بُنيت عليها إتاحة الشهر
 
 function showCal(open) {
   el('cal').hidden = !open;
@@ -1118,13 +1123,13 @@ async function loadMonth(y, m) {
   if (monthBusy) { monthPending = [y, m]; return; }
   /* شهرٌ لم يُفتح بعد لا يُسأل عنه الخادم: جوابه معروف سلفًا. */
   if (isShutMonth(y, m)) {
-    monthMins = totalMins();
-    state.monthDays = {};
+    monthSig = cartSig();
+    state.monthDays = {}; state.monthRsv = {};
     renderNav(); renderMonth();
     return;
   }
   monthBusy = true;
-  monthMins = totalMins();
+  monthSig = cartSig();
   renderNav();
   week.innerHTML = `<div class="sk" style="grid-column:1/-1;height:120px"></div>`;
   const first = isoDate(new Date(y, m, 1));
@@ -1132,11 +1137,14 @@ async function loadMonth(y, m) {
   const from = first < today() ? today() : first;
   const days = Math.max(1, Math.round((parseDate(isoDate(last)) - parseDate(from)) / 86400000) + 1);
   try {
-    const rows = await getDaysWithAvailability(from, days, totalMins());
-    state.monthDays = {};
-    rows.forEach((r) => { state.monthDays[r.the_date] = Number(r.slot_count) || 0; });
+    const rows = await getDaysWithAvailability(from, days, totalMins(), cartIds());
+    state.monthDays = {}; state.monthRsv = {};
+    rows.forEach((r) => {
+      state.monthDays[r.the_date] = Number(r.slot_count) || 0;
+      if (r.reserved) state.monthRsv[r.the_date] = r.reserved_msg || '';
+    });
   } catch (err) {
-    state.monthDays = {};
+    state.monthDays = {}; state.monthRsv = {};
     showError(err);
   }
   monthBusy = false;
@@ -1155,20 +1163,27 @@ function renderMonth() {
   for (let d = 1; d <= total; d += 1) {
     const iso = isoDate(new Date(curY, curM, d));
     const free = !shut && (state.monthDays[iso] || 0) > 0;
+    /* «مخصّص»: يومٌ كان سيُفتح لولا فترةٌ خصّصتها إيمان لخدمةٍ ليست في سلّتها. لا يُغلق بـdisabled —
+       الضغطُ عليه يُنبّه رسالتَه بدل أن يصمت — ويُرسم مخطّطًا فيُفرَّق عن المقفل الباهت (§٧ع). */
+    const rsv = !shut && !free && Object.prototype.hasOwnProperty.call(state.monthRsv, iso);
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'day'; b.innerHTML = `<b>${d}</b>`;
-    if (!free) b.disabled = true;
+    if (!free && !rsv) b.disabled = true;
+    if (rsv) { b.classList.add('rsv'); b.setAttribute('aria-disabled', 'true'); b.title = state.monthRsv[iso]; }
     if (!shut && state.date === iso) b.classList.add('sel');
-    if (!shut) b.addEventListener('click', () => pickDay(iso));
+    if (free) b.addEventListener('click', () => pickDay(iso));
+    else if (rsv) b.addEventListener('click', flashRsv);
     week.appendChild(b);
   }
   /* الشهر المغلق يُرى كاملًا لكن بلا لون، وفوقه سببه — لا شبكةٌ فارغة
      تُوهم العميلة أن في الموقع خللًا. */
   paintShut(shut);
+  paintReserved();
   if (shut) return;
   paintPart(isPartMonth(curY, curM));
   const anyFree = Object.values(state.monthDays).some((n) => n > 0);
-  if (!anyFree) {
+  /* شهرٌ كلُّ أيامه «مخصّصة» لا يُقال له «لا أوقات»: يُرى مخطّطًا ومعه السبب. */
+  if (!anyFree && !Object.keys(state.monthRsv).length) {
     week.innerHTML = `<div class="state-msg" style="grid-column:1/-1">
       <h3>لا توجد أوقات متاحة في هذا الشهر</h3>
       <p>جرّبي شهرًا آخر، أو تواصلي معنا مباشرة.</p></div>`;
@@ -1186,6 +1201,28 @@ function paintShut(on) {
   box.className = 'shut-msg';
   box.innerHTML = `<i>هذا الشهر ${w.m} للحجز${w.tail}.<br>اختاري شهرًا من المتاحة.</i>`;
   cal.appendChild(box);
+}
+
+/* فوق التقويم رسالةُ إيمان نفسُها، كما كتبتها (§٧ع). والمعروض رسائلُ فترات هذا الشهر بترتيب أيامها وبلا تكرار:
+   شهرٌ فيه فترتان بنصّين يقرأ العميلُ النصّين لا أوّلهما، وفترتان بنصٍّ واحد تُقرآن سطرًا واحدًا. النصّ يدخل
+   `textContent` لا HTML: ما تكتبه المديرة لا يُفسَّر شيفرةً. */
+function paintReserved() {
+  const cal = el('cal');
+  const old = cal.querySelector('.rsv-msg');
+  if (old) old.remove();
+  const msgs = [...new Set(Object.keys(state.monthRsv).sort().map((d) => state.monthRsv[d]).filter(Boolean))];
+  if (!msgs.length) return;
+  const box = document.createElement('div');
+  box.className = 'rsv-msg'; box.id = 'rsvMsg'; box.setAttribute('role', 'status');
+  const dot = document.createElement('i'), body = document.createElement('div');
+  msgs.forEach((m) => { const p = document.createElement('p'); p.textContent = m; body.appendChild(p); });
+  box.append(dot, body);
+  cal.insertBefore(box, cal.firstChild);
+}
+function flashRsv() {
+  const m = el('rsvMsg');
+  if (!m) return;
+  m.classList.remove('pulse'); void m.offsetWidth; m.classList.add('pulse');
 }
 
 function paintPart(on) {
@@ -1209,7 +1246,7 @@ async function pickDay(iso) {
   renderMonth(); showCal(false); sync();
   times.innerHTML = '<div class="sk" style="grid-column:1/-1"></div>';
   try {
-    state.slots = await getAvailableSlots(iso, totalMins());
+    state.slots = await getAvailableSlots(iso, totalMins(), null, cartIds());
     renderSlots();
   } catch (err) { showError(err); }
 }

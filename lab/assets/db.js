@@ -227,9 +227,12 @@ export async function getServices({ clientOnly = true } = {}) {
   return data || [];
 }
 
-export async function getAvailableSlots(date, durationMin, excludeId = null) {
+/* serviceIds: سلّةُ العميلة. القاعدة لا تفتح يومًا خصّصته إيمان لخدمةٍ ليست فيها (§٧ع) — وبلا
+   خدماتٍ (null) لا حكم، فتعمل الدالّة كما كانت. */
+export async function getAvailableSlots(date, durationMin, excludeId = null, serviceIds = null) {
   const { data, error } = await sb.rpc('available_slots', {
     p_date: date, p_duration_min: durationMin, p_exclude: excludeId,
+    p_service_ids: serviceIds && serviceIds.length ? serviceIds : null,
   });
   if (error) throw error;
   return (data || []).map((r) => (typeof r === 'string' ? r : r.slot));
@@ -243,9 +246,12 @@ export async function getOpenDaysAhead() {
   return (data || []).map((r) => r.the_date);
 }
 
-export async function getDaysWithAvailability(from, days, durationMin) {
+/* ويردّ لكلّ يومٍ `reserved` ورسالته `reserved_msg` حين كان سيُفتح لولا الفترة المخصّصة — ليُرسم
+   «مخصّصًا» لا «مقفلًا» (§٧ع). */
+export async function getDaysWithAvailability(from, days, durationMin, serviceIds = null) {
   const { data, error } = await sb.rpc('days_with_availability', {
     p_from: from, p_days: days, p_duration_min: durationMin,
+    p_service_ids: serviceIds && serviceIds.length ? serviceIds : null,
   });
   if (error) throw error;
   return data || [];
@@ -528,6 +534,10 @@ export async function createBooking(payload) {
        مرّتين، والثانيةُ ضاع فيها حجزُ عميلة. */
     p_client_v:     2,
     p_receipt_path: payload.receiptPath || null,
+    /* مصافحةُ الميزات (بتّ ١ = الفترات المخصّصة، §٧ع). القاعدة لا تردّ بالفترة إلّا من قال إنّه يعرفها،
+       وإلّا ضاع عربونٌ حُوّل بصفحةٍ لا ترى المنع. وهي وسيطٌ مستقلّ عن p_client_v: صفحة الجذر لا
+       تحمل فحص الموقع، فلا تدّعي رقمَه. */
+    p_features:     1,
   });
   if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
@@ -1021,6 +1031,26 @@ export const admin = {
   },
   async deleteOverride(id) {
     const { error } = await sb.from('date_overrides').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  /* فتراتٌ مخصّصة لخدمة (§٧ع): المديرة تقرأ وتكتب مباشرةً (سياسة admin_all_reserved). والمشغّل في القاعدة
+     يطبّع الأيام والخدمات ويردّ التعارض — فهذه تنقل خطأه كما هو، ولا تحكم بشيء. */
+  async reservedPeriods() {
+    const { data, error } = await sb.from('reserved_periods').select('*').order('created_at');
+    if (error) throw error;
+    return data || [];
+  },
+  async saveReserved(row) {
+    const { id, ...rest } = row;
+    const { data, error } = await (id
+      ? sb.from('reserved_periods').update(rest).eq('id', id).select().maybeSingle()
+      : sb.from('reserved_periods').insert(rest).select().maybeSingle());
+    if (error) throw error;
+    return data;
+  },
+  async deleteReserved(id) {
+    const { error } = await sb.from('reserved_periods').delete().eq('id', id);
     if (error) throw error;
   },
 

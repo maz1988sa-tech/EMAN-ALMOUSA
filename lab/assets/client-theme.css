@@ -406,6 +406,20 @@ button{border:0;background:none;cursor:pointer}
 .day b{font:500 19px/1 var(--serif);direction:ltr}
 .day[disabled]{opacity:.3}
 .day.sel{background:var(--clay);border-color:var(--clay);color:#fff}
+/* فترةٌ مخصّصة لخدمة (§٧ع): يومٌ كان سيُفتح لولاها يُرسم مخطّطًا بحدٍّ متقطّع — فيُفرَّق عن المقفل
+   الباهت ولا تظنّه العميلةُ ممتلئًا — وفوق التقويم رسالةُ إيمان. */
+.day.rsv{background:repeating-linear-gradient(135deg,rgba(176,112,92,.13) 0 4px,transparent 4px 9px);border:1px dashed rgba(176,112,92,.5);color:rgba(43,28,22,.45);cursor:not-allowed}
+.day.rsv b{opacity:.8}
+.rsv-msg{display:flex;gap:9px;align-items:flex-start;margin:0 0 10px;padding:10px 12px;border:1px solid rgba(176,112,92,.4);background:rgba(176,112,92,.09);color:var(--ink);font-size:12.5px;line-height:1.7}
+.rsv-msg i{flex:none;width:8px;height:8px;margin-top:8px;border-radius:50%;background:var(--clay)}
+.rsv-msg div{flex:1;min-width:0}
+.rsv-msg p{margin:0}
+.rsv-msg p+p{margin-top:4px}
+.rsv-msg.pulse{animation:rsvp .6s ease}
+@keyframes rsvp{0%,100%{background:rgba(176,112,92,.09)}40%{background:rgba(176,112,92,.3)}}
+@media (prefers-reduced-motion:reduce){.rsv-msg.pulse{animation:none}}
+/* خانات ما قبل غرّة الشهر فراغٌ لا أيام: كانت تُرسم مربّعاتٍ فارغة بحدٍّ وخلفية في كلّ شهرٍ لا يبدأ بالأحد. */
+.day.blank{visibility:hidden}
 .times{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
 .time{height:52px;border:1px solid var(--line-l);background:rgba(255,255,255,.55);font:500 17px/1 var(--serif);direction:ltr;transition:.22s ease}
 .time.sel{background:var(--clay);border-color:var(--clay);color:#fff}
