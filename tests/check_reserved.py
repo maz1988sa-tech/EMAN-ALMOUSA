@@ -39,6 +39,18 @@ Y2, M2 = shift(Y0, M0, 2)
 def iso(y, m, d): return f"{y:04d}-{m:02d}-{d:02d}"
 def dim(y, m): return calendar.monthrange(y, m)[1]
 M1_DAYS = lambda a, b: [iso(Y1, M1, d) for d in range(a, b + 1)]
+# بعد أقصى مدى الحجز (٠٠٤٢): المحاكي على ١٢٠ يومًا، وشهرٌ بعد شهر الحدّ كلُّه بعد المدى.
+EDGE = T + datetime.timedelta(days=120)
+EY, EM = shift(EDGE.year, EDGE.month, 1)
+K = (EY * 12 + EM) - (Y0 * 12 + M0)                      # نقراتُ السهم من الشهر الحاليّ إليه
+K_EDGE = (EDGE.year * 12 + EDGE.month) - (Y0 * 12 + M0)
+FAR = [iso(EY, EM, d) for d in range(5, 16)]
+FAR_OPEN = {d for d in range(5, 16) if datetime.date(EY, EM, d).weekday() != 4}   # الجمعة مقفلةٌ في المحاكي
+RS_FAR = json.dumps([{"mode": "range", "dates": FAR, "service_ids": ["s1"], "message": "للعرائس"}])
+HIDE = MOCK.replace("show_closed_months:true", "show_closed_months:false")
+assert HIDE != MOCK, "لم أجد show_closed_months في المحاكي"
+def ar_n(n):   # rsvN في اللوحة
+    return 'يوم واحد' if n == 1 else 'يومان' if n == 2 else f"{n} أيام" if n <= 10 else f"{n} يومًا"
 
 R = []
 def rec(n, ok, note=""):
@@ -325,6 +337,19 @@ async def admin_part(b):
     rs = await rows(pg)
     rec("ويختفي من القائمة", not any(r['edit'] == 'rp1' for r in rs) and len(rs) == 4, [r['edit'] for r in rs])
     rec("الإجازات لم تُمسّ بالحذف", await pg.evaluate("()=>document.querySelectorAll('#view .card [data-delov]').length") == 2)
+    # ── ما بعد أقصى المدى في الورقة: سطرٌ يقول كم يومًا من الاختيار بعده، وأنّه يُفتح للخدمة وحدها (٠٠٤٢)
+    await open_new(pg)
+    rec("شهرٌ داخل المدى: لا سطرَ عن أقصى المدى", not await pg.evaluate("()=>!!document.getElementById('rsv-far')"))
+    tail = "من اختيارك بعد أقصى مدى للحجز (120 يومًا): تُفتح لمن تختار الخدمة المخصّصة، وتبقى لغيرها «غير مفتوحة»."
+    await nav(pg, K_EDGE)
+    n_edge = sum(1 for d in range(1, dim(EDGE.year, EDGE.month) + 1) if datetime.date(EDGE.year, EDGE.month, d) > EDGE)
+    txt = await pg.evaluate("()=>(document.getElementById('rsv-far')||{}).textContent||''")
+    rec("شهر حدّ المدى: يُعدّ ما بعد الحدّ وحده", (n_edge == 0 and not txt) or (txt.startswith(ar_n(n_edge) + " ") and tail in txt), (n_edge, txt))
+    await nav(pg, 1)
+    txt = await pg.evaluate("()=>(document.getElementById('rsv-far')||{}).textContent||''")
+    rec("شهرٌ كلُّه بعد المدى: أيامه كلُّها، والسطر بكلمة إيمان", txt.startswith(ar_n(dim(EY, EM)) + " ") and tail in txt, txt)
+    await pg.screenshot(path=f"{_H.SHOTS}/49-reserved-far-sheet.png")
+    await close_sheet(pg)
     await pg.screenshot(path=f"{_H.SHOTS}/46-reserved-after.png", full_page=True)
     rec("لا خطأ في صفحة اللوحة طوال الجلسة", not errs, "; ".join(errs[:2]))
     await ctx.close()
@@ -485,11 +510,92 @@ async def client_part(b):
     rec("لا خطأ", not errs, "; ".join(errs[:2]))
     await ctx.close()
 
+# ════════════════════════ بعد أقصى مدى الحجز (٠٠٤٢) ════════════════════════
+MO = "(m)=>{const b=[...document.querySelectorAll('#mPickGrid .mo')][m]; return b?{part:b.classList.contains('part'), shut:b.classList.contains('shut'), dis:b.disabled}:null;}"
+SHUT_MSG = "()=>(document.querySelector('#cal .shut-msg')||{}).innerText||''"
+
+async def far_part(b):
+    # ── العروس: الشهر البعيد لا يُشطب، وأيام فترتها وحدها مفتوحة، وتحت الشبكة أنّ المفتوح أيامٌ بعينها
+    ctx, pg, errs = await mk(b, MOCK, f"window.__RESERVED__ = {RS_FAR};")
+    await to_cal(pg, 0, K)
+    g = await grid(pg)
+    rec("بعد المدى — العروس تبلغ شهر فترتها البعيد ولا يُشطب", g['label'] == f"{AR[EM-1]} {EY}" and not g['shut'], g['label'])
+    rec("وأيام فترتها المفتوحة أصلًا مفتوحةٌ لها، وما سواها من الشهر مقفل", open_set(g) == FAR_OPEN and not rsv_set(g), (sorted(open_set(g)), sorted(FAR_OPEN)))
+    part = await pg.evaluate("()=>(document.querySelector('#cal .part-msg')||{}).textContent||''")
+    rec("وتحت الشبكة أنّ الشهر غير مفتوح إلّا أيامه المفعّلة", "إلّا الأيام المفعّلة" in part, part)
+    rec("ولا رسالة «مخصّص» عند العروس", g['msg'] is None)
+    ah = (await rpc(pg, 'open_days_ahead'))[-1]
+    rec("أيام ما بعد المدى تُسأل بخدمات السلّة", ah.get('p_service_ids') == ['s1'], ah)
+    target = sorted(FAR_OPEN)[0]
+    await pg.evaluate("(n)=>[...document.querySelectorAll('#week .day')].find(b=>b.textContent.trim()==n && !b.disabled).click()", str(target))
+    await pg.wait_for_timeout(1000)
+    sl = (await rpc(pg, 'available_slots'))[-1]
+    nt = await pg.evaluate("()=>document.querySelectorAll('#times button').length")
+    rec("ويُختار يومها وتُعرض أوقاته (النداء بخدمات السلّة؛ والمحاكي يقفل ما بعد المدى بغيرها)",
+        sl.get('p_service_ids') == ['s1'] and sl.get('p_date') == iso(EY, EM, target) and nt > 0, (sl, nt))
+    await pg.screenshot(path=f"{_H.SHOTS}/50-client-far-bride.png")
+    await click(pg, '#monthLabel', 450)
+    mo = await pg.evaluate(MO, EM - 1)
+    rec("لوح الشهور عند العروس: شهر فترتها «أيامٌ محدودة» يُضغط", mo and mo['part'] and not mo['dis'], mo)
+    await pg.evaluate("()=>document.getElementById('mPickVeil').click()"); await pg.wait_for_timeout(350)
+    # تبديل السلّة وهي على الشهر البعيد: السهرة مكانها ← يُشطب بكلمة إيمان؛ والعروس ثانيةً ← يُفتح
+    await pg.evaluate("()=>{const st=window.__state(); st.counts.s1=0; st.counts.s2=1; window.__pick(1,1);}")
+    await pg.wait_for_timeout(1200)
+    g2 = await grid(pg)
+    sm = await pg.evaluate(SHUT_MSG)
+    rec("تبديلها بالسهرة وهي عليه: يصير «غير مفتوح» بكلمة إيمان، بلا تخطيطٍ ولا رسالة",
+        g2['shut'] and sm.startswith("هذا الشهر غير مفتوح للحجز بعد") and not rsv_set(g2) and g2['msg'] is None, sm[:40])
+    await pg.evaluate("()=>{const st=window.__state(); st.counts.s2=0; st.counts.s1=1; window.__pick(0,1);}")
+    await pg.wait_for_timeout(1200)
+    g3 = await grid(pg)
+    rec("وإعادة العروس تفتحه ثانيةً", not g3['shut'] and open_set(g3) == FAR_OPEN, sorted(open_set(g3)))
+    rec("لا خطأ", not errs, "; ".join(errs[:2]))
+    await ctx.close()
+
+    # ── السهرة وحدها: الشهر البعيد كما كان — مشطوبٌ «غير مفتوح» بكلمة إيمان، بلا تخطيطٍ ولا رسالة
+    ctx, pg, errs = await mk(b, MOCK, f"window.__RESERVED__ = {RS_FAR};")
+    await to_cal(pg, 1, K)
+    g = await grid(pg)
+    sm = await pg.evaluate(SHUT_MSG)
+    rec("السهرة وحدها: الشهر البعيد «غير مفتوح» كما كان", g['label'] == f"{AR[EM-1]} {EY}" and g['shut'] and sm.startswith("هذا الشهر غير مفتوح للحجز بعد"), (g['label'], sm[:40]))
+    rec("بلا أيامٍ مفتوحة ولا مخطّطة ولا رسالة «مخصّص»", not open_set(g) and not rsv_set(g) and g['msg'] is None)
+    ah = (await rpc(pg, 'open_days_ahead'))[-1]
+    rec("وأيام ما بعد المدى سُئلت بخدمتها هي", ah.get('p_service_ids') == ['s2'], ah)
+    await pg.screenshot(path=f"{_H.SHOTS}/51-client-far-evening.png")
+    await click(pg, '#monthLabel', 450)
+    mo = await pg.evaluate(MO, EM - 1)
+    rec("ولوح الشهور يشطبه عندها", mo and mo['shut'] and mo['dis'] and not mo['part'], mo)
+    await pg.evaluate("()=>document.getElementById('mPickVeil').click()"); await pg.wait_for_timeout(350)
+    rec("لا خطأ", not errs, "; ".join(errs[:2]))
+    await ctx.close()
+
+    # ── الشهور المغلقة مخفيّة: العروس يصلها السهم إلى شهر فترتها، والسهرة يقف سهمها عند شهر الحدّ
+    ctx, pg, errs = await mk(b, HIDE, f"window.__RESERVED__ = {RS_FAR};")
+    await to_cal(pg, 0, K)
+    g = await grid(pg)
+    rec("(الشهور المغلقة مخفيّة) العروس يصلها السهم إلى شهر فترتها", g['label'] == f"{AR[EM-1]} {EY}" and open_set(g) == FAR_OPEN, g['label'])
+    # وإن بُدّلت سلّتها بالسهرة وهي عليه: شهرٌ خلف آخر ما يصله السهم يُقال له «غير مفتوح» لا «لا توجد أوقات»
+    await pg.evaluate("()=>{const st=window.__state(); st.counts.s1=0; st.counts.s2=1; window.__pick(1,1);}")
+    await pg.wait_for_timeout(1200)
+    g2 = await grid(pg)
+    sm = await pg.evaluate(SHUT_MSG)
+    rec("(مخفيّة) تبديلها بالسهرة وهي عليه: «غير مفتوح» بكلمة إيمان لا «لا توجد أوقات»",
+        g2['shut'] and sm.startswith("هذا الشهر غير مفتوح للحجز بعد") and not g2['none'], (g2['shut'], g2['none'], sm[:40]))
+    await ctx.close()
+    ctx, pg, errs2 = await mk(b, HIDE, f"window.__RESERVED__ = {RS_FAR};")
+    await to_cal(pg, 1, K)
+    g = await grid(pg)
+    nx = await pg.evaluate("()=>document.getElementById('mNext').disabled")
+    rec("والسهرة يقف سهمها عند شهر حدّ المدى", g['label'] == f"{AR[EDGE.month-1]} {EDGE.year}" and nx, (g['label'], nx))
+    rec("لا خطأ", not errs and not errs2, "; ".join((errs + errs2)[:2]))
+    await ctx.close()
+
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(**_H.CHROME, args=["--no-sandbox"])
         await admin_part(b)
         await client_part(b)
+        await far_part(b)
         await b.close()
 
 asyncio.run(main())

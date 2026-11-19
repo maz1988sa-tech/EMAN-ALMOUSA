@@ -40,10 +40,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=63">
+<link rel="stylesheet" href="assets/fonts.css?v=64">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=63">
+<link rel="stylesheet" href="assets/client-theme.css?v=64">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -511,7 +511,7 @@ import {
   trackVisit, trackPing, trackBooked, isReturningClient,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=63';
+} from './assets/db.js?v=64';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -1063,6 +1063,16 @@ const week = el('week'), times = el('times');
 const todayDate = parseDate(today());
 let curY = todayDate.getFullYear(), curM = todayDate.getMonth(), monthBusy = false;
 let monthPending = null, monthSig = null;   // آخر سلّةٍ (المدّة والخدمات) بُنيت عليها إتاحة الشهر
+/* أيامُ ما بعد المدى المفتوحة: «عمل خاص» للجميع، وأيامُ فترةٍ مخصّصة لمن في سلّتها خدمتُها (§٧ع). فهي مرهونةٌ
+   بخدمات السلّة لا بمدّتها، وتُعاد قراءتها قبل الحكم على الشهر كلّما تغيّرت: لولا ذلك لشُطب شهرُ العروس البعيد
+   عندها، ولبقي مفتوحًا لغيرها حتى يُضغط. وسقوطُ القراءة يُبقي ما كان، فتُعاد مع الشهر التالي. */
+let aheadKey = null;
+async function syncAhead() {
+  const ids = cartIds(), key = [...ids].sort().join(',');
+  if (key === aheadKey) return;
+  try { state.openAhead = new Set(await getOpenDaysAhead(ids)); aheadKey = key; }
+  catch { /* تبقى الأيام كما كانت */ }
+}
 
 function showCal(open) {
   el('cal').hidden = !open;
@@ -1077,15 +1087,17 @@ function showCal(open) {
 
 async function loadMonth(y, m) {
   if (monthBusy) { monthPending = [y, m]; return; }
-  /* شهرٌ لم يُفتح بعد لا يُسأل عنه الخادم: جوابه معروف سلفًا. */
-  if (isShutMonth(y, m)) {
-    monthSig = cartSig();
-    state.monthDays = {}; state.monthRsv = {};
-    renderNav(); renderMonth();
-    return;
-  }
   monthBusy = true;
   monthSig = cartSig();
+  await syncAhead();
+  /* شهرٌ لم يُفتح بعد لا يُسأل عنه الخادم: جوابه معروف سلفًا. */
+  if (isShutMonth(y, m)) {
+    state.monthDays = {}; state.monthRsv = {};
+    monthBusy = false;
+    renderNav(); renderMonth();
+    if (monthPending) { const [py, pm] = monthPending; monthPending = null; loadMonth(py, pm); }
+    return;
+  }
   renderNav();
   week.innerHTML = `<div class="sk" style="grid-column:1/-1;height:120px"></div>`;
   const first = isoDate(new Date(y, m, 1));
@@ -1272,8 +1284,11 @@ function closedWord() {
   return CLOSED_W[state.settings?.closed_month_word] || CLOSED_W['غير مفتوحة'];
 }
 function isShutMonth(y, m) {
-  const { open, show } = monthBounds();
-  return show && new Date(y, m, 1) > open && !monthHasOpenDay(y, m);
+  const { open, last, show } = monthBounds();
+  const d = new Date(y, m, 1);
+  /* وشهرٌ خلف آخر ما يصله السهم لا تبلغه العميلة إلّا وهي عليه حين تغيّرت سلّتها — فُتح لعروسٍ ثمّ أزالتها
+     (§٧ع): يُقال له «غير مفتوح» ولو أُخفيت الشهور المغلقة، لا «لا توجد أوقات». */
+  return (show || d > last) && d > open && !monthHasOpenDay(y, m);
 }
 /* خارج المدى ومفتوحٌ جزئيًّا: يُقال ذلك فوق الشبكة، وإلّا ظنّت العميلة
    أنّ بقيّة أيام الشهر معطّلة لعطبٍ لا لحكم. */
@@ -2069,7 +2084,7 @@ document.addEventListener('keydown', (e) => {
     /* أيامُ «عمل خاص» خارج المدى: لولاها شُطب شهرُها في اللوح ولم يصله
        السهم، فتُضبط في اللوحة ولا تراها عميلةٌ قطّ. وسقوطُ قراءتها لا يوقف
        الصفحة — تعود الشهور إلى حكم المدى وحده. */
-    try { state.openAhead = new Set(await getOpenDaysAhead()); }
+    try { state.openAhead = new Set(await getOpenDaysAhead()); aheadKey = ''; }
     catch { state.openAhead = new Set(); }
     if (state.settings) {
       document.title = `حجز موعد — ${state.settings.business_name}`;

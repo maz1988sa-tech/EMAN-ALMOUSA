@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#2b1c16">
 <link rel="manifest" href="manifest-admin.webmanifest">
-<link rel="apple-touch-icon" href="assets/icon-admin-180.png?v=77">
+<link rel="apple-touch-icon" href="assets/icon-admin-180.png?v=78">
 <meta name="apple-mobile-web-app-title" content="إيمان">
 <link rel="icon" href="assets/favicon-admin.svg" type="image/svg+xml">
 <script>
@@ -40,8 +40,8 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=77">
-<link rel="stylesheet" href="assets/theme.css?v=77">
+<link rel="stylesheet" href="assets/fonts.css?v=78">
+<link rel="stylesheet" href="assets/theme.css?v=78">
 <style>
   /* ما لا يغطّيه theme.css: خطّ زمن الأجندة وحده. كل ما عداه صار في
      ورقة الأنماط، فلا تُعاد كتابة القاعدة في مكانين فيفترقان. */
@@ -202,7 +202,7 @@
   <header class="appbar">
     <div class="bar">
       <span class="brand">
-        <img class="brandmark" src="assets/brand/mark_sm.png?v=77"
+        <img class="brandmark" src="assets/brand/mark_sm.png?v=78"
              alt="" width="38" height="38">
         <span class="name">
           <b id="bizName">إيمان آل موسى</b>
@@ -236,7 +236,7 @@
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/config.js"></script>
 <script type="module">
-import { icon, hydrateIcons } from './assets/icons.js?v=77';
+import { icon, hydrateIcons } from './assets/icons.js?v=78';
 import {
   sb, admin, templates, WEEKDAYS,
   fmtDate, fmtDateRelative, fmtTime, fmtDuration, riyal, money, int, esc,
@@ -246,8 +246,8 @@ import {
   fillTemplate, TEMPLATE_FIELDS, groupItems, waVars, waTemplateText,
   uploadServiceMedia, removeServiceMedia, mediaUrl, mapPointMessage,
   MEDIA_ACCEPT_VIDEO, MEDIA_ACCEPT_IMAGE,
-} from './assets/db.js?v=77';
-import { buildXlsx, XLSX_TYPE } from './assets/xlsx.js?v=77';
+} from './assets/db.js?v=78';
+import { buildXlsx, XLSX_TYPE } from './assets/xlsx.js?v=78';
 
 /* ── مشهد اليوم ─────────────────────────────────────────────────────
    الوقت يُشتقّ من ساعة الجهاز، وتُعاد المحاولة كل ربع ساعة فتنتقل اللوحة
@@ -1931,6 +1931,17 @@ function rsvHint(d) {
     : 'اضغطي على الأيام التي تريدينها، ولك التنقّل بين الشهور.';
 }
 /* قبل الحفظ ترى إيمان ما سيحدث للحجوزات القائمة: لا شيء منها يُلغى. */
+/* أيامٌ من الاختيار بعد أقصى مدى الحجز: تُفتح لمن تختار الخدمة المخصّصة وحدها، وتبقى لغيرها «غير مفتوحة» بكلمة
+   إيمان كما كانت (§٧ع، ٠٠٤٢). يُقال قبل الحفظ، فلا تظنّ أنّ المدى يحجبها ولا أنّها فُتحت للجميع. */
+function rsvFar(d) {
+  const adv = Number(S.settings?.max_advance_days ?? 120), edge = addDays(today(), adv);
+  const far = rsvDaysOf(d).filter((i) => i > edge).length;
+  if (!far) return '';
+  return `<div class="note mb" id="rsv-far">${icon('info', 18)}<span>${rsvN(far)} من اختيارك بعد أقصى مدى للحجز (${
+    arTimes(adv, 'يوم واحد', 'يومان', 'أيام', 'يومًا')}): تُفتح لمن تختار الخدمة المخصّصة، وتبقى لغيرها «${
+    esc(S.settings?.closed_month_word || 'غير مفتوحة')}».</span></div>`;
+}
+
 function rsvNote(d) {
   const ds = new Set(rsvDaysOf(d));
   if (!ds.size || !d.services.length) return '';
@@ -1970,7 +1981,7 @@ function editReserved(p = null) {
       <div class="viewseg wide" role="group" aria-label="طريقة الاختيار">${modes.map(([k, l]) =>
         `<button type="button" data-rsv="mode" data-v="${k}" aria-pressed="${d.mode === k}">${l}</button>`).join('')}</div>
       ${rsvCal(d, taken)}
-      <p class="hint mhint" id="rsv-hint">${rsvHint(d)}</p></div>
+      <p class="hint mhint" id="rsv-hint">${rsvHint(d)}</p>${rsvFar(d)}</div>
     <div class="field"><label class="label" for="rsv-msg">الرسالة التي تقرؤها العميلة <span class="opt">(اختياري)</span></label>
       <input class="input" id="rsv-msg" value="${esc(d.message)}" placeholder="${esc(rsvDefaultMsg(d.mode, d.services))}" autocomplete="off" maxlength="200">
       <p class="hint" id="rsv-prev">تقرأ العميلة: «${esc(d.message.trim() || rsvDefaultMsg(d.mode, d.services))}»</p></div>

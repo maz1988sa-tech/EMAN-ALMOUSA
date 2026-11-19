@@ -83,6 +83,11 @@
       && !(ids || []).some((id) => p.service_ids.includes(id)));
     return r ? r.message : null;
   };
+  /* نسخةٌ حرفيّة من reserved_open (٠٠٤٢): فترةٌ مفعّلة فيها اليوم وفيها خدمةٌ موجودة، تشترك مع السلّة في خدمة —
+     فتفتح اليوم بعد أقصى المدى. والسلّة الغائبة لا تفتح شيئًا. */
+  const reservedOpen = (d, ids) => !!(ids && ids.length) && RESERVED.some((p) => p.active && p.dates.includes(d)
+    && p.service_ids.some((id) => SERVICES.some((s) => s.id === id))
+    && ids.some((id) => p.service_ids.includes(id)));
   /* مشغّل الجدول: تطبيعٌ ثمّ قيود ثمّ تعارض (حكمٌ واحد لكلّ يوم) — بنصّ الأخطاء نفسه. */
   function reservedTable() {
     const norm = (v) => {
@@ -314,6 +319,11 @@
             return ok(snap);
           }
           if (fn === 'available_slots') {
+            /* كما القاعدة: ما بعد المدى مقفلٌ إلّا يومًا فُتح «عمل خاص» باسمه أو في فترةٍ مخصّصة تضمّ خدمةً من
+               السلّة (٠٠٤٢). كان المحاكي يفتح كلَّ يومٍ مهما بعُد — ومحاكٍ أسخى من القاعدة يُخفي عطبًا. */
+            const edge = day(Number(publicSettings().max_advance_days) || 120);
+            if (args.p_date > edge && !(window.__OPEN_AHEAD__ || []).includes(args.p_date)
+                && !reservedOpen(args.p_date, args.p_service_ids)) return ok([]);
             /* اليوم لا يُفتح لسلّةٍ لا تناسب الفترة؛ وبلا خدماتٍ (null) لا حكم كما في القاعدة. */
             if (args.p_service_ids && reservedBlock(args.p_date, args.p_service_ids)) return ok([]);
             const dur = args.p_duration_min || 45;
@@ -335,7 +345,7 @@
               const dow = dt.getDay();
               const idx = Math.round((dt - new Date(day(0))) / 86400000);
               let n = (dow === 5 || idx === 9) ? 0 : (args.p_duration_min > 120 ? 4 : 8);
-              if (d > horizon && !openAhead.has(d)) n = 0;
+              if (d > horizon && !openAhead.has(d) && !reservedOpen(d, args.p_service_ids)) n = 0;
               /* «مخصّص» لا «مقفل»: يُعلَّم اليومُ الذي كان سيُفتح لولا الفترة، والمقفل في الأساس يبقى مقفلًا. */
               let reserved = false, reserved_msg = null;
               if (args.p_service_ids) {
@@ -347,7 +357,11 @@
             return ok(out);
           }
           if (fn === 'open_days_ahead') {
-            return ok((window.__OPEN_AHEAD__ || []).map((d) => ({ the_date: d })));
+            /* «عمل خاص» للجميع كما كانت، ومعها أيامُ الفترات بعد المدى التي تفتحها هذه السلّة (٠٠٤٢). */
+            const edge = day(Number(publicSettings().max_advance_days) || 120);
+            const ids = args && args.p_service_ids;
+            const rsv = RESERVED.flatMap((p) => p.dates).filter((d) => d > edge && reservedOpen(d, ids));
+            return ok([...new Set([...(window.__OPEN_AHEAD__ || []), ...rsv])].sort().map((d) => ({ the_date: d })));
           }
           if (fn === 'create_booking') {
             /* الحارس الأخير: لا يردّ بالفترة إلّا من قال إنّه يعرفها (بتّ ١ في p_features). */

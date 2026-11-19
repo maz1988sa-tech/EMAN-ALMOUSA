@@ -238,10 +238,13 @@ export async function getAvailableSlots(date, durationMin, excludeId = null, ser
   return (data || []).map((r) => (typeof r === 'string' ? r : r.slot));
 }
 
-/* الأيام التي فتحتها صاحبة العمل «عمل خاص» خارج مدى الحجز. تُقرأ مرّةً مع
-   الإعدادات: بها يبقى شهرُها في اللوح قابلًا للاختيار بدل شطبه. */
-export async function getOpenDaysAhead() {
-  const { data, error } = await sb.rpc('open_days_ahead');
+/* الأيام المفتوحة خارج مدى الحجز: ما فتحته صاحبة العمل «عمل خاص»، وأيامُ فترةٍ مخصّصة لمن في سلّتها
+   خدمتُها (serviceIds، §٧ع). بها يبقى شهرُها في اللوح قابلًا للاختيار بدل شطبه. وبلا خدماتٍ تردّ
+   أيام «عمل خاص» وحدها كما كانت. */
+export async function getOpenDaysAhead(serviceIds = null) {
+  const { data, error } = await sb.rpc('open_days_ahead', {
+    p_service_ids: serviceIds && serviceIds.length ? serviceIds : null,
+  });
   if (error) throw error;
   return (data || []).map((r) => r.the_date);
 }
