@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>حجز موعد — إيمان آل موسى</title>
 <meta name="description" content="احجزي موعد ميك اب عروس أو سهرة مع إيمان آل موسى.">
+<!-- معاينة الرابط في واتساب وآي مسج وتيليجرام وإكس (§٧ف). الصورة من tools/og_image.py، ورابطُها مطلقٌ لأنّ
+     واتساب لا يفهم النسبيّ، وبصمتُه بصمةُ الأصول فيجلب الجديدة حين تتغيّر. ولا og:url: المختبر نسخةٌ من هذا
+     الملفّ، ورابطٌ ثابت فيه يجعل مشاركة رابطه تُنسب إلى الحيّ. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="إيمان آل موسى">
+<meta property="og:locale" content="ar_SA">
+<meta property="og:title" content="حجز موعد — إيمان آل موسى">
+<meta property="og:description" content="احجزي موعد ميك اب عروس أو سهرة مع إيمان آل موسى.">
+<meta property="og:image" content="https://eman-aalmousa.com/assets/brand/og.jpg?v=79">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="شعار إيمان آل موسى، وتحته: حجز موعد ميك اب عروس وسهرة">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#faf5f0">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -40,10 +54,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=78">
+<link rel="stylesheet" href="assets/fonts.css?v=79">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=78">
+<link rel="stylesheet" href="assets/client-theme.css?v=79">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -536,7 +550,7 @@ import {
   trackVisit, trackPing, trackBooked, isReturningClient,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=78';
+} from './assets/db.js?v=79';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
