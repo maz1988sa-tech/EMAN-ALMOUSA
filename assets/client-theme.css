@@ -562,10 +562,39 @@ button{border:0;background:none;cursor:pointer}
 /* الملخّص (المقترح «ج»، ١١ نوفمبر): كلّ خدمةٍ في سطرٍ باسمها المختصر وعددُها ملاصقٌ لها لا ينفصل عنه،
    والقائمة على حافّة القيم كبقيّة الأسطر. وما داخل القيمة لا يأخذ لون العنوان وحجمه. */
 .recap b span{color:inherit;font-size:inherit;font-weight:inherit}
-.recap div.multi{align-items:flex-start}
-.recap .svcs{display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:end}
-.recap .svcs .it{white-space:nowrap}
-.recap .svcs .it.sum{color:var(--muted);font-weight:500}
+/* الملخّص فاتورة (§٧م، اعتمده صاحب المشروع ٢٦ نوفمبر ٢٠٢٦): الموعد فوق خطٍّ فاصل، ثمّ كلّ خدمةٍ باسمها
+   يمينًا ومبلغها يسارًا، ثمّ الخصم والرسوم بعنوانٍ أخفّ. والإجمالي في الشريط تحتها. */
+.recap.inv{gap:0;padding:0 14px}
+.recap.inv .when{padding:8px 0;border-bottom:1px solid var(--line-l)}
+/* كتلةٌ لا شبكة: `.recap div` تعطيها `justify-content:space-between`، فيضيق عمودُ الشبكة إلى محتواه
+   ولا يصل المبلغ إلى الطرف. */
+.recap.inv .lines{display:block}
+.recap.inv .ln{align-items:baseline;gap:12px;padding:5px 0}
+.recap.inv .ln + .ln,.recap.inv .lines + .ln{border-top:1px dashed rgba(43,28,22,.10)}
+.recap.inv .ln .it{color:var(--ink);font-size:13px;font-weight:500;white-space:nowrap}
+.recap.inv .ln b{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.recap.inv .ln.off b{color:#4a5b45}
+.summary.inv .rows .row:last-child{border-bottom:1px solid var(--line-l)}
+.summary.inv .row.it span{color:var(--ink);font-size:12.5px;font-weight:500}
+.summary.inv .row.it b,.summary.inv .row.mod b,.summary.inv .row.tot b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.summary.inv .row.off b{color:#4a5b45}
+.summary.inv .row.tot{background:rgba(43,28,22,.035)}
+.summary.inv .row.tot span{color:var(--ink);font-size:12.5px;font-weight:700}
+.summary.inv .row.tot b{font-size:15px}
+.summary.inv .row{padding:7px 14px}
+/* والفاتورة أطول من القائمة التي سبقتها بسطر الخصم ومبالغ الأسطر، واللوحتان تكتملان بلا سحب: فتُضغط
+   أسطرها على الشاشات القصيرة وحدها (٣٦٠×٦٢٠ و٣٩٠×٧٠٠ في check_form، ومع سطر الترحيب في check_welcome، و٤٣٠×٧٠٠ في testdisc). */
+@media (max-height:700px){
+  .recap.inv .when{padding:5px 0}
+  .recap.inv .ln{padding:3px 0}
+  .summary.inv .row{padding:4px 14px}
+}
+@media (max-height:660px){
+  .recap.inv .when{padding:4px 0}
+  .recap.inv .ln{padding:1px 0;line-height:1.3}
+  .recap.inv .ln .it,.recap.inv .ln b,.recap.inv .when b{font-size:12.5px}
+  .summary.inv .row{padding:3px 14px}
+}
 .seal{width:74px;height:74px;margin:0 auto;border-radius:50%;border:1px solid var(--clay);display:grid;place-items:center;color:var(--clay)}
 .done-title{margin:18px 0 0;text-align:center;font-size:25px;font-weight:200;letter-spacing:-.02em}
 .done-sub{margin:7px 0 0;text-align:center;font-size:11px;color:var(--muted);line-height:1.9}

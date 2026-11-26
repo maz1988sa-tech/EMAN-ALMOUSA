@@ -13,7 +13,7 @@
 <meta property="og:locale" content="ar_SA">
 <meta property="og:title" content="حجز موعد — إيمان آل موسى">
 <meta property="og:description" content="احجزي موعد ميك اب عروس أو سهرة مع إيمان آل موسى.">
-<meta property="og:image" content="https://eman-aalmousa.com/assets/brand/og.jpg?v=80">
+<meta property="og:image" content="https://eman-aalmousa.com/assets/brand/og.jpg?v=81">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -54,10 +54,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=80">
+<link rel="stylesheet" href="assets/fonts.css?v=81">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=80">
+<link rel="stylesheet" href="assets/client-theme.css?v=81">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -424,10 +424,13 @@
             <p class="loc-ok" id="locOk" hidden><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="locOkTxt"></span></p>
             <div class="field"><label for="prf">ملاحظات <span class="opt">اختياري</span></label><input id="prf" type="text" placeholder="نوع البشرة، الستايل المفضّل، وقت الوصول…"></div>
           </div>
-          <div class="recap">
-            <div class="multi"><span>الخدمات</span><b id="rcSvc" class="svcs">—</b></div>
-            <div><span>الموعد</span><b id="rcWhen">—</b></div>
-            <div id="rcFeeRow" hidden><span id="rcFeeLbl">رسوم موقع</span><b id="rcFee">—</b></div>
+          <!-- الملخّص فاتورة (اعتمده صاحب المشروع، ٢٦ نوفمبر ٢٠٢٦ — §٧م): الموعد، ثمّ كلّ خدمةٍ بمبلغها،
+               ثمّ الخصم والرسوم. والإجمالي في الشريط تحتها. -->
+          <div class="recap inv">
+            <div class="when"><span>الموعد</span><b id="rcWhen">—</b></div>
+            <div class="lines" id="rcSvc"></div>
+            <div class="ln mod off" id="rcDiscRow" hidden><span>خصم المجموعة</span><b id="rcDisc">—</b></div>
+            <div class="ln mod" id="rcFeeRow" hidden><span id="rcFeeLbl">رسوم موقع</span><b id="rcFee">—</b></div>
           </div>
           <div class="err-line" id="formErr" hidden></div>
         </div>
@@ -486,10 +489,12 @@
             <button type="button" id="rcptClear">إزالة</button>
           </div>
 
-          <div class="summary">
-            <div class="row"><span>الخدمات</span><b id="pySvc">—</b></div>
-            <div class="row" id="pyDiscRow" hidden><span>خصم المجموعة</span><b id="pyDisc">—</b></div>
+          <div class="summary inv">
             <div class="row"><span>الموعد</span><b id="pyWhen">—</b></div>
+            <div class="rows" id="pySvc"></div>
+            <div class="row mod off" id="pyDiscRow" hidden><span>خصم المجموعة</span><b id="pyDisc">—</b></div>
+            <div class="row mod" id="pyFeeRow" hidden><span id="pyFeeLbl">رسوم موقع</span><b id="pyFee">—</b></div>
+            <div class="row tot"><span>الإجمالي</span><b id="pyTot">—</b></div>
           </div>
           <div class="err-line" id="payErr" hidden></div>
         </div>
@@ -552,7 +557,7 @@ import {
   trackVisit, trackPing, trackBooked, isReturningClient,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=80';
+} from './assets/db.js?v=81';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -1496,27 +1501,34 @@ const sheet = el('sheet');
 /* ملخّص اللوحة (المقترح «ج»، ١١ نوفمبر): كلّ خدمةٍ في سطرٍ باسمها المختصر وعددُها ملاصقٌ لها. كان
    الاسم يُكتب كاملًا بملاحظته في سطرٍ واحد فينكسر وينزل «×2» وحده إلى أوّل السطر التالي. والوقت
    معزول الاتّجاه، وإلّا قُرئ «PM 4:00» بعد التاريخ العربيّ. */
-const recapSvcHTML = (c) => c.map((s) => `<span class="it">${esc(shortName(s.name))}${
-  state.counts[s.id] > 1 ? ` <bdi dir="ltr">×${state.counts[s.id]}</bdi>` : ''}</span>`).join('');
+/* سطر خدمةٍ في الفاتورة: اسمها المختصر وعددها يمينًا، ومبلغها يسارًا بسعر الموقع إن اختلف (`priceOf`) —
+   الحسابُ نفسه في «تأكيد الخدمات»، فلا تختلف شاشتان على رقم. والوسم يتغيّر بين الملخّصين وحده. */
+const invoiceLines = (c, cls) => c.map((s) => `<div class="${cls}"><span class="it">${esc(shortName(s.name))}${
+  state.counts[s.id] > 1 ? ` <bdi dir="ltr">×${state.counts[s.id]}</bdi>` : ''}</span><b>${
+  money(priceOf(s) * state.counts[s.id])}<i class="rs"></i></b></div>`).join('');
+/* وسطرا الخصم والرسوم يُملآن في الملخّصين بالقاعدة نفسها. */
+function paintMods(pre) {
+  const disc = groupDiscount(), fee = locFee();
+  el(`${pre}DiscRow`).hidden = !disc;
+  if (disc) el(`${pre}Disc`).innerHTML = `−${money(disc)}<i class="rs"></i>`;
+  el(`${pre}FeeRow`).hidden = !(fee > 0);
+  if (fee > 0) {
+    el(`${pre}FeeLbl`).textContent = `رسوم ${state.loc?.district || 'الموقع'}`;
+    el(`${pre}Fee`).innerHTML = `${money(fee)}<i class="rs"></i>`;
+  }
+}
 const recapWhenHTML = () =>
   `${esc(state.date ? fmtDate(state.date, { short: true }) : '—')} · <bdi dir="ltr">${esc(time12(state.time))}</bdi>`;
 /* الملخّص يُرسم في موضعٍ واحد: كان داخل فتح اللوحة وحدها، فرسومُ الحيّ
    تُحسب بعد الفتح ولا يُعاد رسمه — فيظهر إجماليٌّ لا يفسّره سطر. */
 function paintRecap() {
+  /* الملخّص فاتورة (اعتمدها صاحب المشروع، ٢٦ نوفمبر ٢٠٢٦ — §٧م): كان الخدماتُ أسماءً تحتها «قيمتها»
+     رقمًا واحدًا، والخصمُ لا يُذكر — فإجماليُّ سهرتين ١٢٠٠ بلا سطرٍ يفسّر الـ٤٠٠. والآن كلّ خدمةٍ بمبلغها،
+     والخصمُ والرسوم سطران باسمهما، فيُعرف الإجمالي في الشريط من الأسطر فوقه. */
   const c = picked();
-  const svcSum = Math.max(subtotal() - groupDiscount(), 0);
-  /* مع رسوم الحيّ سطرٌ أخير في قائمة الخدمات بقيمتها، فيُعرف شطرا الإجمالي. */
-  el('rcSvc').innerHTML = !c.length ? '—' : recapSvcHTML(c)
-    + (locFee() > 0 ? `<span class="it sum">قيمتها ${money(svcSum)}<i class="rs"></i></span>` : '');
+  el('rcSvc').innerHTML = c.length ? invoiceLines(c, 'ln') : '<div class="ln"><span class="it">—</span></div>';
   el('rcWhen').innerHTML = recapWhenHTML();
-  /* الرسوم سطرٌ باسم الحيّ لا رقمٌ يظهر في الإجمالي بلا تفسير — ومعه
-     قيمةُ الخدمات، وإلّا بقي الإجمالي رقمًا واحدًا لا يُعرف شطراه. */
-  const fee = locFee();
-  el('rcFeeRow').hidden = !(fee > 0);
-  if (fee > 0) {
-    el('rcFeeLbl').textContent = `رسوم ${state.loc?.district || 'الموقع'}`;
-    el('rcFee').innerHTML = `${money(fee)}<i class="rs"></i>`;
-  }
+  paintMods('rc');
   el('rcDep').innerHTML = `${money(totalPrice())}<i class="rs"></i>`;
 }
 
@@ -1936,14 +1948,12 @@ function paintPay() {
     el('bankWa').href = waHref(cfg.whatsapp_phone, 'السلام عليكم، أبغى بيانات التحويل لتثبيت الحجز');
   }
 
-  const c = picked();
-  el('pySvc').innerHTML = c.length
-    ? c.map((s) => esc(s.name) + (state.counts[s.id] > 1 ? ` <span dir="ltr">×${state.counts[s.id]}</span>` : '')).join(' + ')
-    : '—';
-  const disc = groupDiscount();
-  el('pyDiscRow').hidden = !disc;
-  if (disc) el('pyDisc').innerHTML = `−${money(disc)}<i class="rs"></i>`;
-  el('pyWhen').textContent = `${state.date ? fmtDate(state.date, { short: true }) : '—'} · ${time12(state.time)}`;
+  /* وملخّص الدفع فاتورةٌ كملخّص «بياناتك»، وفي آخره سطر الإجمالي لأنّه لا شريطَ إجماليٍّ تحته. كان يجمع
+     الخدمات بـ«+» في سطرٍ واحد ولا يذكر رسوم الموقع. */
+  el('pyWhen').innerHTML = recapWhenHTML();
+  el('pySvc').innerHTML = invoiceLines(picked(), 'row it');
+  paintMods('py');
+  el('pyTot').innerHTML = `${money(total)}<i class="rs"></i>`;
 }
 
 function clearReceipt() {

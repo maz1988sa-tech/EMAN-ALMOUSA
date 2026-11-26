@@ -128,6 +128,23 @@ async def main():
           g["items"]==["ميك اب عروس","ميك اب سهرة ×2"] and g["itemLines"]==[1,1] and g["itemTops"][1]>g["itemTops"][0],
           f"{g['items']} {g['itemLines']} {g['itemTops']}")
       rec(T+"الوقت يُقرأ صحيحًا: الأرقام قبل PM", g["timeOk"], g["when"])
+      # الملخّص فاتورة (§٧م، ٢٦ نوفمبر ٢٠٢٦): كلّ خدمةٍ بمبلغها، والخصم سطرٌ بالسالب، والموعد فوقها، ولا «قيمتها».
+      inv=await pg.evaluate("""()=>({amts:[...document.querySelectorAll('#rcSvc .ln b')].map(b=>b.innerText.trim()),
+        disc:document.getElementById('rcDiscRow').hidden?null:document.getElementById('rcDisc').innerText.trim(),
+        fee:!document.getElementById('rcFeeRow').hidden, txt:document.querySelector('.recap').innerText,
+        whenTop:Math.round(document.getElementById('rcWhen').getBoundingClientRect().top),
+        lnTop:Math.round((document.querySelector('#rcSvc .ln')||document.body).getBoundingClientRect().top),
+        lefts:[...document.querySelectorAll('#rcSvc .ln b, #rcDiscRow:not([hidden]) b')].map(b=>Math.round(b.getBoundingClientRect().left)),
+        cardL:Math.round(document.querySelector('.recap').getBoundingClientRect().left)})""")
+      rec(T+"فاتورة: مبلغ كلّ خدمةٍ في سطرها، والخصم سطرٌ بالسالب",
+          [x.replace(",","") for x in inv["amts"]]==["2000","1600"] and (inv["disc"] or "").replace(",","").startswith("−400")
+          and not inv["fee"], f"{inv['amts']} {inv['disc']}")
+      rec(T+"والموعد فوق الأسطر، ولا سطر «قيمتها»", inv["whenTop"]<inv["lnTop"] and "قيمتها" not in inv["txt"],
+          f"{inv['whenTop']}<{inv['lnTop']}")
+      # كانت أسطر الخدمات تضيق إلى محتواها فيلاصق المبلغُ الاسمَ، وسطرُ الخصم وحده على الطرف.
+      rec(T+"والمبالغ كلُّها على حافّةٍ واحدة عند طرف البطاقة الأيسر",
+          len(inv["lefts"])==3 and len(set(inv["lefts"]))==1 and inv["lefts"][0]-inv["cardL"]<=20,
+          f"{inv['lefts']} card={inv['cardL']}")
       if vw==440:
         await pg.fill("#nm","سارة محمد"); await pg.wait_for_timeout(150)
         await pg.click("#sheetBack"); await pg.wait_for_timeout(700)

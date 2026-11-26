@@ -229,6 +229,8 @@ async def main():
             str(int(base)) in rc["svc"].replace(",", "")
             and str(int(base + 300)) in rc["dep"].replace(",", ""),
             f"{rc['svc']} + 300 = {rc['dep']}")
+        rec("والفاتورة بلا سطر «قيمتها»: الخدمة بمبلغها والرسوم سطرٌ تحتها",
+            "قيمتها" not in rc["svc"] and str(int(base)) in rc["svc"].replace(",", ""), rc["svc"].replace("\n", " | ")[:80])
         rec("والفحص يرسل الخدمات — الرسم حكمُ خدمةٍ لا حكمُ عدد",
             bool(m["sent"]) and len(m["sent"][0].get("p_service_ids") or []) == 1,
             str(m["sent"])[:110])

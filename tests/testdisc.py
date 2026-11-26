@@ -68,6 +68,13 @@ async def main():
           tot:document.getElementById('payTotal').innerText.trim(),
           over:(()=>{const b=document.getElementById('sheetBody');return b.scrollHeight-b.clientHeight;})()})""")
         rec("سطر الخصم في لوحة العربون", pay["row"] and "300" in pay["disc"], pay["disc"])
+        inv = await pg.evaluate("""()=>({rows:[...document.querySelectorAll('#pySvc .row')].map(r=>r.innerText.replace(/\\s+/g,' ').trim()),
+          tot:document.getElementById('pyTot').innerText.trim(), ptot:document.getElementById('payTotal').innerText.trim(),
+          fee:!document.getElementById('pyFeeRow').hidden})""")
+        rec("لوحة العربون فاتورة: كلّ خدمةٍ بسطرها ومبلغها",
+            [r.replace(",", "") for r in inv["rows"]] == ["ميك اب عروس 1500", "ميك اب سهرة ×3 1800"], str(inv["rows"]))
+        rec("وفي آخرها الإجمالي نفسه الذي فوقها، ولا رسوم بلا موقع",
+            inv["tot"] == inv["ptot"] and not inv["fee"], f"{inv['tot']} = {inv['ptot']}")
         # عربون ثابت لكل خدمة: عروس 375 + ثلاث سهرات ×150 = 825
         rec("العربون مجموع مبالغ الخدمات = 825", pay["amt"].replace(",","").startswith("825"), f"amount={pay['amt']!r} total={pay['tot']!r}")
         rec("لوحة العربون تتّسع مع سطر الخصم", pay["over"]<=0, f"over={pay['over']}")
