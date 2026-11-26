@@ -861,3 +861,10 @@ button{border:0;background:none;cursor:pointer}
   position:relative;padding-inline-start:14px}
 .rcpt-modal .terms li::before{content:'';position:absolute;inset-inline-start:2px;top:7px;
   width:5px;height:5px;border-radius:50%;background:var(--clay)}
+/* نافذة الشرط بأقسامها (§٧د): اسم المجموعة تحت العنوان بلون الطين، ثمّ قسمٌ لكلّ خدمةٍ في السلّة
+   بعنوانٍ صغير فوق بنوده. والبند الذي منع الحجز يُبرز، فتعرف العميلة سببه بنظرة. */
+.rcpt-modal .grp{margin:-2px 0 0;font:500 13px/1.5 var(--ar);color:var(--clay-ink);letter-spacing:.01em}
+.rcpt-modal .secs{display:flex;flex-direction:column;gap:10px;margin-top:14px;text-align:right}
+.rcpt-modal .sec h4{margin:0 0 6px;font:500 12.5px/1.2 var(--ar);color:var(--muted)}
+.rcpt-modal .sec .terms{margin:0}
+.rcpt-modal .terms li.why{font-weight:700;color:var(--clay-ink)}

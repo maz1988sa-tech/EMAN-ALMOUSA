@@ -13,7 +13,7 @@
 <meta property="og:locale" content="ar_SA">
 <meta property="og:title" content="حجز موعد — إيمان آل موسى">
 <meta property="og:description" content="احجزي موعد ميك اب عروس أو سهرة مع إيمان آل موسى.">
-<meta property="og:image" content="https://eman-aalmousa.com/assets/brand/og.jpg?v=79">
+<meta property="og:image" content="https://eman-aalmousa.com/assets/brand/og.jpg?v=80">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -54,10 +54,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=79">
+<link rel="stylesheet" href="assets/fonts.css?v=80">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=79">
+<link rel="stylesheet" href="assets/client-theme.css?v=80">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -339,8 +339,10 @@
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.6v16.8M3.6 12h16.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" transform="rotate(45 12 12)"/></svg>
       </span>
       <h3 id="locModalTitle">جارٍ فحص الموقع…</h3>
+      <p class="grp" id="locModalGrp" hidden></p>
       <p id="locModalNote">لحظة من فضلك.</p>
       <ul class="terms" id="locModalTerms" hidden></ul>
+      <div class="secs" id="locModalSecs" hidden></div>
       <button class="ok" type="button" id="locModalOk" hidden>حسنًا</button>
       <a class="rcpt-wa" id="locModalWa" hidden target="_blank" rel="noopener">تواصلي معنا عبر واتساب</a>
     </div>
@@ -550,7 +552,7 @@ import {
   trackVisit, trackPing, trackBooked, isReturningClient,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=79';
+} from './assets/db.js?v=80';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -1595,6 +1597,72 @@ function locTerms(r) {
 const minPeopleLine = (n) =>
   `الخدمة متاحة في هذا الموقع للحجوزات من ${n === 2 ? 'شخصين' : `${n} أشخاص`} فأكثر.`;
 
+/* ── نافذة الشرط بأقسامها (اعتمدها صاحب المشروع، ٢٦ نوفمبر ٢٠٢٦ — §٧د) ──────────────────
+   العنوان حيث العميلة، وتحته اسم المجموعة إن اختلف عنه، ثمّ قسمٌ لكلّ خدمةٍ في سلّتها وحدها:
+   «لخدمة» واسمها، وتحته بنودها. فمن اختارت السهرة وحدها لا تقرأ سطر العروس ولا العكس — لا
+   تتشتّت بما لا يخصّها. والبنود من حقول المجموعة (٠٠٤٣)، لا من نصّ رسالتها الذي كان يذكر الخدمات
+   كلَّها لكلّ عميلة. والصيغة للعميلة لا للشخص (ملاحظة صاحب المشروع على المقترح).
+   وتُبنى هكذا مجموعةٌ لها حكمٌ على خدمة (`svc_terms`) أو سعرٌ صافٍ بلا خصم. أمّا الرفض ومجموعةُ
+   «أقلّ عددٍ» وحده فنافذتهما كما كانت: رسالةُ صاحبة العمل كما كتبتها. وردٌّ بلا `svc_terms`
+   (قاعدةٌ قبل ٠٠٤٣) يبقى على النافذة القديمة كذلك، فلا تنكسر صفحةٌ على قاعدةٍ لم تُرحَّل. */
+const locStructured = (r) => Array.isArray(r.svc_terms)
+  && (r.svc_terms.length > 0 || !!r.no_group_discount);
+const locSub = (r) => (r.group_name && r.group_name !== r.district ? r.group_name : '');
+const minLine = (n) => `الخدمة تُقدَّم ${n === 2 ? 'لعميلتين' : `لـ${n} عميلات`} أو أكثر`;
+
+function locSections(r, blocked) {
+  const termOf = (s) => r.svc_terms.find((t) => t.service_id === s.id) || {};
+  const feeOf  = (s) => Number(termOf(s).svc_fee) || 0;
+  /* السعر من ردّ الحكم نفسه لا من state.loc: النافذة الموقوفة تُرسم ولا تُحفظ أسعارها. */
+  const priceHere = (s) => {
+    const over = (r.prices || []).find((x) => x.service_id === s.id);
+    return Number(over ? over.price : s.price) || 0;
+  };
+  const min = Number(r.min_people) || 0;
+  /* سقوطُ الخصم يُقال لمن كانت ستستحقّه لولا الموقع وحدها: سهرةٌ واحدة لا خصم لها أصلًا. */
+  const discWould = !!r.no_group_discount && discountPeople() >= GROUP_MIN;
+  /* القاعدة العامّة قبل استثنائها، كما اعتُمد: الخدمات بلا رسمٍ أوّلًا ثمّ ما عليه رسم. */
+  const svcs = picked().slice().sort((a, b) => (feeOf(a) > 0) - (feeOf(b) > 0));
+  const secs = svcs.map((s) => {
+    const n = state.counts[s.id] || 0, fee = feeOf(s), items = [];
+    if (fee <= 0 || priceHere(s) !== Number(s.price)) {
+      items.push({ t: `السعر ${money(priceHere(s))} ر.س لكلّ عميلة` });
+    }
+    if (fee > 0) items.push({ t: `تطبق رسوم إضافية بقيمة ${money(fee)} ر.س${n > 1 ? ' لكلّ عميلة' : ''}` });
+    if (min > 1 && !termOf(s).solo_ok) items.push({ t: minLine(min), why: blocked });
+    if (discWould && s.group_discount) items.push({ t: 'لا يُطبَّق خصم المجموعات' });
+    return { h: `لخدمة ${shortName(s.name)}`, items };
+  });
+  /* ورسمٌ على المجموعة كلِّها لا على خدمة (`fee_amount`) يُقال في آخرها بلا عنوان. */
+  const groupFee = (Number(r.fee) || 0) - (Number(r.svc_fee) || 0);
+  if (groupFee > 0) secs.push({ h: '', items: [{ t: `رسوم الموقع ${money(groupFee)} ر.س` }] });
+  return secs;
+}
+
+/* رسالة واتساب جاهزة لمن رُدّت (طلب صاحب المشروع، ٢٦ نوفمبر ٢٠٢٦): تقرؤها إيمان فتعرف من هي،
+   وماذا اختارت ومتى، وأين موقعها ولماذا رُدّت — ولا تكتب العميلة شيئًا من جديد. وتُبنى لحظةَ الضغط
+   أيضًا، فاسمٌ أو رقمٌ كُتب بعد ظهور النافذة يدخلها. واسم المجموعة يدخلها حيث تُظهره النافذة وحدها:
+   «(لا نخدم هنا)» تسميةٌ عند صاحبة العمل لا تُكتب على لسان العميلة. */
+function locWaText(r, reason, sub) {
+  const lines = ['السلام عليكم، حاولتُ الحجز من الموقع ولم يُقبل موقعي.'];
+  const nm = nameIn.value.trim();
+  if (nm) lines.push(`الاسم: ${nm}`);
+  const pn = normalisePhone(phone.value);
+  const ph = pn ? `0${pn.slice(3)}` : phone.value.trim();
+  if (ph) lines.push(`الجوال: ${ph}`);
+  const svc = picked().map((s) => `${shortName(s.name)}${state.counts[s.id] > 1 ? ` ×${state.counts[s.id]}` : ''}`)
+    .join(' + ');
+  if (svc) lines.push(`الخدمة: ${svc}`);
+  if (state.date) lines.push(`الموعد: ${fmtDate(state.date, { short: true })}${state.time ? ` · ${time12(state.time)}` : ''}`);
+  if (r.district) lines.push(`الموقع: ${r.district}${sub ? ` (${sub})` : ''}`);
+  const link = loc.value.trim();
+  if (link) lines.push(`الرابط: ${link}`);
+  if (reason) lines.push(`السبب: ${reason}`);
+  return lines.join('\n');
+}
+/** رابط واتساب النافذة المفتوحة: دالّةٌ لا نصّ، ليُعاد بناؤه عند الضغط. */
+let locWa = null;
+
 function locModal(kind, opts = {}) {
   const box = el('locModal');
   const on = kind !== 'off';
@@ -1608,9 +1676,16 @@ function locModal(kind, opts = {}) {
   const terms = el('locModalTerms');
   terms.hidden = !(opts.terms && opts.terms.length);
   terms.innerHTML = (opts.terms || []).map((t) => `<li>${esc(t)}</li>`).join('');
+  el('locModalGrp').textContent = opts.sub || '';
+  el('locModalGrp').hidden = !opts.sub;
+  const secs = el('locModalSecs');
+  secs.hidden = !(opts.sections && opts.sections.length);
+  secs.innerHTML = (opts.sections || []).map((s) => `<div class="sec">${s.h ? `<h4>${esc(s.h)}</h4>` : ''}<ul class="terms">${
+    s.items.map((i) => `<li${i.why ? ' class="why"' : ''}>${esc(i.t)}</li>`).join('')}</ul></div>`).join('');
   const wa = el('locModalWa');
-  wa.hidden = !opts.wa;
-  if (opts.wa) wa.href = opts.wa;
+  locWa = opts.wa || null;
+  wa.hidden = !locWa;
+  if (locWa) wa.href = locWa();
   box.classList.toggle('open', on);
   box.setAttribute('aria-hidden', on ? 'false' : 'true');
 }
@@ -1670,17 +1745,28 @@ async function runLocCheck() {
   }
 
   const waPhone = state.settings?.whatsapp_phone;
-  const wa = waPhone ? `https://wa.me/${String(waPhone).replace(/\D/g, '')}` : null;
+  const waBase = waPhone ? `https://wa.me/${String(waPhone).replace(/\D/g, '')}` : null;
+  const waFor = (reason, sub = '') => (waBase
+    ? () => `${waBase}?text=${encodeURIComponent(locWaText(r, reason, sub))}` : null);
   if (r.state === 'reject' || r.state === 'blocked') {
     state.loc = { lat: pt.lat, lng: pt.lng, checked: true, blocked: true, reason: r.state,
                   district: r.district, message: r.message };
-    locModal('bad', { title: r.district || 'هذا الموقع', note: r.message || '', wa });
+    if (r.state === 'blocked' && locStructured(r)) {
+      const why = minLine(Number(r.min_people) || 2);
+      locModal('bad', { title: r.district || 'هذا الموقع', sub: locSub(r),
+                        sections: locSections(r, true), wa: waFor(why, locSub(r)) });
+    } else {
+      locModal('bad', { title: r.district || 'هذا الموقع', note: r.message || '',
+                        wa: waFor(r.message || '') });
+    }
   } else if (r.state === 'condition') {
     state.loc = { lat: pt.lat, lng: pt.lng, checked: r.checked !== false,
                   fee: Number(r.fee) || 0, svcFee: Number(r.svc_fee) || 0,
                   district: r.district, message: r.message, feeServices: r.fee_services,
                   noGroupDiscount: !!r.no_group_discount, prices: r.prices || [] };
-    locModal('bad', { title: r.district || 'شرطٌ على الموقع', ...locTerms(r) });
+    locModal('bad', locStructured(r)
+      ? { title: r.district || 'شرطٌ على الموقع', sub: locSub(r), sections: locSections(r, false) }
+      : { title: r.district || 'شرطٌ على الموقع', ...locTerms(r) });
   } else {
     // بلا شرط: لا نافذة ولا تنبيه. تكمل كما لو لم يكن هناك فحص.
     state.loc = { lat: pt.lat, lng: pt.lng, checked: r.checked !== false, fee: 0,
@@ -1695,6 +1781,7 @@ async function runLocCheck() {
 }
 
 el('locModalOk').addEventListener('click', () => locModal('off'));
+el('locModalWa').addEventListener('click', (e) => { if (locWa) e.currentTarget.href = locWa(); });
 
 /* لا يكفي ألّا يمنع: الصمت عند الموقع السليم يُقرأ عطبًا. فيُقال إنّه
    فُحص، وأين وقع، وما حكمه — سطرٌ يبقى بعد إغلاق النافذة. */

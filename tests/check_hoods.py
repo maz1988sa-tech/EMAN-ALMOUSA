@@ -11,7 +11,8 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import harness as _H
-import asyncio, os, http.server, socketserver, threading, functools
+import asyncio, os, http.server, socketserver, threading, functools, json
+from urllib.parse import unquote
 from playwright.async_api import async_playwright
 
 ROOT = str(_H.ROOT)
@@ -177,7 +178,8 @@ async def main():
             "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
             "window.__LOC__={state:'condition',checked:true,district:'العمارية',"
             "fee:300,svc_fee:300,solo:true,min_people:2,no_group_discount:true,"
-            "fee_services:'ميك اب عروس',prices:[],message:null};")
+            "fee_services:'ميك اب عروس',prices:[],message:null,group_name:'العمارية',"
+            "svc_terms:[{service_id:'s1',price:null,svc_fee:300,solo_ok:true}]};")
         await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
         base = await pg.evaluate("()=>Number(((window.__state().services||[])[0]||{}).price)")
         await fill_form(pg)
@@ -200,8 +202,9 @@ async def main():
         rec("ولا شرحَ محاسبةٍ في النافذة",
             "العربون" not in m["modal"] and "بند" not in m["modal"],
             m["modal"].replace("\n", " ")[:110])
-        rec("وحكمُ الموقع جملةٌ واحدة فوق البنود",
-            "للحجوزات من شخصين فأكثر" in m["modal"],
+        # النافذة المعتمدة (§٧د): عروسٌ تُقبل وحدها لا يُذكر لها حدُّ العدد — ليس شرطًا عليها.
+        rec("ولا يُذكر حدُّ العدد لعروسٍ تُقبل وحدها",
+            "عميلتين" not in m["modal"] and "شخصين" not in m["modal"],
             m["modal"].replace("\n", " ")[:110])
         # عروسٌ واحدة لا تستحقّ خصم المجموعات أصلًا، فتحذيرُها منه تحذيرٌ
         # من شيءٍ لم يكن — ويظهر البند حين يكون الخصم سيقع لولا الموقع.
@@ -242,7 +245,8 @@ async def main():
         await pg.add_init_script(
             "window.__SETTINGS_PATCH__={loc_check_enabled:true};"
             "window.__LOC__={state:'condition',checked:true,district:'العمارية',"
-            "fee:0,svc_fee:0,min_people:2,no_group_discount:true,prices:[],message:null};")
+            "fee:0,svc_fee:0,min_people:2,no_group_discount:true,prices:[],message:null,"
+            "group_name:'العمارية',svc_terms:[{service_id:'s1',price:null,svc_fee:300,solo_ok:true}]};")
         await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
         await pg.evaluate("()=>window.__pick(1,2)"); await pg.wait_for_timeout(400)
         await pg.evaluate("()=>window.__sheet()"); await pg.wait_for_timeout(600)
@@ -252,8 +256,124 @@ async def main():
         d = await pg.evaluate("()=>(document.getElementById('locModal')||{}).innerText||''")
         rec("سهرتان: يُقال سقوطُ خصم المجموعات", "خصم المجموعات" in d,
             d.replace("\n", " ")[:110])
-        rec("ولا بندَ رسومٍ لمن لا رسمَ عليها", "رسوم موقع" not in d,
+        rec("ولا بندَ رسومٍ لمن لا رسمَ عليها", "رسوم" not in d,
             d.replace("\n", " ")[:110])
+        rec("ولا قسمَ للعروس وليست في سلّتها", "ميك اب عروس" not in d,
+            d.replace("\n", " ")[:110])
+        await ctx.close()
+
+        # ══ النافذة المعتمدة بأقسامها (٢٦ نوفمبر ٢٠٢٦، §٧د) ══════════════
+        # العنوان حيث العميلة وتحته اسم المجموعة، ثمّ قسمٌ «لخدمة …» لكلّ خدمةٍ في سلّتها وحدها.
+        # ومن رُدّت تجد زرّ واتساب برسالةٍ جاهزة: اسمها وجوالها وخدمتها وموقعها ورابطه وسبب الردّ.
+        AM = {"group_name": "العمارية", "min_people": 2, "no_group_discount": True,
+              "prices": [{"service_id": "s1", "price": 1500}],
+              "svc_terms": [{"service_id": "s1", "price": 1500, "svc_fee": 300, "solo_ok": True}],
+              "message": "في العمارية: السعر ٨٠٠ للفرد بلا خصم مجموعات، والعروس ٢٣٠٠، ولشخصين فأكثر."}
+        COND = {"state": "condition", "checked": True, "district": "محافظة الدرعية", **AM}
+
+        async def win(loc, picks):
+            ctx = await b.new_context(viewport={"width": 430, "height": 900},
+                                      has_touch=True, is_mobile=True, device_scale_factor=2)
+            await ctx.route("**/assets/vendor/supabase.js", lambda r: asyncio.ensure_future(
+                r.fulfill(content_type="application/javascript", body=MOCK)))
+            pg = await ctx.new_page()
+            await pg.add_init_script("window.__SETTINGS_PATCH__={loc_check_enabled:true};"
+                                     "window.__LOC__=" + json.dumps(loc, ensure_ascii=False) + ";")
+            await pg.goto(f"http://127.0.0.1:{PORT}/index.html"); await pg.wait_for_timeout(1700)
+            for i, q in picks:
+                await pg.evaluate(f"()=>window.__pick({i},{q})")
+            await pg.wait_for_timeout(400)
+            await pg.evaluate("()=>window.__sheet()"); await pg.wait_for_timeout(600)
+            await pg.fill("#nm", "نورة التجربة"); await pg.fill("#ph", "0501234567")
+            await pg.fill("#locTxt", "الدرعية"); await pg.fill("#loc", LONG)
+            await pg.wait_for_timeout(1500)
+            w = await pg.evaluate("""()=>{const q=(x)=>document.querySelector(x), vis=(e)=>!!e && !e.hidden;
+              return {open:q('#locModal').classList.contains('open'),
+                title:(q('#locModalTitle').textContent||'').trim(),
+                grp:vis(q('#locModalGrp')) ? q('#locModalGrp').textContent.trim() : '',
+                note:vis(q('#locModalNote')) ? q('#locModalNote').textContent.trim() : '',
+                secsShown:vis(q('#locModalSecs')),
+                secs:[...document.querySelectorAll('#locModalSecs .sec')].map((s)=>({
+                  h:((s.querySelector('h4')||{}).textContent||'').trim(),
+                  li:[...s.querySelectorAll('li')].map((l)=>l.textContent.trim()),
+                  why:[...s.querySelectorAll('li.why')].map((l)=>l.textContent.trim())})),
+                wa:vis(q('#locModalWa')) ? q('#locModalWa').getAttribute('href') : '',
+                blocked:q('#toPay').disabled}}""")
+            return ctx, pg, w
+        waText = lambda href: unquote(href.split("?text=", 1)[1]) if "?text=" in href else ""
+
+        ctx, pg, w = await win({**COND, "fee": 300, "svc_fee": 300, "solo": False}, [(0, 1), (1, 2)])
+        rec("المعتمدة: العنوان حيث العميلة وتحته اسم المجموعة",
+            w["open"] and w["title"] == "محافظة الدرعية" and w["grp"] == "العمارية", f"{w['title']} / {w['grp']}")
+        rec("وقسمٌ لكلّ خدمةٍ في السلّة بعنوان «لخدمة …»، السهرة قبل العروس",
+            [x["h"] for x in w["secs"]] == ["لخدمة ميك اب سهرة", "لخدمة ميك اب عروس"], str([x["h"] for x in w["secs"]]))
+        rec("وبنود السهرة: السعر للعميلة، ولعميلتين أو أكثر، ولا يُطبَّق الخصم بندًا ثالثًا",
+            w["secs"] and w["secs"][0]["li"] == ["السعر 600 ر.س لكلّ عميلة", "الخدمة تُقدَّم لعميلتين أو أكثر",
+                                                "لا يُطبَّق خصم المجموعات"], str(w["secs"][:1]))
+        rec("وبند العروس رسمُها وحده",
+            len(w["secs"]) > 1 and w["secs"][1]["li"] == ["تطبق رسوم إضافية بقيمة 300 ر.س"], str(w["secs"][1:]))
+        rec("ونصّ رسالة المجموعة الطويل لا يظهر — البنود مكانه", w["note"] == "" and "٢٣٠٠" not in str(w), w["note"][:50])
+        rec("ولا زرّ واتساب ولا قفل — شرطٌ لا منع", w["wa"] == "" and not w["blocked"], f"wa={bool(w['wa'])} قفل={w['blocked']}")
+        await ctx.close()
+
+        ctx, pg, w = await win({**COND, "fee": 0, "svc_fee": 0}, [(1, 2)])
+        rec("السهرة وحدها: قسمها وحده بلا العروس", [x["h"] for x in w["secs"]] == ["لخدمة ميك اب سهرة"],
+            str([x["h"] for x in w["secs"]]))
+        await ctx.close()
+
+        ctx, pg, w = await win({**COND, "fee": 300, "svc_fee": 300, "solo": True}, [(0, 1)])
+        rec("العروس وحدها: قسمها وحده برسمها، ولا ذكر لعدد العميلات",
+            [x["h"] for x in w["secs"]] == ["لخدمة ميك اب عروس"] and "عميلتين" not in str(w["secs"]), str(w["secs"]))
+        await ctx.close()
+
+        ctx, pg, w = await win({**COND, "fee": 300, "svc_fee": 300}, [(0, 1), (1, 1)])
+        rec("عروسٌ وسهرةٌ واحدة: لا يُذكر الخصم لمن لا خصم لها أصلًا",
+            w["secs"] and "لا يُطبَّق خصم المجموعات" not in w["secs"][0]["li"], str(w["secs"][:1]))
+        await ctx.close()
+
+        ctx, pg, w = await win({**COND, "district": "العمارية", "fee": 0, "svc_fee": 0}, [(1, 2)])
+        rec("وداخل حدّ العمارية لا يتكرّر الاسم تحت العنوان", w["title"] == "العمارية" and w["grp"] == "",
+            f"{w['title']} / {w['grp']!r}")
+        await ctx.close()
+
+        ctx, pg, w = await win({**AM, "state": "blocked", "checked": True, "district": "محافظة الدرعية", "fee": 0},
+                               [(1, 1)])
+        rec("سهرةٌ واحدة موقوفة: النافذة نفسها والبند المانع بارز",
+            w["blocked"] and w["secs"] and w["secs"][0]["why"] == ["الخدمة تُقدَّم لعميلتين أو أكثر"], str(w["secs"]))
+        t = waText(w["wa"])
+        rec("وزرّ واتساب إلى رقم صاحبة العمل برسالةٍ جاهزة",
+            w["wa"].startswith("https://wa.me/966501112222?text="), w["wa"][:60])
+        rec("والرسالة: الاسم والجوال والخدمة والموقع ورابطه والسبب",
+            all(x in t for x in ("الاسم: نورة التجربة", "الجوال: 0501234567", "الخدمة: ميك اب سهرة",
+                                 "الموقع: محافظة الدرعية (العمارية)", "الرابط: " + LONG,
+                                 "السبب: الخدمة تُقدَّم لعميلتين أو أكثر")), t.replace("\n", " | ")[:160])
+        await pg.evaluate("""()=>{document.addEventListener('click',(e)=>e.preventDefault(),true);
+            document.getElementById('nm').value='سارة';
+            document.getElementById('locModalWa').click();}""")
+        t2 = waText(await pg.evaluate("()=>document.getElementById('locModalWa').getAttribute('href')"))
+        rec("وتُبنى لحظة الضغط: اسمٌ كُتب بعد النافذة يدخلها", "الاسم: سارة" in t2, " ".join(t2.split("\n")[1:2]))
+        await ctx.close()
+
+        ctx, pg, w = await win({"state": "reject", "checked": True, "district": "حي عكاظ", "group_name": "لا نخدم هنا",
+                                "message": "نعتذر، لا نصل إلى هذا الموقع حاليًا."}, [(1, 1)])
+        t = waText(w["wa"])
+        rec("الرفض: نافذته كما كانت برسالة صاحبة العمل",
+            w["note"] == "نعتذر، لا نصل إلى هذا الموقع حاليًا." and not w["secsShown"] and w["grp"] == "", w["note"])
+        rec("ورسالة واتساب بسببه، بلا اسم المجموعة الداخلي",
+            "السبب: نعتذر، لا نصل إلى هذا الموقع حاليًا." in t and "الموقع: حي عكاظ\n" in t + "\n"
+            and "لا نخدم هنا" not in t, t.replace("\n", " | ")[:140])
+        await ctx.close()
+
+        ctx, pg, w = await win({"state": "blocked", "checked": True, "district": "حي ظهرة لبن", "group_name": "شخصان فأكثر",
+                                "min_people": 2, "no_group_discount": False, "prices": [], "svc_terms": [],
+                                "message": "هذا الموقع نخدمه لحجزٍ من شخصين فأكثر."}, [(1, 1)])
+        rec("ومجموعة «أقلّ عدد» وحده: نافذتها كما كانت",
+            w["note"].startswith("هذا الموقع نخدمه") and not w["secsShown"] and bool(w["wa"]), w["note"][:50])
+        await ctx.close()
+
+        ctx, pg, w = await win({k: v for k, v in {**COND, "fee": 0, "svc_fee": 0}.items() if k != "svc_terms"}, [(1, 2)])
+        rec("وردٌّ من قاعدةٍ قبل ٠٠٤٣ (بلا svc_terms) يبقى على النافذة القديمة",
+            not w["secsShown"] and "في العمارية" in w["note"], w["note"][:50])
         await ctx.close()
 
         # ══ الثغرة: فحصٌ بشخصين ثمّ يُنقَص العدد ═══════════════════════
