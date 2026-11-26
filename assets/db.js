@@ -445,6 +445,79 @@ export async function isReturningClient(phone) {
   } catch { return false; }
 }
 
+/* قراءة الإحداثيّات من رابط الخرائط. موضعُها هنا لا في الصفحة لأنّ
+   اللوحة تحتاجها أيضًا: مجرِّبُ الموقع عند صاحبة العمل يقرأ ما تقرؤه
+   صفحة العميلة حرفًا بحرف — وإلّا اختبرت شيئًا وعاشت العميلة غيره. */
+const SHORT_MAP = /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps)\//i;
+const LATLNG = [
+  /@(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/,
+  /!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/,
+  /[?&](?:q|query|ll|center|daddr|destination)=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/i,
+];
+export function readLatLng(url) {
+  const t = String(url || '');
+  if (SHORT_MAP.test(t)) return null;
+  for (const re of LATLNG) {
+    const m = t.match(re);
+    if (m) {
+      const lat = +m[1], lng = +m[2];
+      if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat, lng };
+    }
+  }
+  return null;
+}
+
+/** نقطةُ الرابط: من نصّه إن حملها، وإلّا فبفكّ تحويلته على الخادم.
+ *  تردّ `{lat,lng}` أو `{reason}` — والسببُ يُقال للعميلة، فـ«رابطُ مكانٍ
+ *  محفوظ» علاجُه غير علاج «رابطٍ ناقص». */
+export async function mapPoint(url) {
+  return readLatLng(url) || await resolveMapLink(url);
+}
+
+/** ما تقرؤه العميلة حين يتعذّر الفكّ — لكلّ سببٍ علاجُه. */
+export function mapPointMessage(reason) {
+  if (reason === 'place_only') {
+    /* المكان المحفوظ صار يُسأل عنه ويُعرف موضعه، فبلوغُ هذه الرسالة
+       يعني أنّ السؤال نفسه تعذّر — لا أنّ الرابط من نوعٍ لا يُقرأ. */
+    return 'تعذّر تحديد موقع هذا المكان الآن. أعيدي المحاولة بعد لحظات، '
+         + 'أو افتحي الخرائط واضغطي مطوّلًا على موقعكِ حتى يظهر دبّوس ثمّ شاركي الرابط.';
+  }
+  if (reason === 'net') {
+    return 'تعذّر الوصول إلى الخرائط الآن. تأكّدي من الاتصال وأعيدي المحاولة.';
+  }
+  return 'تعذّر قراءة موقع هذا الرابط. افتحيه في الخرائط ثمّ انسخي الرابط الكامل من شريط العنوان.';
+}
+
+/* فكُّ الرابط المختصر. زرّ «مشاركة الموقع» في تطبيق الخرائط يُخرج
+   `maps.app.goo.gl/…` بلا إحداثيّات، والمتصفّح لا يتتبّع تحويلته لأنّها
+   عابرةُ أصل. فتُفكّ على الخادم، حيث تُفحص القائمة البيضاء عند كل قفزة.
+   وتعذّرُ الفكّ لا يُتّهم به أحد: يُردّ null فيقال للعميلة ما تفعل. */
+export async function resolveMapLink(url) {
+  try {
+    const { data, error } = await sb.functions.invoke('resolve-map', { body: { url } });
+    if (error) return { reason: 'net' };
+    if (data?.ok) {
+      const lat = Number(data.lat), lng = Number(data.lng);
+      if (isFinite(lat) && isFinite(lng)) return { lat, lng };
+    }
+    return { reason: data?.reason || 'no_coords' };
+  } catch { return { reason: 'net' }; }
+}
+
+/* فحص الموقع: يقول سببه — بخلاف حارس الإيصال الذي يكتم عمدًا. العميلة
+   لا تختار حيَّها فلا شيء يُزوَّر، وكتمانُ السبب يجعلها تظنّ بالمنصّة
+   عطبًا. والحكم هنا للعرض وحده: `create_booking` تعيده من الإحداثيّتين. */
+/* الخدماتُ جزءٌ من الحكم لا زينة: مجموعةٌ تشترط شخصين قد تستثني خدمةً
+   بعينها («تُقبل وحدها») برسومٍ تُضاف. فبلا معرّفاتها يُردّ الاستثناء. */
+export async function checkLocation(lat, lng, people, preview = false, serviceIds = null) {
+  const { data, error } = await sb.rpc('check_location', {
+    p_lat: lat, p_lng: lng, p_people: Number(people) || 1, p_preview: !!preview,
+    p_service_ids: serviceIds && serviceIds.length ? serviceIds : null,
+  });
+  if (error) throw error;
+  return data || { state: 'ok', checked: false };
+}
+
 export async function createBooking(payload) {
   const { data, error } = await sb.rpc('create_booking', {
     p_client_name:  payload.name,
@@ -456,6 +529,13 @@ export async function createBooking(payload) {
     p_loc_text:     payload.locText || null,
     p_loc_map:      payload.locMap || null,
     p_notes:        payload.notes || null,
+    // الإحداثيّتان لا الحكم: القاعدة تحسبه بنفسها.
+    p_lat:          payload.lat ?? null,
+    p_lng:          payload.lng ?? null,
+    /* مصافحةُ النسخة. القاعدة لا تُلزم بالموقع إلّا من قال إنّه يعرفه —
+       فصفحةٌ منشورةٌ قديمة لا تنكسر حين يُشعل المفتاح للتجربة. وقع
+       مرّتين، والثانيةُ ضاع فيها حجزُ عميلة. */
+    p_client_v:     2,
     p_receipt_path: payload.receiptPath || null,
     /* مصافحةُ الميزات (بتّ ١ = الفترات المخصّصة، §٧ع). القاعدة لا تردّ بالفترة إلّا من قال إنّه يعرفها،
        وإلّا ضاع عربونٌ حُوّل بصفحةٍ لا ترى المنع. وهي وسيطٌ مستقلّ عن p_client_v: صفحة الجذر لا
@@ -795,11 +875,54 @@ export const admin = {
     return data || [];
   },
 
+  /* ــ اشتراطات الأحياء ــــــــــــــــــــــــــــــــــــــــــــــــــ
+
+     مجموعاتٌ لا حيًّا حيًّا: تختار صاحبة العمل أحياءً وتضع عليها حكمًا
+     واحدًا وتحفظه باسم، ثم تصنع مجموعةً أخرى بحكمٍ آخر. والحدود مزروعة
+     في القاعدة مرّةً واحدة — لا استيراد ولا ملفّ.                     */
+
+  /** كلّ حيّ ومجموعته إن كان في واحدة. */
+  async districts() {
+    const { data, error } = await sb.rpc('admin_districts');
+    if (error) throw error;
+    return data || [];
+  },
+
   /** قاعدة العميلات: صفٌّ لكلّ عميلة، من سجلٍّ يبقى بعد الحذف الجماعيّ. */
   async clients() {
     const { data, error } = await sb.rpc('admin_clients');
     if (error) throw error;
     return data || [];
+  },
+
+  /** المجموعات بأحيائها وأسعارها. */
+  async hoodGroups() {
+    const { data, error } = await sb.rpc('admin_hood_groups');
+    if (error) throw error;
+    return data || [];
+  },
+
+  /** حفظُ مجموعة — جديدةً أو معدَّلة. القاعدة ترفض حيًّا في مجموعتين
+      وتسمّيه، فالحكمان المتناقضان على موقعٍ واحد لا يُترك بينهما ترجيح. */
+  async saveHoodGroup(group) {
+    const { data, error } = await sb.rpc('admin_save_hood_group', { p_group: group });
+    if (error) throw error;
+    return data;
+  },
+
+  /* مجرِّب الموقع. المعاينة تتخطّى المفتاح في القاعدة — وصلاحيةُ المدير
+     تُفحص هناك لا هنا — فتجرّب صاحبة العمل شرطًا بلا إشعال حارسٍ على
+     العميلات. وقع مرّة أنّ التجربة الوحيدة الممكنة كانت إشعالَه. */
+  async previewLocation(url, people = 1, serviceIds = null) {
+    const pt = await mapPoint(url);
+    if (!pt || pt.reason) return { ok: false, reason: pt?.reason || 'no_coords' };
+    const r = await checkLocation(pt.lat, pt.lng, people, true, serviceIds);
+    return { ok: true, ...pt, result: r };
+  },
+
+  async deleteHoodGroup(id) {
+    const { error } = await sb.rpc('admin_delete_hood_group', { p_id: id });
+    if (error) throw error;
   },
 
   /* ــ الرسائل التلقائية ــــــــــــــــــــــــــــــــــــــــــــــــــ */

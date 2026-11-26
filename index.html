@@ -13,7 +13,7 @@
 <meta property="og:locale" content="ar_SA">
 <meta property="og:title" content="حجز موعد — إيمان آل موسى">
 <meta property="og:description" content="احجزي موعد ميك اب عروس أو سهرة مع إيمان آل موسى.">
-<meta property="og:image" content="https://eman-aalmousa.com/assets/brand/og.jpg?v=65">
+<meta property="og:image" content="https://eman-aalmousa.com/assets/brand/og.jpg?v=79">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -54,10 +54,10 @@
   html.is-lab body.public-site{padding-top:0}
   html.is-lab body.public-site .app{margin-top:22px;height:calc(100dvh - 22px)}
 </style>
-<link rel="stylesheet" href="assets/fonts.css?v=65">
+<link rel="stylesheet" href="assets/fonts.css?v=79">
 <!-- assets/theme.css متروك لواجهة الإدارة فقط: أسماء أصنافه (.day و .slot و .chip)
      تتصادم مع أصناف الواجهة الجديدة، وclient-theme.css مكتفٍ بمتغيّراته. -->
-<link rel="stylesheet" href="assets/client-theme.css?v=65">
+<link rel="stylesheet" href="assets/client-theme.css?v=79">
 <script>
   if (new URLSearchParams(location.search).has('t')) {
     document.documentElement.classList.add('tracking-mode');
@@ -92,7 +92,9 @@
     <section class="screen hero on" data-name="الواجهة">
       <div class="hero-media">
         <div class="hero-shift">
-          <img class="hero-img" src="assets/brand/hero_still.jpg" alt="إيمان آل موسى — ميك اب أرتست">
+          <img class="hero-img" src="assets/brand/hero_still-800.webp"
+               srcset="assets/brand/hero_still-800.webp 800w, assets/brand/hero_still-1170.webp 1170w"
+               sizes="100vw" fetchpriority="high" alt="إيمان آل موسى — ميك اب أرتست">
           <div class="discover">اكتشفي المزيد</div>
         </div>
       </div>
@@ -234,7 +236,7 @@
 
     <!-- 05 تواصل -->
     <section class="screen light contact" data-name="تواصل">
-      <div class="dust" style="background-image:url('assets/brand/dust_light.jpg')"></div>
+      <div class="dust" style="background-image:url('assets/brand/dust_light.webp')"></div>
       <div class="pad">
 
         <div class="booked" id="booked" hidden>
@@ -326,6 +328,24 @@
   <!-- فحص الإيصال: نافذةٌ في منتصف الشاشة، فتعرف العميلة أنّ شيئًا يجري
        الآن ولا تظنّ الصفحة واقفة. ثم إمّا تنصرف صامتة أو تقول كلمةً
        واحدة — ولا تُفصح عن سببٍ يُبنى عليه تحايل. -->
+  <!-- فحص الموقع. يقول سببه — بخلاف نافذة الإيصال التي تكتم عمدًا:
+       العميلة لا تختار حيَّها فلا شيء يُزوَّر، وكتمانُ السبب يجعلها
+       تظنّ بالمنصّة عطبًا فتذهب. -->
+  <div class="rcpt-modal" id="locModal" role="dialog" aria-modal="true"
+       aria-hidden="true" aria-labelledby="locModalTitle">
+    <div class="box">
+      <span class="spin" id="locSpin"></span>
+      <span class="bad" id="locBad" hidden aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.6v16.8M3.6 12h16.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" transform="rotate(45 12 12)"/></svg>
+      </span>
+      <h3 id="locModalTitle">جارٍ فحص الموقع…</h3>
+      <p id="locModalNote">لحظة من فضلك.</p>
+      <ul class="terms" id="locModalTerms" hidden></ul>
+      <button class="ok" type="button" id="locModalOk" hidden>حسنًا</button>
+      <a class="rcpt-wa" id="locModalWa" hidden target="_blank" rel="noopener">تواصلي معنا عبر واتساب</a>
+    </div>
+  </div>
+
   <div class="rcpt-modal" id="rcptModal" role="dialog" aria-modal="true"
        aria-live="polite" aria-hidden="true">
     <div class="veil"></div>
@@ -399,11 +419,13 @@
               </a>
             </div>
             <p class="err" id="locErr">يُقبل رابط خرائط قوقل فقط — مثل maps.app.goo.gl/… أو google.com/maps/…</p>
+            <p class="loc-ok" id="locOk" hidden><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="locOkTxt"></span></p>
             <div class="field"><label for="prf">ملاحظات <span class="opt">اختياري</span></label><input id="prf" type="text" placeholder="نوع البشرة، الستايل المفضّل، وقت الوصول…"></div>
           </div>
           <div class="recap">
             <div class="multi"><span>الخدمات</span><b id="rcSvc" class="svcs">—</b></div>
             <div><span>الموعد</span><b id="rcWhen">—</b></div>
+            <div id="rcFeeRow" hidden><span id="rcFeeLbl">رسوم موقع</span><b id="rcFee">—</b></div>
           </div>
           <div class="err-line" id="formErr" hidden></div>
         </div>
@@ -519,13 +541,16 @@
 <script type="module">
 import {
   getPublicSettings, getServices, getDaysWithAvailability, getAvailableSlots, getOpenDaysAhead,
+  checkLocation,
+  mapPoint,
+  mapPointMessage,
   createBooking, getBookingByToken, requestCancel,
   fmtDate, fmtDuration, money, riyal, esc,
   uploadReceipt, depositFor, verifyReceipt, checkReceipt, RECEIPT_ACCEPT, RECEIPT_MAX_BYTES,
   trackVisit, trackPing, trackBooked, isReturningClient,
   today, addDays, parseDate, isoDate, normalisePhone, waHref, statusLabel, toast,
   mediaUrl, groupItems,
-} from './assets/db.js?v=65';
+} from './assets/db.js?v=79';
 
 /* ════════════════════════════════════════════════════════════════════════
    إعدادات العرض — كل ما قد ترغب في تغييره لاحقًا موجود هنا
@@ -534,10 +559,10 @@ const UI = {
   maxQty: 12,                 // نفس سقف النظام القائم
   monthsAhead: 2,             // سنوات التنقل في منتقي الشهور
   media: [                    // خلفية بطاقة الخدمة: تُطابق بالاسم ثم بالترتيب
-    { match: /عروس|عرائس|زفاف|bridal/i, video: 'assets/brand/svc_bridal.mp4',  poster: 'assets/brand/pst_bridal.jpg',  thumb: 'assets/brand/thumb_bridal.jpg' },
-    { match: /سهر|مناسب|evening/i,      video: 'assets/brand/svc_evening.mp4', poster: 'assets/brand/pst_evening.jpg', thumb: 'assets/brand/thumb_evening.jpg' },
+    { match: /عروس|عرائس|زفاف|bridal/i, video: 'assets/brand/svc_bridal.mp4',  poster: 'assets/brand/pst_bridal.webp', thumb: 'assets/brand/thumb_bridal.webp' },
+    { match: /سهر|مناسب|evening/i,      video: 'assets/brand/svc_evening.mp4', poster: 'assets/brand/pst_evening.webp', thumb: 'assets/brand/thumb_evening.webp' },
   ],
-  fallback: { video: '', poster: 'assets/brand/dust_a.jpg', thumb: 'assets/brand/dust_a.jpg' },
+  fallback: { video: '', poster: 'assets/brand/dust_a.webp', thumb: 'assets/brand/dust_a.webp' },
 };
 
 /* ── الحالة (نفس نموذج النظام القائم) ─────────────────────────────────── */
@@ -560,11 +585,18 @@ const state = {
 
 const picked    = () => state.services.filter((s) => state.counts[s.id] > 0);
 const flatPicked= () => state.services.flatMap((s) => Array.from({ length: state.counts[s.id] || 0 }, () => s));
-const subtotal  = () => flatPicked().reduce((n, s) => n + Number(s.price), 0);
 /* الخدمات المختارة بمعرّفاتها بلا تكرار: ما تحكم به الفترةُ المخصّصة. وبصمةُ السلّة المدّةُ معها: شهرٌ مبنيٌّ
    على مدّةٍ واحدة لا يصحّ لخدمةٍ أخرى بالمدّة نفسها إن كانت فترةٌ تخصّ إحداهما (§٧ع). */
 const cartIds = () => [...new Set(flatPicked().map((s) => s.id))];
 const cartSig = () => `${flatPicked().reduce((n, s) => n + Number(s.duration_min), 0)}|${cartIds().sort().join(',')}`;
+/* سعرُ الخدمة في هذا الموقع. بعض الأحياء تسعيرتُها مختلفة — العروس في
+   العمارية ٢٣٠٠ لا ٢٠٠٠ — و`create_booking` تحسبها من المجموعة. فلو
+   عرضت الصفحةُ السعر المعتاد رأت العميلة رقمًا وحُوسبت بغيره. */
+function priceOf(s) {
+  const over = (state.loc?.prices || []).find((p) => p.service_id === s.id);
+  return Number(over ? over.price : s.price) || 0;
+}
+const subtotal  = () => flatPicked().reduce((n, s) => n + priceOf(s), 0);
 
 /* خصم المجموعة: مبلغ ثابت عن كل شخص في الخدمات المؤهَّلة، ولا يبدأ إلا
    من شخصين. العتبة نفسها مكتوبة في group_discount_for بقاعدة البيانات،
@@ -574,11 +606,18 @@ function discountPeople() {
   return flatPicked().filter((s) => s.group_discount).length;
 }
 function groupDiscount() {
+  /* بعض الأحياء سعرُها صافٍ: العمارية ٨٠٠ للفرد لا ٦٠٠ بعد الخصم.
+     والقاعدة تُعيد الحساب بنفسها عند الحفظ — هذا للعرض. */
+  if (state.loc?.noGroupDiscount) return 0;
   const per = Number(state.settings?.group_discount_amount || 0);
   const n = discountPeople();
   return per > 0 && n >= GROUP_MIN ? Math.min(per * n, subtotal()) : 0;
 }
-const totalPrice= () => subtotal() - groupDiscount();
+/* رسوم الحيّ تُضاف للإجمالي لا للعربون: العربون على الخدمات وحدها،
+   فلا يختلف المطلوب تحويله عمّا يفحصه حارس الإيصال. والقاعدة تُعيد
+   حسابها بنفسها — هذا للعرض. */
+const locFee   = () => Number(state.loc?.fee || 0);
+const totalPrice= () => subtotal() - groupDiscount() + locFee();
 const totalMins = () => flatPicked().reduce((n, s) => n + Number(s.duration_min), 0);
 const people    = () => flatPicked().length;
 
@@ -847,6 +886,11 @@ function bump(id, d) {
 /* تغيير السلة يُبطل الموعد المختار: المدة تغيّرت فتغيّرت الأوقات المتاحة،
    فيُعاد فتح التقويم ويُمسح كل ما بُني على المدة القديمة. */
 function onCartChange() {
+  /* وحكمُ الموقع يسقط كما يسقط التاريخ، وللسبب نفسه: كلاهما محسوبٌ على
+     اختيارٍ تغيّر. فحصٌ بشخصين يفتح الزرّ، ثمّ ترجع فتجعلها خدمةً واحدة،
+     فتمضي على حكمٍ لم يعد يخصّها — حتى تُرفض عند الإرسال وقد حوّلت
+     العربون. واسمها وجوّالها وحيُّها تبقى؛ الرابط وحده يُعاد. */
+  clearLocCheck();
   const had = state.date;
   state.date = null; state.time = null; state.slots = [];
   if (had) {
@@ -1424,11 +1468,14 @@ function sync() {
   arts.innerHTML = c.map((s) => `<figure class="art" style="background-image:url('${mediaFor(s).thumb}')">${
     state.counts[s.id] > 1 ? `<b dir="ltr">×${state.counts[s.id]}</b>` : ''}</figure>`).join('');
 
-  const disc = groupDiscount();
+  const disc = groupDiscount(), fee = locFee();
   el('sumLines').innerHTML = (c.length
-    ? c.map((s) => `<div class="ln"><span>${esc(s.name)}${state.counts[s.id] > 1 ? ` <em dir="ltr">×${state.counts[s.id]}</em>` : ''}</span><b>${money(Number(s.price) * state.counts[s.id])}<i class="rs"></i></b></div>`).join('')
+    ? c.map((s) => `<div class="ln"><span>${esc(s.name)}${state.counts[s.id] > 1 ? ` <em dir="ltr">×${state.counts[s.id]}</em>` : ''}</span><b>${money(priceOf(s) * state.counts[s.id])}<i class="rs"></i></b></div>`).join('')
     : '<div class="ln"><span>لم تختاري خدمة بعد</span></div>')
-    + (disc ? `<div class="ln off"><span>خصم المجموعة <em dir="ltr">×${discountPeople()}</em></span><b>−${money(disc)}<i class="rs"></i></b></div>` : '');
+    + (disc ? `<div class="ln off"><span>خصم المجموعة <em dir="ltr">×${discountPeople()}</em></span><b>−${money(disc)}<i class="rs"></i></b></div>` : '')
+    /* الرسوم بندٌ باسمها لا رقمٌ يُضاف صامتًا إلى الإجمالي: كان الملخّص
+       يقفز فلا تعرف العميلة من أين جاء الفرق. */
+    + (fee ? `<div class="ln"><span>رسوم ${esc(state.loc?.district || 'الموقع')}</span><b>${money(fee)}<i class="rs"></i></b></div>` : '');
 
   el('total1').innerHTML = `${money(totalPrice())}<i class="rs"></i>`;
   el('sumDate').textContent = state.date ? fmtDate(state.date, { short: true }) : '—';
@@ -1451,11 +1498,28 @@ const recapSvcHTML = (c) => c.map((s) => `<span class="it">${esc(shortName(s.nam
   state.counts[s.id] > 1 ? ` <bdi dir="ltr">×${state.counts[s.id]}</bdi>` : ''}</span>`).join('');
 const recapWhenHTML = () =>
   `${esc(state.date ? fmtDate(state.date, { short: true }) : '—')} · <bdi dir="ltr">${esc(time12(state.time))}</bdi>`;
-function openSheetPanel() {
+/* الملخّص يُرسم في موضعٍ واحد: كان داخل فتح اللوحة وحدها، فرسومُ الحيّ
+   تُحسب بعد الفتح ولا يُعاد رسمه — فيظهر إجماليٌّ لا يفسّره سطر. */
+function paintRecap() {
   const c = picked();
-  el('rcSvc').innerHTML = c.length ? recapSvcHTML(c) : '—';
+  const svcSum = Math.max(subtotal() - groupDiscount(), 0);
+  /* مع رسوم الحيّ سطرٌ أخير في قائمة الخدمات بقيمتها، فيُعرف شطرا الإجمالي. */
+  el('rcSvc').innerHTML = !c.length ? '—' : recapSvcHTML(c)
+    + (locFee() > 0 ? `<span class="it sum">قيمتها ${money(svcSum)}<i class="rs"></i></span>` : '');
   el('rcWhen').innerHTML = recapWhenHTML();
+  /* الرسوم سطرٌ باسم الحيّ لا رقمٌ يظهر في الإجمالي بلا تفسير — ومعه
+     قيمةُ الخدمات، وإلّا بقي الإجمالي رقمًا واحدًا لا يُعرف شطراه. */
+  const fee = locFee();
+  el('rcFeeRow').hidden = !(fee > 0);
+  if (fee > 0) {
+    el('rcFeeLbl').textContent = `رسوم ${state.loc?.district || 'الموقع'}`;
+    el('rcFee').innerHTML = `${money(fee)}<i class="rs"></i>`;
+  }
   el('rcDep').innerHTML = `${money(totalPrice())}<i class="rs"></i>`;
+}
+
+function openSheetPanel() {
+  paintRecap();
 
   showPane('form');
   sheet.classList.add('open'); sheetOpen = true; gate();
@@ -1470,6 +1534,7 @@ el('confirmBtn').addEventListener('click', () => {
 
 const MAPS_RE = /^https:\/\/((maps\.app\.goo\.gl)|(goo\.gl\/maps)|((www\.)?google\.[a-z]{2,3}(\.[a-z]{2})?\/maps)|(maps\.google\.[a-z]{2,3}(\.[a-z]{2})?))(\/|\?)\S*$/i;
 const loc = el('loc'), locField = el('locField'), locErr = el('locErr');
+const locOk = el('locOk'), locOkTxt = el('locOkTxt');
 const sendBtn = el('sendBooking'), toPayBtn = el('toPay');
 const phone = el('ph'), nameIn = el('nm'), district = el('locTxt');
 
@@ -1500,6 +1565,151 @@ const REQUIRED = [
   { in: phone,    ok: (v) => !!normalisePhone(v) },
   { in: district, ok: (v) => v.trim().length > 1 },
 ];
+/* ═══ فحص الموقع ═══════════════════════════════════════════════════════
+   الإحداثيّتان تُقرآن من الرابط في المتصفّح، ويُرسلان وحدهما. الحكم في
+   القاعدة، وهذه الصفحة تعرضه.
+
+   والرابط المختصر (`maps.app.goo.gl`) لا يحمل إحداثيات إطلاقًا — وهو ما
+   تشاركه أغلب العميلات. فيُقال لها ذلك **هنا** لا عند الإرسال: زرٌّ يُقفل
+   في آخر الطريق بلا سببٍ أسوأ من رفضٍ مبكرٍ مفهوم. */
+
+/* نصُّ نافذة الشرط: جملةٌ واحدة تقول حكم الموقع، وتحتها بنودٌ لا تُذكر
+   إلّا إن كانت تخصّ ما اختارته هذه العميلة. والعميلة في منتصف حجزٍ،
+   فلا شرحَ محاسبةٍ هنا — الملخّص أمامها بعد سطرين.
+
+   وسقوطُ خصم المجموعات لا يُذكر إلّا إن كان خصمٌ سيقع لولا الموقع: عروسٌ
+   واحدة لا تستحقّه أصلًا، فذِكرُه لها تحذيرٌ من شيءٍ لم يكن. */
+function locTerms(r) {
+  const note = (r.message || '').trim()
+    || (Number(r.min_people) > 1 ? minPeopleLine(Number(r.min_people)) : '');
+  const terms = [];
+  const fee = Number(r.svc_fee) || 0;
+  if (fee > 0) {
+    terms.push(`لخدمة ${r.fee_services || 'المختارة'}: تطبق رسوم موقع إضافية بقيمة ${money(fee)} ر.س`);
+  }
+  if (r.no_group_discount && discountPeople() >= GROUP_MIN) {
+    terms.push('لا يطبق خصم المجموعات في هذا الموقع');
+  }
+  return { note, terms };
+}
+const minPeopleLine = (n) =>
+  `الخدمة متاحة في هذا الموقع للحجوزات من ${n === 2 ? 'شخصين' : `${n} أشخاص`} فأكثر.`;
+
+function locModal(kind, opts = {}) {
+  const box = el('locModal');
+  const on = kind !== 'off';
+  el('locSpin').hidden = kind !== 'checking';
+  el('locBad').hidden  = kind !== 'bad';
+  el('locModalOk').hidden = kind === 'checking';
+  el('locModalTitle').textContent = opts.title || '';
+  el('locModalNote').textContent  = opts.note  || '';
+  el('locModalNote').hidden = !opts.note;
+  /* البنود نصٌّ من القاعدة، فيُهرَّب قبل أن يُركَّب. */
+  const terms = el('locModalTerms');
+  terms.hidden = !(opts.terms && opts.terms.length);
+  terms.innerHTML = (opts.terms || []).map((t) => `<li>${esc(t)}</li>`).join('');
+  const wa = el('locModalWa');
+  wa.hidden = !opts.wa;
+  if (opts.wa) wa.href = opts.wa;
+  box.classList.toggle('open', on);
+  box.setAttribute('aria-hidden', on ? 'false' : 'true');
+}
+
+/** يُبطل حكم الموقع ويُفرغ الرابط. تُنادى حين تتغيّر الخدمات. */
+function clearLocCheck() {
+  // بلا فحصٍ لا حكمَ يبطل، فلا يُفرَّغ حقلٌ بلا سبب.
+  if (!state.settings?.loc_check_enabled) return;
+  if (!state.loc && !loc.value) return;
+  clearTimeout(locTimer);
+  locSeq++;                       // يُلغي فحصًا لم يعد جوابه يعني شيئًا
+  state.loc = null;
+  state.locStale = true;          // لتُقال لها لماذا فرغ الحقل
+  loc.value = '';
+  loc.dataset.touched = '';
+  locField.classList.remove('ok', 'bad');
+  locErr.classList.remove('on');
+  locOk.hidden = true;
+  locModal('off');
+}
+
+let locSeq = 0;
+async function runLocCheck() {
+  if (!state.settings?.loc_check_enabled) { state.loc = null; gate(); return; }
+  const v = loc.value.trim();
+  if (!v || !MAPS_RE.test(v)) { state.loc = null; gate(); return; }
+
+  const seq = ++locSeq;
+  state.loc = { pending: true };
+  gate();
+  locModal('checking', { title: 'جارٍ فحص الموقع…', note: 'لحظة من فضلك.' });
+
+  /* رابط المشاركة المختصر لا يحمل إحداثيّات. كان يُردّ عند الحقل، فبقي
+     فحص الأحياء نظريًّا: الشرط مضبوط والرابط الشائع لا يُقرأ. فيُفكّ على
+     الخادم — والمتصفّح عاجزٌ عنه لأنّ التحويلة عابرةُ أصل. */
+  const pt = await mapPoint(v);
+  if (seq !== locSeq) return;
+  if (!pt || pt.reason) {
+    /* السبب يُحفظ لا ليُعرض رمزًا بل ليُقال علاجُه: «رابط مكانٍ محفوظ»
+       تُعالَج بوضع دبّوس، و«رابط ناقص» بنسخ العنوان الكامل. */
+    state.loc = { blocked: true, reason: 'link', why: pt?.reason || 'no_coords' };
+    locModal('off'); gate();
+    return;
+  }
+  state.loc = { lat: pt.lat, lng: pt.lng, pending: true };
+
+  let r;
+  try { r = await checkLocation(pt.lat, pt.lng, Math.max(1, people()), false,
+                                flatPicked().map((x) => x.id)); }
+  catch { r = null; }
+  if (seq !== locSeq) return;                 // لصقت رابطًا آخر أثناء الفحص
+
+  if (!r) {
+    // تعذّر الفحص لا يُتّهم به أحد: تُترك المتابعة والقاعدة تحكم عند الإرسال.
+    state.loc = { lat: pt.lat, lng: pt.lng, fee: 0 };
+    locModal('off'); gate(); return;
+  }
+
+  const waPhone = state.settings?.whatsapp_phone;
+  const wa = waPhone ? `https://wa.me/${String(waPhone).replace(/\D/g, '')}` : null;
+  if (r.state === 'reject' || r.state === 'blocked') {
+    state.loc = { lat: pt.lat, lng: pt.lng, checked: true, blocked: true, reason: r.state,
+                  district: r.district, message: r.message };
+    locModal('bad', { title: r.district || 'هذا الموقع', note: r.message || '', wa });
+  } else if (r.state === 'condition') {
+    state.loc = { lat: pt.lat, lng: pt.lng, checked: r.checked !== false,
+                  fee: Number(r.fee) || 0, svcFee: Number(r.svc_fee) || 0,
+                  district: r.district, message: r.message, feeServices: r.fee_services,
+                  noGroupDiscount: !!r.no_group_discount, prices: r.prices || [] };
+    locModal('bad', { title: r.district || 'شرطٌ على الموقع', ...locTerms(r) });
+  } else {
+    // بلا شرط: لا نافذة ولا تنبيه. تكمل كما لو لم يكن هناك فحص.
+    state.loc = { lat: pt.lat, lng: pt.lng, checked: r.checked !== false, fee: 0,
+                  district: r.district, noGroupDiscount: !!r.no_group_discount,
+                  prices: r.prices || [] };
+    locModal('off');
+  }
+  /* `sync` هي التي ترسم لوحة الملخّص — السطور والإجمالي والخصم. وكان
+     الفحص ينادي `renderCart` وحدها، فيتغيّر الشريط ويبقى الملخّص على
+     السعر المعتاد: العميلة ترى ٢٠٠٠ وتُحاسَب ٢٣٠٠. */
+  renderCart(); sync(); paintRecap(); paintPay(); gate();
+}
+
+el('locModalOk').addEventListener('click', () => locModal('off'));
+
+/* لا يكفي ألّا يمنع: الصمت عند الموقع السليم يُقرأ عطبًا. فيُقال إنّه
+   فُحص، وأين وقع، وما حكمه — سطرٌ يبقى بعد إغلاق النافذة. */
+function paintLocNote() {
+  const L = state.loc;
+  const on = !!(L && L.checked && !L.blocked && !L.pending);
+  locOk.hidden = !on;
+  if (!on) return;
+  const where = L.district || 'هذا الموقع';
+  const fee = Number(L.fee) || 0;
+  locOkTxt.textContent = fee > 0
+    ? `${where} — ضمن نطاق الخدمة، وعليه رسوم موقع ${money(fee)} ر.س.`
+    : `${where} — ضمن نطاق الخدمة.`;
+}
+
 function gate() {
   const v = loc.value.trim();
   /* الإلزام قرارُ صاحبة العمل من الإعدادات. حين يكون مفعّلًا فالفراغ خطأٌ
@@ -1508,29 +1718,52 @@ function gate() {
   const needMap = !!state.settings?.require_loc_map;
   const shapeOk = !v || MAPS_RE.test(v);
   const mapOk = shapeOk && (!needMap || !!v);
-  const showBad = (!!v && !shapeOk) || (needMap && !v && loc.dataset.touched === '1');
+  const stale = !!state.settings?.loc_check_enabled && !!state.locStale && !v;
+  const showBad = (!!v && !shapeOk) || stale
+                  || (needMap && !v && loc.dataset.touched === '1');
   locField.classList.toggle('bad', showBad);
   locField.classList.toggle('ok', !!v && shapeOk);
   locErr.classList.toggle('on', showBad);
-  locErr.textContent = (needMap && !v)
-    ? 'رابط الموقع مطلوب — افتحي خرائط قوقل، شاركي الموقع، والصقي الرابط هنا.'
-    : 'يُقبل رابط خرائط قوقل فقط — مثل maps.app.goo.gl/… أو google.com/maps/…';
+  locErr.textContent = stale
+    ? 'غيّرتِ الخدمات، فنحتاج رابط الموقع من جديد ليُعاد الفحص.'
+    : (needMap && !v)
+      ? 'رابط الموقع مطلوب — افتحي خرائط قوقل، شاركي الموقع، والصقي الرابط هنا.'
+      : 'يُقبل رابط خرائط قوقل فقط — مثل maps.app.goo.gl/… أو google.com/maps/…';
   let reqOk = true;
   REQUIRED.forEach((r) => {
     const good = r.ok(r.in.value);
     if (!good) reqOk = false;
     r.in.closest('.field').classList.toggle('bad', !!r.touched && !good);
   });
-  toPayBtn.disabled = !(mapOk && reqOk) || state.busy;
+  /* حكمُ الموقع يُقفل الزرّ هنا — قبل ذكر أيّ مبلغ. والرسالة تحت الحقل
+     تقول السبب، فلا يقف الطريق بلا تفسير. */
+  const L = state.loc;
+  const locBlocked = !!(L && L.blocked);
+  if (locBlocked) {
+    locField.classList.add('bad'); locErr.classList.add('on');
+    locErr.textContent = L.reason === 'link'
+      ? mapPointMessage(L.why)
+      : (L.message || 'لا نستقبل حجوزات في هذا الموقع حاليًا.');
+  }
+  /* والقفل عند السقوط لا يتّكل على «رابط الموقع إلزاميّ»: الحكم بطل
+     بتغيُّر الخدمات، فلا تمضي عليه ولو كان الرابط اختياريًّا. */
+  toPayBtn.disabled = !(mapOk && reqOk) || locBlocked || !!L?.pending || stale || state.busy;
   // الحجز مرفوض من الخادم بلا إيصال، فلا معنى لزرّ إرسال قبل اختيار ملف.
   // والصورة التي رفضها الفحص تُزال ساعتَها، فيكفي غيابُ المسار للمنع —
   // والشرط على الحكم باقٍ احتياطًا. ولا يُقرَّر هنا شيء: الحكم من القاعدة.
   const scanBad = state.receiptCheck?.verdict === 'bad';
   sendBtn.disabled = !state.receiptPath || state.busy || scanBad;
+  paintLocNote();
 }
 [loc, phone, nameIn, district].forEach((e) => {
   e.addEventListener('input', gate);
   e.addEventListener('blur', () => { e.dataset.touched = '1'; gate(); });
+});
+/* لا يُفحص مع كل حرف: يُنتظر توقّفُها عن اللصق. */
+let locTimer = null;
+loc.addEventListener('input', () => {
+  clearTimeout(locTimer); state.loc = null; state.locStale = false;
+  locTimer = setTimeout(runLocCheck, 400);
 });
 phone.addEventListener('input', unifyPhone);
 REQUIRED.forEach((r) => r.in.addEventListener('blur', () => { r.touched = true; gate(); }));
@@ -1593,7 +1826,10 @@ function showPane(name) {
 function paintPay() {
   const cfg = state.settings || {};
   const total = totalPrice();
-  const due = depositFor(flatPicked(), total);
+  /* العربون على الخدمات وحدها: يُحسب من إجماليها قبل رسوم الحيّ، تمامًا
+     كما تفعل `create_booking`. ولو حُسب من الإجمالي لاختلف المعروض عمّا
+     يفحصه حارس الإيصال. */
+  const due = depositFor(flatPicked(), subtotal() - groupDiscount());
   state.depositDue = due;
   el('payAmt').innerHTML = `${money(due)}<i class="rs"></i>`;
   el('payTotal').innerHTML = `${money(total)}<i class="rs"></i>`;
@@ -1798,6 +2034,8 @@ async function submit() {
       locMap: loc.value.trim(),
       notes: el('prf').value.trim(),
       receiptPath: state.receiptPath,
+      lat: state.loc?.lat ?? null,
+      lng: state.loc?.lng ?? null,
     });
     remember(result);
     trackBooked(visit.id);

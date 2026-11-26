@@ -17,7 +17,7 @@
    وبقيت الأصول على حالها: بصمتُها تكفيها.
 */
 
-const VERSION = 'v56';
+const VERSION = 'v57';
 const SHELL = `shell-${VERSION}`;
 
 const ASSETS = [
@@ -56,7 +56,7 @@ const ASSETS = [
 
   // وسائط الواجهة الجديدة: الصور والفيديوهات جزء من القشرة، فبدونها
   // تفتح الصفحة بلا خلفيات في بيت العميلة حيث لا شبكة.
-  './assets/brand/hero_still.jpg',
+  './assets/brand/hero_still-1170.webp',
   './assets/brand/logo_dark.png',
   './assets/brand/mark_sm.png',
   './assets/fonts/readex-pro-arabic-500-normal.woff2',
@@ -72,13 +72,13 @@ const ASSETS = [
   './assets/fonts/ibm-plex-sans-arabic-latin-600-normal.woff2',
   './assets/fonts/ibm-plex-sans-arabic-latin-700-normal.woff2',
   './assets/brand/logo_light.png',
-  './assets/brand/dust_a.jpg',
-  './assets/brand/dust_light.jpg',
+  './assets/brand/dust_a.webp',
+  './assets/brand/dust_light.webp',
   './assets/brand/riyal.png',
-  './assets/brand/pst_bridal.jpg',
-  './assets/brand/pst_evening.jpg',
-  './assets/brand/thumb_bridal.jpg',
-  './assets/brand/thumb_evening.jpg',
+  './assets/brand/pst_bridal.webp',
+  './assets/brand/pst_evening.webp',
+  './assets/brand/thumb_bridal.webp',
+  './assets/brand/thumb_evening.webp',
   './assets/brand/svc_bridal.mp4',
   './assets/brand/svc_evening.mp4',
 ];

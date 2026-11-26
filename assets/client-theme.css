@@ -45,7 +45,7 @@ button{border:0;background:none;cursor:pointer}
   position:absolute;inset:0;z-index:60;pointer-events:none;opacity:.34;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
 }
-.veil{position:absolute;inset:0;z-index:55;pointer-events:none;opacity:0;background:url("brand/dust_a.jpg") center/cover no-repeat;mix-blend-mode:screen}
+.veil{position:absolute;inset:0;z-index:55;pointer-events:none;opacity:0;background:url("brand/dust_a.webp") center/cover no-repeat;mix-blend-mode:screen}
 .veil.flash{animation:dust .52s ease-out}
 @keyframes dust{0%{opacity:0;transform:scale(1.16)}28%{opacity:.3}100%{opacity:0;transform:scale(1)}}
 
@@ -496,6 +496,13 @@ button{border:0;background:none;cursor:pointer}
 .field.ok{border-color:var(--clay);background:rgba(176,112,92,.07)}
 .err{margin:7px 2px 0;font-size:10.5px;line-height:1.7;color:#a8493f;display:none}
 .err.on{display:block}
+/* الموقع السليم كان يمرّ صامتًا، والصمت يُقرأ «لم يُفحص». فسطرٌ يبقى تحت
+   الحقل بعد أن تُغلق النافذة: اسم الحيّ وحكمُه. */
+.loc-ok{margin:7px 2px 0;padding:8px 10px;border:1px solid rgba(95,115,89,.34);
+  background:rgba(95,115,89,.08);font-size:10.5px;line-height:1.7;color:#4a5b45;
+  display:flex;align-items:center;gap:7px}
+.loc-ok[hidden]{display:none}
+.loc-ok svg{flex:0 0 auto}
 .field input{width:100%;border:0;background:none;outline:none;padding:6px 0 2px;font-size:15px}
 .field input::placeholder{color:rgba(43,28,22,.28)}
 .field.phone{display:grid;grid-template-columns:1fr auto;align-items:end;gap:10px}
@@ -844,3 +851,13 @@ button{border:0;background:none;cursor:pointer}
 .t-pill.bad{background:rgba(168,73,63,.12);border-color:rgba(168,73,63,.4);color:#a8493f}
 .link-box{display:flex;gap:8px;align-items:center;border:1px solid var(--line-l);background:rgba(255,255,255,.7);padding:8px 10px}
 .link-box input{flex:1;min-width:0;border:0;background:none;outline:none;direction:ltr;font-size:11px;color:var(--ink)}
+
+/* بنودُ نافذة الموقع: الصندوق موسَّطٌ والبنودُ قائمة، فتُصفّ إلى اليمين
+   في لوحٍ خاصّ — نصٌّ موسَّط بنقاطٍ يُقرأ ركامًا لا قائمة. */
+.rcpt-modal .terms{margin:12px 0 0;padding:11px 13px 11px 11px;list-style:none;
+  text-align:right;background:rgba(43,28,22,.045);border:1px solid var(--line-l);
+  display:flex;flex-direction:column;gap:7px}
+.rcpt-modal .terms li{font-size:13px;line-height:1.65;color:var(--ink);
+  position:relative;padding-inline-start:14px}
+.rcpt-modal .terms li::before{content:'';position:absolute;inset-inline-start:2px;top:7px;
+  width:5px;height:5px;border-radius:50%;background:var(--clay)}

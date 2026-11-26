@@ -2,7 +2,7 @@
 # بمجموعاتها وصفوفها بترتيبها، والأيقونات والعناوين والأسهم على خطٍّ واحد، والسطر تحت كلّ صفٍّ
 # من الإعدادات نفسها؛ ومفتاح «استقبال حجوزات جديدة» يُحفظ لحظة الضغط والإيقاف يسأل أوّلًا؛ وكلّ
 # صفحةٍ تحفظ أعمدتها وحدها وتردّ الخطأ قبل الإرسال؛ والخروج بتغييرٍ لم يُحفظ يسأل؛ والعميلات
-# والزوّار صفحةٌ بزرّين؛ واشتراطات الأحياء تحت رابط الموقع في المختبر وحده — على ٣٦٠ و٣٩٠ و٤٤٠.
+# والزوّار صفحةٌ بزرّين؛ واشتراطات الأحياء تحت رابط الموقع — على ٣٦٠ و٣٩٠ و٤٤٠.
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import harness as _H
@@ -14,7 +14,6 @@ class H(http.server.SimpleHTTPRequestHandler):
 srv = socketserver.TCPServer(("127.0.0.1", 0), functools.partial(H, directory=ROOT))
 PORT = srv.server_address[1]; threading.Thread(target=srv.serve_forever, daemon=True).start()
 MOCK = open(os.path.join(ROOT, "dev/mock-supabase.js"), encoding="utf-8").read()
-LAB = "function renderHoods" in open(os.path.join(ROOT, "admin.html"), encoding="utf-8").read()
 
 GROUPS = ["الحجز", "الخدمات والمال", "التواصل", "العميلات والزوّار", "البيانات"]
 ROWS = [("hours", "أوقات العمل"), ("exceptions", "الإجازات والاستثناءات"), ("rules", "قواعد الحجز"),
@@ -22,7 +21,7 @@ ROWS = [("hours", "أوقات العمل"), ("exceptions", "الإجازات و�
         ("messages", "الرسائل"), ("numbers", "أرقام التواصل"), ("page", "صفحة الحجز"),
         ("clients", "العميلات"), ("visitors", "الزوّار"), ("backup", "النسخ الاحتياطي"), ("delete", "حذف الحجوزات")]
 SUMS = {"hours": "4 أيام في الأسبوع", "rules": "مهلة 4 ساعات · حتى 120 يومًا",
-        "location": "رابط الموقع اختياري" + (" · فحص الأحياء مطفأ" if LAB else ""),
+        "location": "رابط الموقع اختياري · فحص الأحياء مطفأ",
         "services": "3 خدمات · خصم المجموعة 100", "deposit": "الراجحي · فحص الإيصال مطفأ",
         "messages": "3 رسائل · التلقائي في وضع المعاينة", "numbers": "واتساب 050 111 2222",
         "page": "إيمان آل موسى · إنستقرام وتيك توك", "backup": "لم تُؤخذ نسخةٌ بعد"}
@@ -67,7 +66,6 @@ async def fresh(pg):
 async def main():
   async with async_playwright() as p:
     b = await p.chromium.launch(**_H.CHROME, args=["--no-sandbox"])
-    print(f"== {'المختبر' if LAB else 'الجذر'}")
     for vw, vh in ((360, 740), (390, 844), (440, 900)):
       T = f"[{vw}] "
       ctx, pg, errs = await page(b, vw, vh)
@@ -211,14 +209,11 @@ async def main():
         rec(T + "و«احفظي واخرجي» تحفظ ثمّ تعود للقائمة", len(up) == 1 and up[0]["max_advance_days"] == 90
             and await pg.evaluate("()=>document.querySelectorAll('.setrow').length") == 13, str(up))
 
-        # ── المختبر وحده: اشتراطات الأحياء تحت رابط الموقع ───────────────
+        # ── اشتراطات الأحياء تحت رابط الموقع (رُقّيت إلى الحيّ في ٢٦ نوفمبر ٢٠٢٦) ──
         await _H.open_settings(pg, "location", 1000)
         order = await pg.evaluate("""()=>{const r=document.getElementById('set-reqmap'), h=document.getElementById('h-on');
             return [!!r, !!h, r&&h ? !!(r.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING) : null]}""")
-        if LAB:
-          rec(T + "المختبر: اشتراطات الأحياء في صفحة الموقع بعد رابط الموقع", order == [True, True, True], str(order))
-        else:
-          rec(T + "الجذر: صفحة الموقع فيها رابط الموقع وحده (الأحياء لم تُرقَّ)", order[:2] == [True, False], str(order))
+        rec(T + "اشتراطات الأحياء في صفحة الموقع بعد رابط الموقع", order == [True, True, True], str(order))
         await _H.open_settings(pg, "rules", 800)
         await pg.screenshot(path=f"{_H.SHOTS}/23-settings-rules.png", full_page=True)
       rec(T + "لا خطأ في الصفحة", not errs, "; ".join(errs[:2]))
