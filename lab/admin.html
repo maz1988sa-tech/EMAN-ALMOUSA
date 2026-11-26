@@ -2320,7 +2320,8 @@ function renderHoods() {
 
     <div class="card mb">
       <div class="field" style="margin:0"><label class="label" for="h-try">جرّبي موقعًا</label>
-        <input class="input ltr" id="h-try" type="url" placeholder="https://maps.app.goo.gl/…"></div>
+        <input class="input ltr" id="h-try" type="url" inputmode="url" dir="ltr" autocomplete="off"
+               autocapitalize="off" spellcheck="false" placeholder="https://maps.app.goo.gl/…"></div>
       <p class="hint">الصقي رابطًا من الخرائط لترَي ما تراه العميلة — بلا إشعال الفحص عليها.</p>
       <div class="split">
         <div class="field" style="margin:0"><label class="label" for="h-try-s">الخدمة</label>
@@ -2361,10 +2362,31 @@ function renderHoods() {
   const hWarn = document.getElementById('h-warn');
   hWarn.hidden = !!s.loc_check_enabled;
 
+  /* اللصق في هذه الخانة على آيفون لم يكن يُدخل الرابط (٢٦ نوفمبر ٢٠٢٦)، وخانة صفحة الحجز تقبله
+     على الجوال نفسه وفي سفاري نفسه — وهذه وحدها كانت بلا dir="ltr" من خانات الروابط. فصار لها
+     dir كأخواتها، ولم يُترك الرابط لطريقٍ واحد: نصُّ اللصق يُقرأ من الحدث نفسه فيُكتب ويُفحص لحظته
+     ولو لم يُدخله المتصفّح، و«افحصي» والخانة فارغة تقرأ الحافظة (فيعرض آيفون «لصق» يُضغط مرّة).
+     والرابط يُستخرج من نصٍّ قد يأتي معه اسم المكان، كما ينسخه تطبيق الخرائط. */
   const tryOut = document.getElementById('h-try-out');
-  document.getElementById('h-try-go').onclick = async (ev) => {
-    const b = ev.currentTarget;
-    const url = document.getElementById('h-try').value.trim();
+  const tryIn = document.getElementById('h-try');
+  const tryGo = document.getElementById('h-try-go');
+  const linkOf = (t) => { const m = String(t || '').match(/https?:\/\/\S+/i); return m ? m[0] : String(t || '').trim(); };
+  tryIn.addEventListener('paste', (e) => {
+    const t = e.clipboardData?.getData('text/plain') || e.clipboardData?.getData('text') || '';
+    if (!t.trim()) return;               // لا نصّ في الحدث: يُترك اللصق للمتصفّح
+    e.preventDefault();
+    tryIn.value = linkOf(t);
+    runTry();
+  });
+  tryGo.onclick = async () => {
+    if (!tryIn.value.trim() && navigator.clipboard?.readText) {
+      try { tryIn.value = linkOf(await navigator.clipboard.readText()); } catch { /* رفضت أو لا حافظة */ }
+    }
+    runTry();
+  };
+  async function runTry() {
+    const b = tryGo;
+    const url = linkOf(tryIn.value);
     if (!url) { tryOut.innerHTML = note('الصقي رابطًا أوّلًا'); return; }
     const n = Math.max(1, Number(document.getElementById('h-try-n').value) || 1);
     const sid = document.getElementById('h-try-s')?.value || null;
@@ -2380,7 +2402,7 @@ function renderHoods() {
       }
     } catch (e) { tryOut.innerHTML = note(isOffline(e) ? NET_MSG : e.message); }
     finally { b.disabled = false; hydrateIcons(tryOut); }
-  };
+  }
 
   document.getElementById('h-on').onchange = async (ev) => {
     const on = ev.currentTarget.checked;

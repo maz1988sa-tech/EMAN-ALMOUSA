@@ -525,6 +525,54 @@ async def main():
         rec("ورابطٌ تعذّر فكُّه يُقال سببه لا يُترك صامتًا",
             "تعذّر قراءة موقع" in t2, t2.replace("\n", " ")[:80])
 
+        # ── اللصق في المجرِّب (٢٦ نوفمبر ٢٠٢٦): على آيفون لم يكن يُدخل الرابط في الخانة، وخانة صفحة
+        # الحجز تقبله على الجوال نفسه وفي سفاري نفسه — وهذه وحدها كانت بلا dir="ltr". فالخانة تحمل
+        # dir كأخواتها، والرابط يُقرأ من حدث اللصق نفسه، و«افحصي» والخانة فارغة تقرأ الحافظة.
+        a = await pg.evaluate("""()=>{const i=document.getElementById('h-try');
+            return {dir:i.getAttribute('dir'), im:i.getAttribute('inputmode'), type:i.type}}""")
+        rec("خانة المجرِّب تحمل dir=ltr وinputmode=url كخانة صفحة الحجز",
+            a == {"dir": "ltr", "im": "url", "type": "url"}, str(a))
+
+        n0 = await pg.evaluate("()=>(window.__LOCCHK||[]).length")
+        await pg.evaluate("""()=>{window.__RESOLVE__=null;
+            window.__LOC__={state:'ok',checked:true,district:'حي الملقا'};
+            const i=document.getElementById('h-try'); i.value=''; i.focus();
+            const dt=new DataTransfer();
+            dt.setData('text/plain','حي الملقا، الرياض\\nhttps://www.google.com/maps/@24.7946,46.5858,15z');
+            window.__PASTE_DFLT__=i.dispatchEvent(new ClipboardEvent('paste',
+              {clipboardData:dt,bubbles:true,cancelable:true}));}""")
+        await pg.wait_for_timeout(900)
+        pz = await pg.evaluate("""()=>({v:document.getElementById('h-try').value,
+            out:(document.getElementById('h-try-out').innerText||'').trim(),
+            n:(window.__LOCCHK||[]).length, dflt:window.__PASTE_DFLT__})""")
+        rec("اللصق يكتب الرابط وحده في الخانة ولو جاء معه اسم المكان",
+            pz["v"] == "https://www.google.com/maps/@24.7946,46.5858,15z", pz["v"])
+        rec("ويُفحص لحظته بلا ضغط «افحصي»",
+            pz["n"] == n0 + 1 and "حي الملقا" in pz["out"], f"{n0}→{pz['n']} {pz['out'][:60]}")
+        rec("والصفحة تكتبه بنفسها فلا يُدخله المتصفّح فوقه مرّةً ثانية", pz["dflt"] is False, str(pz["dflt"]))
+
+        await pg.evaluate("""()=>{const i=document.getElementById('h-try'); i.value='';
+            Object.defineProperty(navigator,'clipboard',{configurable:true,
+              value:{readText:()=>Promise.resolve('https://www.google.com/maps/@24.6254,46.5251,15z')}});
+            window.__LOC__={state:'blocked',checked:true,district:'حي ظهرة لبن',min_people:2,
+                            message:'هذا الموقع نخدمه لحجزٍ من شخصين فأكثر.'};
+            document.getElementById('h-try-go').click();}""")
+        await pg.wait_for_timeout(900)
+        cb = await pg.evaluate("""()=>({v:document.getElementById('h-try').value,
+            out:(document.getElementById('h-try-out').innerText||'').trim()})""")
+        rec("و«افحصي» والخانة فارغة تقرأ الحافظة فتفحص ما فيها",
+            cb["v"].endswith("@24.6254,46.5251,15z") and "ظهرة لبن" in cb["out"],
+            f"{cb['v'][-22:]} | {cb['out'][:50]}")
+
+        await pg.evaluate("""()=>{const i=document.getElementById('h-try'); i.value='';
+            Object.defineProperty(navigator,'clipboard',{configurable:true,
+              value:{readText:()=>Promise.reject(new Error('NotAllowedError'))}});
+            document.getElementById('h-try-go').click();}""")
+        await pg.wait_for_timeout(600)
+        nb = await pg.evaluate("""()=>{delete navigator.clipboard;
+            return (document.getElementById('h-try-out').innerText||'').trim()}""")
+        rec("فإن رُفضت الحافظة قيل «الصقي رابطًا أوّلًا» كما كان", "الصقي رابطًا أوّلًا" in nb, nb[:60])
+
         # ── مجموعة جديدة: اختيار أحياء + حكم + تسعيرة ──────────────────
         await pg.evaluate("()=>document.getElementById('h-new').click()")
         await pg.wait_for_timeout(700)
