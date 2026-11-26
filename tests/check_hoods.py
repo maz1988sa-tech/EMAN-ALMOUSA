@@ -352,6 +352,9 @@ async def main():
             document.getElementById('locModalWa').click();}""")
         t2 = waText(await pg.evaluate("()=>document.getElementById('locModalWa').getAttribute('href')"))
         rec("وتُبنى لحظة الضغط: اسمٌ كُتب بعد النافذة يدخلها", "الاسم: سارة" in t2, " ".join(t2.split("\n")[1:2]))
+        e = await pg.evaluate("()=>(document.getElementById('locErr').textContent||'').trim()")
+        rec("وتحت الحقل سببُها بندُها المانع لا رسالةُ المجموعة الطويلة",
+            e == "الخدمة تُقدَّم لعميلتين أو أكثر", e[:60])
         await ctx.close()
 
         ctx, pg, w = await win({"state": "reject", "checked": True, "district": "حي عكاظ", "group_name": "لا نخدم هنا",

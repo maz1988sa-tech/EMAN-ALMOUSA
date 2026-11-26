@@ -1749,10 +1749,13 @@ async function runLocCheck() {
   const waFor = (reason, sub = '') => (waBase
     ? () => `${waBase}?text=${encodeURIComponent(locWaText(r, reason, sub))}` : null);
   if (r.state === 'reject' || r.state === 'blocked') {
+    /* الموقوفة بالأقسام: سببُها تحت الحقل بندُها المانع لا رسالةُ المجموعة الطويلة — ما أُخرج من
+       النافذة لا يعود تحتها بالأحمر. */
+    const structured = r.state === 'blocked' && locStructured(r);
+    const why = structured ? minLine(Number(r.min_people) || 2) : '';
     state.loc = { lat: pt.lat, lng: pt.lng, checked: true, blocked: true, reason: r.state,
-                  district: r.district, message: r.message };
-    if (r.state === 'blocked' && locStructured(r)) {
-      const why = minLine(Number(r.min_people) || 2);
+                  district: r.district, message: structured ? why : r.message };
+    if (structured) {
       locModal('bad', { title: r.district || 'هذا الموقع', sub: locSub(r),
                         sections: locSections(r, true), wa: waFor(why, locSub(r)) });
     } else {
